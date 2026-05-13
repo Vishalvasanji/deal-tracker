@@ -3,9 +3,6 @@
 import { useState, useTransition } from 'react'
 import { type Deal, STAGES, DEAL_TYPES } from '@/lib/db/schema'
 import { updateDeal } from '@/lib/actions'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -14,9 +11,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/notes'
-import { Save } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 interface Props { deal: Deal }
+
+const inputCls = 'w-full h-9 px-3 rounded-xl bg-muted/50 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all'
+const labelCls = 'text-[11px] font-semibold text-muted-foreground uppercase tracking-wide'
 
 export function DealProperties({ deal }: Props) {
   const [form, setForm] = useState({
@@ -62,17 +62,18 @@ export function DealProperties({ deal }: Props) {
       })
       setDirty(false)
       setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
     })
   }
 
-  const field = (label: string, key: keyof typeof form, type = 'text') => (
-    <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
+  const Field = ({ label, name, type = 'text' }: { label: string; name: keyof typeof form; type?: string }) => (
+    <div className="space-y-1.5">
+      <label className={labelCls}>{label}</label>
+      <input
         type={type}
-        value={form[key]}
-        onChange={(e) => set(key, e.target.value)}
-        className="h-8 text-sm"
+        value={form[name]}
+        onChange={(e) => set(name, e.target.value)}
+        className={inputCls}
       />
     </div>
   )
@@ -80,75 +81,88 @@ export function DealProperties({ deal }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Properties</h2>
-        {dirty && (
-          <Button size="sm" onClick={save} disabled={isPending}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {isPending ? 'Saving…' : 'Save'}
-          </Button>
-        )}
-        {saved && !dirty && (
-          <span className="text-xs text-green-600">Saved</span>
-        )}
+        <h2 className="text-sm font-semibold text-foreground">Properties</h2>
+        <div className="flex items-center gap-2">
+          {saved && (
+            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+              <Check className="h-3 w-3" /> Saved
+            </span>
+          )}
+          {dirty && (
+            <button
+              onClick={save}
+              disabled={isPending}
+              className="h-7 px-3 rounded-lg bg-primary text-white text-xs font-medium transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-50"
+            >
+              {isPending ? 'Saving…' : 'Save'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="space-y-1 sm:col-span-2 lg:col-span-2">
-          <Label className="text-xs text-muted-foreground">Name</Label>
-          <Input
+        {/* Name full width */}
+        <div className="space-y-1.5 sm:col-span-2">
+          <label className={labelCls}>Name</label>
+          <input
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
-            className="h-8 text-sm font-medium"
+            className={inputCls + ' font-medium'}
           />
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Stage</Label>
-          <Select value={form.stage} onValueChange={(v) => set('stage', v ?? 'Sourcing')}>
-            <SelectTrigger className="h-8 text-sm">
+        {/* Stage */}
+        <div className="space-y-1.5">
+          <label className={labelCls}>Stage</label>
+          <Select value={form.stage} onValueChange={(v) => set('stage', v ?? form.stage)}>
+            <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               {STAGES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
-        {field('Location', 'location')}
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Deal Type</Label>
+        <Field label="Location" name="location" />
+
+        {/* Deal Type */}
+        <div className="space-y-1.5">
+          <label className={labelCls}>Deal Type</label>
           <Select value={form.deal_type} onValueChange={(v) => set('deal_type', v ?? '')}>
-            <SelectTrigger className="h-8 text-sm">
+            <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
               <SelectValue placeholder="—" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               {DEAL_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        {field('Size', 'size')}
 
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Budget</Label>
-          <Input
+        <Field label="Size" name="size" />
+
+        {/* Budget */}
+        <div className="space-y-1.5">
+          <label className={labelCls}>Budget</label>
+          <input
             type="number"
             value={form.budget}
             onChange={(e) => set('budget', e.target.value)}
-            className="h-8 text-sm"
+            className={inputCls}
             placeholder="0"
           />
           {form.budget && (
-            <p className="text-xs text-muted-foreground">{formatCurrency(parseFloat(form.budget))}</p>
+            <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(parseFloat(form.budget))}</p>
           )}
         </div>
 
-        {field('LOI Date', 'loi_date', 'date')}
-        {field('Target Close', 'target_close', 'date')}
-        {field('Target Completion', 'target_completion', 'date')}
-        {field('Broker', 'broker')}
-        {field('Partner', 'partner')}
-        {field('Lender', 'lender')}
-        {field('General Contractor', 'gc')}
+        <Field label="LOI Date" name="loi_date" type="date" />
+        <Field label="Target Close" name="target_close" type="date" />
+        <Field label="Target Completion" name="target_completion" type="date" />
+        <Field label="Broker" name="broker" />
+        <Field label="Partner" name="partner" />
+        <Field label="Lender" name="lender" />
+        <Field label="General Contractor" name="gc" />
       </div>
     </div>
   )

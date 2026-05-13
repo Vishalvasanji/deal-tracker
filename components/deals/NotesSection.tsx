@@ -4,31 +4,29 @@ import { useState, useTransition, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { appendNote } from '@/lib/actions'
 import { parseNotes, type NoteEntry } from '@/lib/notes'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Props { dealId: string; initialNotes: string }
 
 function NoteCard({ entry }: { entry: NoteEntry }) {
-  const [expanded, setExpanded] = useState(true)
+  const [open, setOpen] = useState(true)
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="rounded-xl border border-black/[0.06] overflow-hidden bg-white">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2 bg-muted/30 hover:bg-muted/60 transition-colors text-left"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-black/[0.02] transition-colors text-left"
       >
-        <div>
-          <span className="text-xs text-muted-foreground font-mono mr-2">{entry.date}</span>
-          {entry.title && <span className="text-sm font-medium">{entry.title}</span>}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">{entry.date}</span>
+          {entry.title && <span className="text-sm font-semibold text-foreground">{entry.title}</span>}
         </div>
-        {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        {open
+          ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
       </button>
-      {expanded && entry.body && (
-        <div className="px-4 py-3 prose prose-sm max-w-none">
+      {open && entry.body && (
+        <div className="px-4 pb-4 pt-1 prose prose-sm max-w-none prose-p:text-muted-foreground prose-p:leading-relaxed prose-headings:text-foreground prose-strong:text-foreground prose-li:text-muted-foreground border-t border-black/[0.04]">
           <ReactMarkdown>{entry.body}</ReactMarkdown>
         </div>
       )}
@@ -37,7 +35,7 @@ function NoteCard({ entry }: { entry: NoteEntry }) {
 }
 
 export function NotesSection({ dealId, initialNotes }: Props) {
-  const [notes, setNotes] = useState(initialNotes)
+  const [notes] = useState(initialNotes)
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
   const formRef = useRef<HTMLFormElement>(null)
@@ -49,11 +47,8 @@ export function NotesSection({ dealId, initialNotes }: Props) {
     const fd = new FormData(e.currentTarget)
     const body = (fd.get('body') as string)?.trim()
     if (!body) return
-
     startTransition(async () => {
       await appendNote(dealId, fd)
-      // optimistic: re-fetch or reload; for simplicity, reload page data
-      // The server action calls revalidatePath, Next.js will refresh server data
       formRef.current?.reset()
       setShowForm(false)
     })
@@ -62,56 +57,61 @@ export function NotesSection({ dealId, initialNotes }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Notes & Thoughts
-        </h2>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
+        <h2 className="text-sm font-semibold text-foreground">Notes & Thoughts</h2>
+        <button
           onClick={() => setShowForm((v) => !v)}
+          className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-all border border-black/[0.06]"
         >
-          <Plus className="h-3.5 w-3.5 mr-1" />
+          <Plus className="h-3 w-3" />
           Add note
-        </Button>
+        </button>
       </div>
 
       {showForm && (
-        <form ref={formRef} onSubmit={handleAdd} className="border rounded-lg p-4 space-y-3 bg-muted/20">
+        <form ref={formRef} onSubmit={handleAdd} className="rounded-xl border border-primary/20 bg-primary/[0.02] p-4 space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="note-title" className="text-xs">Title (optional)</Label>
-            <Input id="note-title" name="title" placeholder="Site visit, LOI accepted, …" className="h-8 text-sm" />
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Title (optional)</label>
+            <input
+              name="title"
+              placeholder="Site visit, LOI accepted, call recap…"
+              className="w-full h-9 px-3 rounded-xl bg-white border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+            />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="note-body" className="text-xs">Body *</Label>
-            <Textarea
-              id="note-body"
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Body *</label>
+            <textarea
               name="body"
               placeholder="Markdown supported…"
               rows={4}
               required
-              className="text-sm font-mono"
               autoFocus
+              className="w-full px-3 py-2.5 rounded-xl bg-white border border-border text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all resize-none"
             />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={isPending}>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="h-8 px-4 rounded-xl bg-primary text-white text-xs font-medium transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-50"
+            >
               {isPending ? 'Saving…' : 'Append note'}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="h-8 px-3 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-all"
+            >
               Cancel
-            </Button>
+            </button>
           </div>
         </form>
       )}
 
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic py-4">No notes yet.</p>
+        <p className="text-sm text-muted-foreground italic py-6 text-center">No notes yet.</p>
       ) : (
         <div className="space-y-2">
-          {entries.map((entry, i) => (
-            <NoteCard key={i} entry={entry} />
-          ))}
+          {entries.map((entry, i) => <NoteCard key={i} entry={entry} />)}
         </div>
       )}
     </div>

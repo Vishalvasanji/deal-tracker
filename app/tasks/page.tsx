@@ -1,17 +1,16 @@
 import { db } from '@/lib/db'
 import { tasks, deals } from '@/lib/db/schema'
-import { ne, eq, asc, desc, sql } from 'drizzle-orm'
+import { eq, asc, sql } from 'drizzle-orm'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import { TaskRowActions } from '@/components/tasks/TaskRowActions'
 import { CalendarView } from '@/components/tasks/CalendarView'
 
-const PRIORITY_COLORS: Record<string, string> = {
-  High: 'bg-red-100 text-red-700 border-red-200',
-  Med: 'bg-amber-100 text-amber-700 border-amber-200',
-  Low: 'bg-slate-100 text-slate-600 border-slate-200',
+const PRIORITY_PILL: Record<string, string> = {
+  High: 'bg-red-50 text-red-500',
+  Med:  'bg-amber-50 text-amber-500',
+  Low:  'bg-slate-100 text-slate-500',
 }
 
 async function getAllTasks() {
@@ -35,64 +34,40 @@ async function getAllTasks() {
 
 type TaskRow = Awaited<ReturnType<typeof getAllTasks>>[number]
 
-function TaskTable({ rows, showDeal = true }: { rows: TaskRow[]; showDeal?: boolean }) {
+function TaskList({ rows, showDeal = true }: { rows: TaskRow[]; showDeal?: boolean }) {
+  if (rows.length === 0) {
+    return <p className="text-center text-muted-foreground text-sm italic py-10">No tasks.</p>
+  }
   return (
-    <div className="border rounded-lg overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">Task</th>
-            {showDeal && (
-              <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">Deal</th>
-            )}
-            <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">Status</th>
-            <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">Priority</th>
-            <th className="py-2 px-3 text-left text-xs font-medium text-muted-foreground">Due</th>
-            <th className="py-2 px-3 w-8" />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((t) => (
-            <tr key={t.id} className={cn('border-b hover:bg-muted/30', t.status === 'Done' && 'opacity-60')}>
-              <td className="py-2 px-3 text-sm max-w-[240px]">
-                <div className="truncate">{t.title}</div>
-                {t.notes && <div className="text-xs text-muted-foreground truncate">{t.notes}</div>}
-              </td>
-              {showDeal && (
-                <td className="py-2 px-3">
-                  <Link
-                    href={`/deals/${t.deal_id}`}
-                    className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-                  >
-                    {t.deal_deal_id ?? t.deal_id}
-                  </Link>
-                </td>
+    <div className="divide-y divide-black/[0.04]">
+      {rows.map((t) => (
+        <div key={t.id} className={cn('flex items-center gap-3 px-5 py-3 group hover:bg-muted/20 transition-colors', t.status === 'Done' && 'opacity-50')}>
+          <div className="flex-1 min-w-0">
+            <p className={cn('text-sm text-foreground font-medium', t.status === 'Done' && 'line-through text-muted-foreground')}>
+              {t.title}
+            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              {showDeal && t.deal_deal_id && (
+                <Link href={`/deals/${t.deal_id}`} className="text-[11px] text-muted-foreground hover:text-primary transition-colors">
+                  {t.deal_deal_id}
+                </Link>
               )}
-              <td className="py-2 px-3">
-                <span className="text-xs text-muted-foreground">{t.status}</span>
-              </td>
-              <td className="py-2 px-3">
-                <Badge className={cn('text-xs border', PRIORITY_COLORS[t.priority] ?? '')} variant="outline">
-                  {t.priority}
-                </Badge>
-              </td>
-              <td className="py-2 px-3 text-xs text-muted-foreground">
-                {t.due_date ?? '—'}
-              </td>
-              <td className="py-2 px-3">
-                <TaskRowActions taskId={t.id} status={t.status} dealId={t.deal_id} />
-              </td>
-            </tr>
-          ))}
-          {rows.length === 0 && (
-            <tr>
-              <td colSpan={6} className="py-8 text-center text-muted-foreground text-sm italic">
-                No tasks.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+              {t.notes && <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">{t.notes}</span>}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PRIORITY_PILL[t.priority] ?? ''}`}>
+              {t.priority}
+            </span>
+            <span className="text-xs text-muted-foreground">{t.status}</span>
+            {t.due_date && (
+              <span className="text-[11px] text-muted-foreground tabular-nums hidden sm:inline">{t.due_date}</span>
+            )}
+            <TaskRowActions taskId={t.id} status={t.status} dealId={t.deal_id} />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -108,66 +83,75 @@ export default async function TasksPage() {
       return a.due_date.localeCompare(b.due_date)
     })
 
-  const done = all.filter((t) => t.status === 'Done').sort((a, b) => {
-    if (!a.completed_at && !b.completed_at) return 0
-    if (!a.completed_at) return 1
-    if (!b.completed_at) return -1
-    return b.completed_at.localeCompare(a.completed_at)
-  })
+  const done = all
+    .filter((t) => t.status === 'Done')
+    .sort((a, b) => {
+      if (!a.completed_at && !b.completed_at) return 0
+      if (!a.completed_at) return 1
+      if (!b.completed_at) return -1
+      return b.completed_at.localeCompare(a.completed_at)
+    })
 
-  // Group by deal for "By Deal" tab
   const byDeal = new Map<string, { dealName: string; dealDealId: string; tasks: TaskRow[] }>()
   for (const t of open) {
     if (!byDeal.has(t.deal_id)) {
-      byDeal.set(t.deal_id, {
-        dealName: t.deal_name ?? t.deal_id,
-        dealDealId: t.deal_deal_id ?? '',
-        tasks: [],
-      })
+      byDeal.set(t.deal_id, { dealName: t.deal_name ?? t.deal_id, dealDealId: t.deal_deal_id ?? '', tasks: [] })
     }
     byDeal.get(t.deal_id)!.tasks.push(t)
   }
 
   return (
-    <div className="p-4 space-y-4 max-w-[1200px] mx-auto">
-      <h1 className="text-lg font-semibold">Tasks</h1>
+    <div className="p-6 space-y-5 max-w-[1000px] mx-auto">
+      <div>
+        <h1 className="text-lg font-semibold text-foreground">Tasks</h1>
+        <p className="text-sm text-muted-foreground">{open.length} open</p>
+      </div>
 
       <Tabs defaultValue="open">
-        <TabsList>
-          <TabsTrigger value="open">Open ({open.length})</TabsTrigger>
-          <TabsTrigger value="by-deal">By Deal</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="done">Done ({done.length})</TabsTrigger>
+        <TabsList className="rounded-xl bg-black/[0.04] p-0.5 h-auto gap-0.5">
+          {[
+            { value: 'open', label: `Open (${open.length})` },
+            { value: 'by-deal', label: 'By Deal' },
+            { value: 'calendar', label: 'Calendar' },
+            { value: 'done', label: `Done (${done.length})` },
+          ].map(({ value, label }) => (
+            <TabsTrigger key={value} value={value} className="rounded-lg text-xs px-3 py-1.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="open">
-          <TaskTable rows={open} />
+        <TabsContent value="open" className="mt-4">
+          <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] overflow-hidden">
+            <TaskList rows={open} />
+          </div>
         </TabsContent>
 
-        <TabsContent value="by-deal" className="space-y-4">
+        <TabsContent value="by-deal" className="mt-4 space-y-4">
           {[...byDeal.entries()].map(([dealId, group]) => (
-            <div key={dealId}>
-              <Link
-                href={`/deals/${dealId}`}
-                className="text-sm font-semibold hover:underline block mb-1"
-              >
-                {group.dealDealId && <span className="text-muted-foreground mr-1">{group.dealDealId}</span>}
-                {group.dealName}
-              </Link>
-              <TaskTable rows={group.tasks} showDeal={false} />
+            <div key={dealId} className="bg-card rounded-2xl card-shadow border border-black/[0.06] overflow-hidden">
+              <div className="px-5 py-3 border-b border-black/[0.05]">
+                <Link href={`/deals/${dealId}`} className="text-sm font-semibold hover:text-primary transition-colors">
+                  {group.dealDealId && <span className="text-muted-foreground font-normal mr-1.5">{group.dealDealId}</span>}
+                  {group.dealName}
+                </Link>
+              </div>
+              <TaskList rows={group.tasks} showDeal={false} />
             </div>
           ))}
           {byDeal.size === 0 && (
-            <p className="text-muted-foreground text-sm italic text-center py-8">No open tasks.</p>
+            <p className="text-muted-foreground text-sm italic text-center py-10">No open tasks.</p>
           )}
         </TabsContent>
 
-        <TabsContent value="calendar">
+        <TabsContent value="calendar" className="mt-4">
           <CalendarView tasks={open} />
         </TabsContent>
 
-        <TabsContent value="done">
-          <TaskTable rows={done} />
+        <TabsContent value="done" className="mt-4">
+          <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] overflow-hidden">
+            <TaskList rows={done} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

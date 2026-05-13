@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Building2, LayoutDashboard, CheckSquare, LogOut } from 'lucide-react'
+import { LayoutDashboard, Building2, CheckSquare, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const links = [
@@ -18,37 +18,48 @@ export function Nav() {
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
+    router.refresh()
   }
 
   return (
-    <header className="border-b bg-card px-4 py-3 flex items-center gap-6">
-      <span className="font-semibold text-sm tracking-tight text-foreground shrink-0">
-        Deal Tracker
-      </span>
-      <nav className="flex items-center gap-1 flex-1">
-        {links.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-              pathname === href || (href !== '/' && pathname.startsWith(href))
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
-        ))}
-      </nav>
-      <button
-        onClick={logout}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden sm:inline">Logout</span>
-      </button>
+    <header className="sticky top-0 z-50 glass border-b border-black/[0.06]">
+      <div className="max-w-[1400px] mx-auto px-4 h-12 flex items-center gap-6">
+        {/* Logo */}
+        <span className="text-sm font-semibold tracking-tight text-foreground shrink-0 select-none">
+          Deal Tracker
+        </span>
+
+        {/* Nav links */}
+        <nav className="flex items-center gap-0.5 flex-1">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 select-none',
+                  active
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-black/[0.04]'
+                )}
+              >
+                <Icon className="h-[15px] w-[15px]" />
+                {label}
+              </Link>
+            )
+          })}
+        </nav>
+
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150 select-none"
+        >
+          <LogOut className="h-[15px] w-[15px]" />
+          <span className="hidden sm:inline">Sign out</span>
+        </button>
+      </div>
     </header>
   )
 }

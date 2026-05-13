@@ -9,11 +9,14 @@ export default async function PipelinePage() {
   const allDeals = await db.select().from(deals)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-57px)]">
-      <div className="flex items-center justify-between px-4 py-2 border-b">
-        <h1 className="text-base font-semibold">Pipeline Board</h1>
-        <Link href="/deals/new" className={buttonVariants({ size: 'sm' })}>
-          <Plus className="h-4 w-4 mr-1" />
+    <div className="flex flex-col h-[calc(100vh-48px)]">
+      <div className="flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur border-b border-black/[0.06]">
+        <div>
+          <h1 className="text-sm font-semibold text-foreground">Pipeline</h1>
+          <p className="text-xs text-muted-foreground">{allDeals.length} deal{allDeals.length !== 1 ? 's' : ''}</p>
+        </div>
+        <Link href="/deals/new" className={buttonVariants({ size: 'sm' }) + ' rounded-xl shadow-sm shadow-primary/20'}>
+          <Plus className="h-3.5 w-3.5 mr-1" />
           New Deal
         </Link>
       </div>

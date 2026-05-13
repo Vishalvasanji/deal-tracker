@@ -16,49 +16,65 @@ import Link from 'next/link'
 import { STAGES, type Stage, type Deal } from '@/lib/db/schema'
 import { updateDealStage } from '@/lib/actions'
 import { formatCurrency } from '@/lib/notes'
-import { Badge } from '@/components/ui/badge'
 
 const STAGE_COLORS: Record<string, string> = {
-  Sourcing: 'bg-slate-100 text-slate-700',
-  Feasibility: 'bg-blue-100 text-blue-700',
-  'Site Control': 'bg-violet-100 text-violet-700',
-  DD: 'bg-amber-100 text-amber-700',
-  'Capital Stack': 'bg-orange-100 text-orange-700',
-  'State Application': 'bg-pink-100 text-pink-700',
-  Permitting: 'bg-rose-100 text-rose-700',
-  Construction: 'bg-emerald-100 text-emerald-700',
-  Operations: 'bg-green-100 text-green-700',
+  Sourcing:          'bg-slate-100 text-slate-600',
+  Feasibility:       'bg-blue-100 text-blue-600',
+  'Site Control':    'bg-violet-100 text-violet-600',
+  DD:                'bg-amber-100 text-amber-600',
+  'Capital Stack':   'bg-orange-100 text-orange-600',
+  'State Application':'bg-pink-100 text-pink-600',
+  Permitting:        'bg-rose-100 text-rose-600',
+  Construction:      'bg-emerald-100 text-emerald-600',
+  Operations:        'bg-green-100 text-green-600',
 }
 
-function DealCard({ deal, isDragging }: { deal: Deal; isDragging?: boolean }) {
+const TYPE_COLORS: Record<string, string> = {
+  Multifamily:  'bg-blue-50 text-blue-500',
+  Retail:       'bg-amber-50 text-amber-500',
+  Office:       'bg-violet-50 text-violet-500',
+  Industrial:   'bg-slate-100 text-slate-500',
+  'Mixed-Use':  'bg-teal-50 text-teal-500',
+  Land:         'bg-green-50 text-green-500',
+  Other:        'bg-gray-50 text-gray-500',
+}
+
+function DealCard({ deal, isDragging, overlay }: { deal: Deal; isDragging?: boolean; overlay?: boolean }) {
   return (
     <div
-      className={`bg-card border rounded-lg p-3 shadow-sm space-y-1.5 cursor-grab active:cursor-grabbing ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`
+        bg-white rounded-2xl border border-black/[0.06] p-3.5 space-y-2.5
+        transition-all duration-150 select-none
+        ${overlay ? 'shadow-2xl shadow-black/10 rotate-1 scale-[1.02]' : 'card-shadow hover:shadow-md hover:border-black/[0.09]'}
+        ${isDragging ? 'opacity-40' : ''}
+        cursor-grab active:cursor-grabbing
+      `}
     >
       <Link
         href={`/deals/${deal.id}`}
         onClick={(e) => e.stopPropagation()}
-        className="block text-sm font-medium hover:underline leading-snug"
+        className="block text-[13px] font-semibold text-foreground hover:text-primary transition-colors leading-snug"
       >
         {deal.name}
       </Link>
+
       {deal.location && (
-        <p className="text-xs text-muted-foreground truncate">{deal.location}</p>
+        <p className="text-[11px] text-muted-foreground truncate leading-none">{deal.location}</p>
       )}
-      <div className="flex flex-wrap gap-1 pt-0.5">
+
+      <div className="flex flex-wrap items-center gap-1.5">
         {deal.deal_type && (
-          <Badge variant="secondary" className="text-xs px-1.5 py-0">
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${TYPE_COLORS[deal.deal_type] ?? 'bg-gray-50 text-gray-500'}`}>
             {deal.deal_type}
-          </Badge>
+          </span>
         )}
         {deal.size && (
-          <span className="text-xs text-muted-foreground">{deal.size}</span>
+          <span className="text-[11px] text-muted-foreground">{deal.size}</span>
         )}
       </div>
+
       {deal.budget != null && (
-        <p className="text-xs font-medium text-foreground">{formatCurrency(deal.budget)}</p>
+        <p className="text-[12px] font-semibold text-foreground tabular-nums">{formatCurrency(deal.budget)}</p>
       )}
     </div>
   )
@@ -79,20 +95,26 @@ function DraggableCard({ deal }: { deal: Deal }) {
 function Column({ stage, deals }: { stage: Stage; deals: Deal[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage })
   return (
-    <div className="flex flex-col min-w-[220px] w-[220px] shrink-0">
-      <div className="flex items-center justify-between mb-2 px-0.5">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="flex flex-col min-w-[210px] w-[210px] shrink-0">
+      <div className="flex items-center justify-between mb-2.5 px-1">
+        <h3 className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           {stage}
         </h3>
-        <span className="text-xs text-muted-foreground bg-muted rounded-full px-1.5">
-          {deals.length}
-        </span>
+        {deals.length > 0 && (
+          <span className="text-[10px] font-medium text-muted-foreground bg-black/[0.05] rounded-full px-1.5 py-0.5 tabular-nums">
+            {deals.length}
+          </span>
+        )}
       </div>
       <div
         ref={setNodeRef}
-        className={`flex flex-col gap-2 flex-1 min-h-[80px] rounded-lg p-2 transition-colors ${
-          isOver ? 'bg-primary/5 ring-1 ring-primary/20' : 'bg-muted/40'
-        }`}
+        className={`
+          flex flex-col gap-2 flex-1 min-h-[60px] rounded-2xl p-2 transition-all duration-150
+          ${isOver
+            ? 'bg-primary/8 ring-1 ring-primary/20'
+            : 'bg-black/[0.025]'
+          }
+        `}
       >
         {deals.map((d) => (
           <DraggableCard key={d.id} deal={d} />
@@ -108,7 +130,7 @@ export function KanbanBoard({ initialDeals }: { initialDeals: Deal[] }) {
   const [, startTransition] = useTransition()
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   )
 
   const activeDeal = activeId ? dealsState.find((d) => d.id === activeId) : null
@@ -125,13 +147,10 @@ export function KanbanBoard({ initialDeals }: { initialDeals: Deal[] }) {
     if (!deal) return
     const newStage = over.id as Stage
     if (deal.stage === newStage) return
-
     setDealsState((prev) =>
       prev.map((d) => (d.id === deal.id ? { ...d, stage: newStage } : d))
     )
-    startTransition(() => {
-      updateDealStage(deal.id, newStage)
-    })
+    startTransition(() => updateDealStage(deal.id, newStage))
   }
 
   const byStage = STAGES.reduce<Record<string, Deal[]>>((acc, s) => {
@@ -141,13 +160,13 @@ export function KanbanBoard({ initialDeals }: { initialDeals: Deal[] }) {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 p-4 overflow-x-auto h-full">
+      <div className="flex gap-3 p-4 overflow-x-auto h-full">
         {STAGES.map((stage) => (
           <Column key={stage} stage={stage} deals={byStage[stage] ?? []} />
         ))}
       </div>
-      <DragOverlay>
-        {activeDeal ? <DealCard deal={activeDeal} /> : null}
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+        {activeDeal ? <DealCard deal={activeDeal} overlay /> : null}
       </DragOverlay>
     </DndContext>
   )
