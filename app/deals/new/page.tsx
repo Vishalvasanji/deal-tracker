@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createDeal } from '@/lib/actions'
-import { STAGES, DEAL_TYPES, PRODUCT_TYPES } from '@/lib/db/schema'
+import { STAGES, PRODUCT_TYPES } from '@/lib/db/schema'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Select,
@@ -22,14 +22,12 @@ export default function NewDealPage() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [stage, setStage] = useState('Sourcing')
-  const [dealType, setDealType] = useState('')
   const [productType, setProductType] = useState('')
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     fd.set('stage', stage)
-    if (dealType) fd.set('deal_type', dealType)
     if (productType) fd.set('product_type', productType)
     startTransition(async () => {
       const result = await createDeal(fd)
@@ -74,17 +72,6 @@ export default function NewDealPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className={labelCls}>Deal Type</label>
-              <Select value={dealType} onValueChange={(v) => setDealType(v ?? '')}>
-                <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {DEAL_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
               <label className={labelCls}>Product Type</label>
               <Select value={productType} onValueChange={(v) => setProductType(v ?? '')}>
                 <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
@@ -104,10 +91,7 @@ export default function NewDealPage() {
             <Field label="Lot Size" name="lot_size" placeholder="1.6 acres" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Budget (USD)" name="budget" type="number" placeholder="32500000" />
-            <Field label="Development Cost (USD)" name="development_cost" type="number" placeholder="32500000" />
-          </div>
+          <Field label="Development Cost (USD)" name="development_cost" type="number" placeholder="32500000" />
 
           <div className="grid grid-cols-3 gap-3">
             <Field label="LOI Date" name="loi_date" type="date" />
