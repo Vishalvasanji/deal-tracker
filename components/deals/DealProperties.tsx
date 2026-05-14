@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/notes'
-import { Check } from 'lucide-react'
+import { Check, MapPin } from 'lucide-react'
 
 interface Props { deal: Deal }
 
@@ -106,14 +106,27 @@ export function DealProperties({ deal }: Props) {
       {/* Section: Basics */}
       <div className="space-y-3">
         <p className={labelCls + ' text-muted-foreground/60'}>Basics</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="space-y-1.5 sm:col-span-2">
+
+        {/* Row 1: Name · Product Type · Stage */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="space-y-1.5 col-span-2">
             <label className={labelCls}>Name</label>
             <input
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               className={inputCls + ' font-medium'}
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className={labelCls}>Product Type</label>
+            <Select value={form.product_type} onValueChange={(v) => set('product_type', v ?? '')}>
+              <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {PRODUCT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <label className={labelCls}>Stage</label>
@@ -126,17 +139,29 @@ export function DealProperties({ deal }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <Field label="Location" name="location" placeholder="124 Mill St, Asheville, NC 28801" />
-          <div className="space-y-1.5">
-            <label className={labelCls}>Product Type</label>
-            <Select value={form.product_type} onValueChange={(v) => set('product_type', v ?? '')}>
-              <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
-                <SelectValue placeholder="—" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                {PRODUCT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        </div>
+
+        {/* Row 2: Location */}
+        <div className="space-y-1.5">
+          <label className={labelCls}>Location</label>
+          <div className="flex items-center gap-2">
+            <input
+              value={form.location}
+              onChange={(e) => set('location', e.target.value)}
+              placeholder="124 Mill St, Asheville, NC 28801"
+              className={inputCls}
+            />
+            {form.location && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open in Google Maps"
+                className="shrink-0 h-9 w-9 flex items-center justify-center rounded-xl bg-muted/50 border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+              >
+                <MapPin className="h-4 w-4" />
+              </a>
+            )}
           </div>
         </div>
       </div>

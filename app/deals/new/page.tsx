@@ -53,13 +53,23 @@ export default function NewDealPage() {
 
       <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div className="space-y-1.5">
-            <label className={labelCls}>Name *</label>
-            <input name="name" required placeholder="Riverside Lofts — 124 Mill St" className={inputCls + ' font-medium'} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          {/* Row 1: Name · Product Type · Stage */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <label className={labelCls}>Name *</label>
+              <input name="name" required placeholder="Riverside Lofts — 124 Mill St" className={inputCls + ' font-medium'} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Product Type</label>
+              <Select value={productType} onValueChange={(v) => setProductType(v ?? '')}>
+                <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {PRODUCT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1.5">
               <label className={labelCls}>Stage</label>
               <Select value={stage} onValueChange={(v) => setStage(v ?? 'Sourcing')}>
@@ -71,19 +81,9 @@ export default function NewDealPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <label className={labelCls}>Product Type</label>
-              <Select value={productType} onValueChange={(v) => setProductType(v ?? '')}>
-                <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {PRODUCT_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
+          {/* Row 2: Location */}
           <Field label="Location" name="location" placeholder="124 Mill St, Asheville, NC 28801" />
 
           <div className="grid grid-cols-2 gap-3">
