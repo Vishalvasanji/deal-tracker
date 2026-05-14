@@ -58,9 +58,13 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
           <h1 className="text-xl font-bold mt-1 leading-tight text-foreground">{deal.name}</h1>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-sm text-muted-foreground">
             {deal.location && <span>{deal.location}</span>}
-            {deal.size && <span>{deal.size}</span>}
-            {deal.budget != null && (
-              <span className="font-semibold text-foreground tabular-nums">{formatCurrency(deal.budget)}</span>
+            {deal.units != null && <span>{deal.units} units</span>}
+            {deal.lot_size && <span>{deal.lot_size}</span>}
+            {deal.product_type && <span>{deal.product_type}</span>}
+            {(deal.development_cost != null || deal.budget != null) && (
+              <span className="font-semibold text-foreground tabular-nums">
+                {formatCurrency(deal.development_cost ?? deal.budget)}
+              </span>
             )}
           </div>
         </div>

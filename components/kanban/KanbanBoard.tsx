@@ -63,18 +63,23 @@ function DealCard({ deal, isDragging, overlay }: { deal: Deal; isDragging?: bool
       )}
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {deal.deal_type && (
-          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${TYPE_COLORS[deal.deal_type] ?? 'bg-gray-50 text-gray-500'}`}>
-            {deal.deal_type}
+        {deal.product_type && (
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${TYPE_COLORS[deal.deal_type ?? ''] ?? 'bg-gray-50 text-gray-500'}`}>
+            {deal.product_type}
           </span>
         )}
-        {deal.size && (
-          <span className="text-[11px] text-muted-foreground">{deal.size}</span>
+        {deal.units != null && (
+          <span className="text-[11px] text-muted-foreground">{deal.units} units</span>
+        )}
+        {deal.lot_size && (
+          <span className="text-[11px] text-muted-foreground">{deal.lot_size}</span>
         )}
       </div>
 
-      {deal.budget != null && (
-        <p className="text-[12px] font-semibold text-foreground tabular-nums">{formatCurrency(deal.budget)}</p>
+      {(deal.development_cost != null || deal.budget != null) && (
+        <p className="text-[12px] font-semibold text-foreground tabular-nums">
+          {formatCurrency(deal.development_cost ?? deal.budget)}
+        </p>
       )}
     </div>
   )

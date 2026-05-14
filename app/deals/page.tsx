@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatCurrency } from '@/lib/notes'
 import { Plus } from 'lucide-react'
 import { TimelineView } from '@/components/deals/TimelineView'
+import { PRODUCT_TYPES } from '@/lib/db/schema'
 
 const STAGE_PILL: Record<string, string> = {
   Sourcing:           'bg-slate-100 text-slate-600',
@@ -56,12 +57,15 @@ export default async function DealsPage() {
       </td>
       <td className="py-3 px-4 text-sm text-muted-foreground">{d.location ?? '—'}</td>
       <td className="py-3 px-4">
-        {d.deal_type
+        {d.product_type
+          ? <span className="text-[11px] font-medium text-muted-foreground">{d.product_type}</span>
+          : d.deal_type
           ? <span className="text-[11px] font-medium text-muted-foreground">{d.deal_type}</span>
           : <span className="text-muted-foreground">—</span>}
       </td>
-      <td className="py-3 px-4 text-sm text-muted-foreground">{d.size ?? '—'}</td>
-      <td className="py-3 px-4 text-sm font-medium tabular-nums">{formatCurrency(d.budget)}</td>
+      <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.units != null ? `${d.units} units` : '—'}</td>
+      <td className="py-3 px-4 text-sm text-muted-foreground">{d.lot_size ?? '—'}</td>
+      <td className="py-3 px-4 text-sm font-medium tabular-nums">{formatCurrency(d.development_cost ?? d.budget)}</td>
       {extra}
     </tr>
   )
@@ -97,7 +101,7 @@ export default async function DealsPage() {
             <table className="w-full">
               <thead className="border-b border-black/[0.05]">
                 <tr>
-                  {['Deal', 'Stage', 'Location', 'Type', 'Size', 'Budget', 'Close', 'Open Tasks'].map(h => <Th key={h} label={h} />)}
+                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'Close', 'Open Tasks'].map(h => <Th key={h} label={h} />)}
                 </tr>
               </thead>
               <tbody>
@@ -126,7 +130,7 @@ export default async function DealsPage() {
             <table className="w-full">
               <thead className="border-b border-black/[0.05]">
                 <tr>
-                  {['Deal', 'Stage', 'Location', 'Type', 'Size', 'Budget', 'LOI', 'Close', 'Completion'].map(h => <Th key={h} label={h} />)}
+                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'LOI', 'Close', 'Completion'].map(h => <Th key={h} label={h} />)}
                 </tr>
               </thead>
               <tbody>

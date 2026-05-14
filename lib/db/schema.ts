@@ -1,4 +1,4 @@
-import { sqliteTable, text, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 export const STAGES = [
@@ -25,6 +25,9 @@ export const DEAL_TYPES = [
 ] as const
 export type DealType = (typeof DEAL_TYPES)[number]
 
+export const PRODUCT_TYPES = ['Multifamily', 'Townhome', 'SF Homes'] as const
+export type ProductType = (typeof PRODUCT_TYPES)[number]
+
 export const TASK_STATUSES = ['To Do', 'In Progress', 'Done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
@@ -38,8 +41,12 @@ export const deals = sqliteTable('deals', {
   stage: text('stage').notNull().default('Sourcing'),
   location: text('location'),
   deal_type: text('deal_type'),
+  product_type: text('product_type'),
+  lot_size: text('lot_size'),
+  units: integer('units'),
   size: text('size'),
   budget: real('budget'),
+  development_cost: real('development_cost'),
   loi_date: text('loi_date'),
   target_close: text('target_close'),
   target_completion: text('target_completion'),

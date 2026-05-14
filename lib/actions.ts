@@ -19,7 +19,8 @@ export async function updateDealStage(dealId: string, stage: Stage) {
 
 export async function updateDeal(dealId: string, data: Record<string, unknown>) {
   const allowed = [
-    'name', 'stage', 'location', 'deal_type', 'size', 'budget',
+    'name', 'stage', 'location', 'deal_type', 'product_type',
+    'lot_size', 'units', 'size', 'budget', 'development_cost',
     'loi_date', 'target_close', 'target_completion', 'broker',
     'partner', 'lender', 'gc', 'overview',
   ]
@@ -73,8 +74,12 @@ export async function createDeal(formData: FormData) {
     stage: (formData.get('stage') as Stage) ?? 'Sourcing',
     location: (formData.get('location') as string) || null,
     deal_type: (formData.get('deal_type') as string) || null,
+    product_type: (formData.get('product_type') as string) || null,
+    lot_size: (formData.get('lot_size') as string) || null,
+    units: formData.get('units') ? parseInt(formData.get('units') as string, 10) : null,
     size: (formData.get('size') as string) || null,
     budget: budget ? parseFloat(budget) : null,
+    development_cost: formData.get('development_cost') ? parseFloat(formData.get('development_cost') as string) : null,
     loi_date: (formData.get('loi_date') as string) || null,
     target_close: (formData.get('target_close') as string) || null,
     target_completion: (formData.get('target_completion') as string) || null,

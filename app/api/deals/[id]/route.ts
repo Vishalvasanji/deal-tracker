@@ -26,7 +26,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const body = await request.json()
   const allowed = [
-    'name', 'stage', 'location', 'deal_type', 'size', 'budget',
+    'name', 'stage', 'location', 'deal_type', 'product_type',
+    'lot_size', 'units', 'size', 'budget', 'development_cost',
     'loi_date', 'target_close', 'target_completion', 'broker',
     'partner', 'lender', 'gc', 'overview', 'notes',
   ]
