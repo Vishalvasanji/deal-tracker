@@ -37,7 +37,7 @@ export default async function PipelinePage() {
 
   // ── KPI calculations ────────────────────────────────────────────────────────
   const totalDeals = allDeals.length
-  const activeDeals = allDeals.filter((d) => d.stage !== 'Operations').length
+  const totalUnits = allDeals.reduce((sum, d) => sum + (d.units ?? 0), 0)
   const openTasks = openTaskRows[0]?.count ?? 0
 
   const knownCostDeals = allDeals.filter((d) => !d.cost_tbd && d.development_cost != null)
@@ -63,7 +63,7 @@ export default async function PipelinePage() {
 
   const kpis = [
     { label: 'Total Deals', value: totalDeals.toString() },
-    { label: 'Active', value: activeDeals.toString() },
+    { label: 'Units', value: totalUnits.toLocaleString() },
     {
       label: 'Pipeline Value',
       value: knownCostDeals.length ? formatCurrency(pipelineValue) : '—',
