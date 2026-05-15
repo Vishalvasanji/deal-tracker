@@ -60,12 +60,14 @@ function CurrencyField({
   onChange,
   onBlur,
   placeholder = '',
+  disabled = false,
 }: {
   label: string
   rawValue: string
   onChange: (v: string) => void
   onBlur: () => void
   placeholder?: string
+  disabled?: boolean
 }) {
   const [focused, setFocused] = useState(false)
 
@@ -88,10 +90,11 @@ function CurrencyField({
         inputMode="decimal"
         value={display}
         onChange={handleChange}
-        onFocus={() => setFocused(true)}
+        onFocus={() => !disabled && setFocused(true)}
         onBlur={() => { setFocused(false); onBlur() }}
         placeholder={placeholder}
-        className={inputCls}
+        disabled={disabled}
+        className={inputCls + (disabled ? ' opacity-40 cursor-not-allowed' : '')}
       />
     </div>
   )
@@ -108,6 +111,7 @@ type FormState = {
   lot_size: string
   units: string
   development_cost: string
+  cost_tbd: boolean
   loi_date: string
   target_close: string
   target_completion: string
@@ -126,6 +130,7 @@ export function DealProperties({ deal }: Props) {
     lot_size: deal.lot_size ?? '',
     units: deal.units?.toString() ?? '',
     development_cost: deal.development_cost?.toString() ?? '',
+    cost_tbd: deal.cost_tbd === 1,
     loi_date: deal.loi_date ?? '',
     target_close: deal.target_close ?? '',
     target_completion: deal.target_completion ?? '',
@@ -152,7 +157,10 @@ export function DealProperties({ deal }: Props) {
       startTransition(async () => {
         await updateDeal(deal.id, {
           ...snapshot,
-          development_cost: snapshot.development_cost
+          cost_tbd: snapshot.cost_tbd ? 1 : 0,
+          development_cost: snapshot.cost_tbd
+            ? null
+            : snapshot.development_cost
             ? parseFloat(snapshot.development_cost)
             : null,
           units: snapshot.units ? parseInt(snapshot.units, 10) : null,
@@ -302,13 +310,45 @@ export function DealProperties({ deal }: Props) {
       <div className="space-y-3">
         <p className={labelCls + ' text-muted-foreground/60'}>Financials</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <CurrencyField
-            label="Development Cost"
-            rawValue={form.development_cost}
-            onChange={(v) => set('development_cost', v)}
-            onBlur={handleBlur}
-            placeholder="$0"
-          />
+          <div className="space-y-2">
+            <CurrencyField
+              label="Development Cost"
+              rawValue={form.cost_tbd ? '' : form.development_cost}
+              onChange={(v) => set('development_cost', v)}
+              onBlur={handleBlur}
+              placeholder={form.cost_tbd ? 'TBD' : '$0'}
+              disabled={form.cost_tbd}
+            />
+            {/* Cost TBD checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer group w-fit">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  checked={form.cost_tbd}
+                  onChange={(e) => {
+                    const next = { ...formRef.current, cost_tbd: e.target.checked }
+                    setForm(next)
+                    persist(next)
+                  }}
+                  className="sr-only"
+                />
+                <div className={`w-4 h-4 rounded flex items-center justify-center border-2 transition-all ${
+                  form.cost_tbd
+                    ? 'bg-primary border-primary'
+                    : 'border-border group-hover:border-primary/50'
+                }`}>
+                  {form.cost_tbd && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors select-none">
+                Cost TBD — yet to be modeled
+              </span>
+            </label>
+          </div>
         </div>
       </div>
     </div>

@@ -61,7 +61,9 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
             {deal.units != null && <span>{deal.units} units</span>}
             {deal.lot_size && <span>{deal.lot_size}</span>}
             {deal.product_type && <span>{deal.product_type}</span>}
-            {(deal.development_cost != null || deal.budget != null) && (
+            {deal.cost_tbd ? (
+              <span className="font-semibold text-foreground italic">TBD</span>
+            ) : (deal.development_cost != null || deal.budget != null) && (
               <span className="font-semibold text-foreground tabular-nums">
                 {formatCurrency(deal.development_cost ?? deal.budget)}
               </span>

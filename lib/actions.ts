@@ -20,7 +20,7 @@ export async function updateDealStage(dealId: string, stage: Stage) {
 export async function updateDeal(dealId: string, data: Record<string, unknown>) {
   const allowed = [
     'name', 'stage', 'location', 'deal_type', 'product_type',
-    'lot_size', 'units', 'size', 'budget', 'development_cost',
+    'lot_size', 'units', 'size', 'budget', 'development_cost', 'cost_tbd',
     'loi_date', 'target_close', 'target_completion', 'broker',
     'partner', 'lender', 'gc', 'overview',
   ]

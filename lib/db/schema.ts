@@ -47,6 +47,7 @@ export const deals = sqliteTable('deals', {
   size: text('size'),
   budget: real('budget'),
   development_cost: real('development_cost'),
+  cost_tbd: integer('cost_tbd').notNull().default(0),
   loi_date: text('loi_date'),
   target_close: text('target_close'),
   target_completion: text('target_completion'),

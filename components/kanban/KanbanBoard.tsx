@@ -80,7 +80,7 @@ export function KanbanBoard({ initialDeals, nextTaskMap }: Props) {
                           {d.units != null ? `${d.units}u` : '—'}
                         </td>
                         <td className="py-3 px-4 text-sm font-medium tabular-nums">
-                          {formatCurrency(d.development_cost ?? d.budget)}
+                          {d.cost_tbd ? <span className="text-muted-foreground italic">TBD</span> : formatCurrency(d.development_cost ?? d.budget)}
                         </td>
                         <td className="py-3 px-4">
                           {nextTaskMap[d.id] ? (

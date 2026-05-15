@@ -76,7 +76,9 @@ export default async function DealsPage() {
       </td>
       <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.units != null ? `${d.units} units` : '—'}</td>
       <td className="py-3 px-4 text-sm text-muted-foreground">{d.lot_size ?? '—'}</td>
-      <td className="py-3 px-4 text-sm font-medium tabular-nums">{formatCurrency(d.development_cost ?? d.budget)}</td>
+      <td className="py-3 px-4 text-sm font-medium tabular-nums">
+        {d.cost_tbd ? <span className="text-muted-foreground italic">TBD</span> : formatCurrency(d.development_cost ?? d.budget)}
+      </td>
       {nextTask && (
         <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px] truncate">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50 mr-1.5">Next</span>
