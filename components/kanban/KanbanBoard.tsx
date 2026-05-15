@@ -47,7 +47,8 @@ export function KanbanBoard({ initialDeals, nextTaskMap }: Props) {
               </span>
             </div>
 
-            {/* Table — table-fixed + colgroup keeps widths identical across all stages */}
+            {/* Table — only shown when stage has deals */}
+            {stageDeals.length > 0 && (
             <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] overflow-x-auto">
               <table className="w-full table-fixed">
                 <colgroup>
@@ -63,14 +64,7 @@ export function KanbanBoard({ initialDeals, nextTaskMap }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {stageDeals.length === 0 ? (
-                    <tr>
-                      <td colSpan={COL_HEADERS.length} className="py-4 px-4 text-sm text-muted-foreground/40 italic">
-                        No deals in this stage.
-                      </td>
-                    </tr>
-                  ) : (
-                    stageDeals.map((d) => (
+                    {stageDeals.map((d) => (
                       <tr key={d.id} className="border-b border-black/[0.04] hover:bg-black/[0.015] transition-colors">
                         <td className="py-3 px-4">
                           <Link
@@ -99,11 +93,11 @@ export function KanbanBoard({ initialDeals, nextTaskMap }: Props) {
                           )}
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )
       })}
