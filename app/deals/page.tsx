@@ -29,6 +29,17 @@ export default async function DealsPage() {
     .where(ne(tasks.status, 'Done'))
     .groupBy(tasks.deal_id)
 
+  const firstTasks = await db
+    .select({ deal_id: tasks.deal_id, title: tasks.title })
+    .from(tasks)
+    .where(ne(tasks.status, 'Done'))
+    .orderBy(tasks.created_at)
+
+  const nextTaskMap: Record<string, string> = {}
+  for (const t of firstTasks) {
+    if (!nextTaskMap[t.deal_id]) nextTaskMap[t.deal_id] = t.title
+  }
+
   const countMap = Object.fromEntries(taskCounts.map((r) => [r.deal_id, r.count]))
   const active = allDeals.filter((d) => d.stage !== 'Operations')
   const stageOrder = Object.fromEntries(STAGES.map((s, i) => [s, i]))
@@ -42,7 +53,7 @@ export default async function DealsPage() {
     </th>
   )
 
-  const Row = ({ d, extra }: { d: typeof allDeals[0]; extra?: React.ReactNode }) => (
+  const Row = ({ d, extra, nextTask }: { d: typeof allDeals[0]; extra?: React.ReactNode; nextTask?: string }) => (
     <tr key={d.id} className="border-b border-black/[0.04] hover:bg-black/[0.015] transition-colors group">
       <td className="py-3 px-4">
         <Link href={`/deals/${d.id}`} className="font-medium text-sm text-foreground hover:text-primary transition-colors">
@@ -66,6 +77,13 @@ export default async function DealsPage() {
       <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.units != null ? `${d.units} units` : '—'}</td>
       <td className="py-3 px-4 text-sm text-muted-foreground">{d.lot_size ?? '—'}</td>
       <td className="py-3 px-4 text-sm font-medium tabular-nums">{formatCurrency(d.development_cost ?? d.budget)}</td>
+      {nextTask && (
+        <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px] truncate">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50 mr-1.5">Next</span>
+          {nextTask}
+        </td>
+      )}
+      {!nextTask && <td className="py-3 px-4 text-muted-foreground">—</td>}
       {extra}
     </tr>
   )
@@ -101,12 +119,12 @@ export default async function DealsPage() {
             <table className="w-full">
               <thead className="border-b border-black/[0.05]">
                 <tr>
-                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'Close', 'Open Tasks'].map(h => <Th key={h} label={h} />)}
+                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'Next Task', 'Close', 'Open Tasks'].map(h => <Th key={h} label={h} />)}
                 </tr>
               </thead>
               <tbody>
                 {sortedActive.map((d) => (
-                  <Row key={d.id} d={d} extra={
+                  <Row key={d.id} d={d} nextTask={nextTaskMap[d.id]} extra={
                     <>
                       <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.target_close ?? '—'}</td>
                       <td className="py-3 px-4">
@@ -130,12 +148,12 @@ export default async function DealsPage() {
             <table className="w-full">
               <thead className="border-b border-black/[0.05]">
                 <tr>
-                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'LOI', 'Close', 'Completion'].map(h => <Th key={h} label={h} />)}
+                  {['Deal', 'Stage', 'Location', 'Product Type', 'Units', 'Lot Size', 'Dev Cost', 'Next Task', 'LOI', 'Close', 'Completion'].map(h => <Th key={h} label={h} />)}
                 </tr>
               </thead>
               <tbody>
                 {allDeals.map((d) => (
-                  <Row key={d.id} d={d} extra={
+                  <Row key={d.id} d={d} nextTask={nextTaskMap[d.id]} extra={
                     <>
                       <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.loi_date ?? '—'}</td>
                       <td className="py-3 px-4 text-sm text-muted-foreground tabular-nums">{d.target_close ?? '—'}</td>
