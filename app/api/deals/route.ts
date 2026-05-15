@@ -11,14 +11,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') ?? '50', 10)
 
   let query = db
-    .select({
-      id: deals.id,
-      deal_id: deals.deal_id,
-      name: deals.name,
-      stage: deals.stage,
-      location: deals.location,
-      deal_type: deals.deal_type,
-    })
+    .select()
     .from(deals)
     .$dynamic()
 
