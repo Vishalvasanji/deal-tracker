@@ -1,8 +1,25 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useCallback } from 'react'
 import { type Task, TASK_PRIORITIES } from '@/lib/db/schema'
 import { createTask, updateTaskStatus, deleteTask } from '@/lib/actions'
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  closestCenter,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   Select,
   SelectContent,
@@ -11,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, GripVertical } from 'lucide-react'
 
 const PRIORITY_PILL: Record<string, string> = {
   High: 'bg-red-50 text-red-500',
@@ -21,25 +38,201 @@ const PRIORITY_PILL: Record<string, string> = {
 
 interface Props { dealId: string; initialTasks: Task[] }
 
+function applyStoredOrder(tasks: Task[], dealId: string): Task[] {
+  try {
+    const raw = localStorage.getItem(`task-order:${dealId}`)
+    if (!raw) return tasks
+    const ids: string[] = JSON.parse(raw)
+    const map = new Map(tasks.map((t) => [t.id, t]))
+    const ordered: Task[] = []
+    for (const id of ids) {
+      if (map.has(id)) { ordered.push(map.get(id)!); map.delete(id) }
+    }
+    // append any new tasks not in stored order
+    for (const t of map.values()) ordered.push(t)
+    return ordered
+  } catch {
+    return tasks
+  }
+}
+
+function saveOrder(tasks: Task[], dealId: string) {
+  try {
+    localStorage.setItem(`task-order:${dealId}`, JSON.stringify(tasks.map((t) => t.id)))
+  } catch {}
+}
+
+// ── Sortable row ─────────────────────────────────────────────────────────────
+function SortableRow({
+  task,
+  onToggle,
+  onRemove,
+  isDragging: isBeingDragged,
+}: {
+  task: Task
+  onToggle: (t: Task) => void
+  onRemove: (id: string) => void
+  isDragging?: boolean
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-center gap-2 px-3 py-2.5 group rounded-xl transition-colors hover:bg-muted/30',
+        task.status === 'Done' && 'opacity-50',
+        isBeingDragged && 'cursor-grabbing',
+      )}
+    >
+      {/* drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="shrink-0 text-muted-foreground/30 hover:text-muted-foreground transition-colors cursor-grab active:cursor-grabbing touch-none"
+        tabIndex={-1}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+
+      {/* checkbox */}
+      <button
+        onClick={() => onToggle(task)}
+        className={cn(
+          'w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all',
+          task.status === 'Done'
+            ? 'bg-primary border-primary'
+            : 'border-border hover:border-primary/50',
+        )}
+      >
+        {task.status === 'Done' && (
+          <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+
+      {/* title */}
+      <div className="flex-1 min-w-0">
+        <p className={cn('text-sm text-foreground leading-snug', task.status === 'Done' && 'line-through text-muted-foreground')}>
+          {task.title}
+        </p>
+        {task.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{task.notes}</p>}
+      </div>
+
+      {/* meta */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PRIORITY_PILL[task.priority] ?? 'bg-gray-50 text-gray-500'}`}>
+          {task.priority}
+        </span>
+        {task.due_date && (
+          <span className="text-[11px] text-muted-foreground tabular-nums">{task.due_date}</span>
+        )}
+        <button
+          onClick={() => onRemove(task.id)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Ghost card shown while dragging
+function DragGhost({ task }: { task: Task }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card border border-primary/20 shadow-lg shadow-black/10">
+      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+      <div className="w-4 h-4 rounded-full border-2 border-border shrink-0" />
+      <p className="text-sm text-foreground leading-snug">{task.title}</p>
+      <span className={`ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PRIORITY_PILL[task.priority] ?? 'bg-gray-50 text-gray-500'}`}>
+        {task.priority}
+      </span>
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export function TasksSection({ dealId, initialTasks }: Props) {
-  const [tasks, setTasks] = useState(initialTasks)
+  const [tasks, setTasks] = useState<Task[]>(() => initialTasks)
+  const [hydrated, setHydrated] = useState(false)
   const [, startTransition] = useTransition()
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newPriority, setNewPriority] = useState('Med')
   const [newDue, setNewDue] = useState('')
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  // apply stored order after hydration
+  useEffect(() => {
+    setTasks((prev) => applyStoredOrder(prev, dealId))
+    setHydrated(true)
+  }, [dealId])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  )
 
   const open = tasks.filter((t) => t.status !== 'Done')
   const done = tasks.filter((t) => t.status === 'Done')
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveId(e.active.id as string)
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveId(null)
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+
+    setTasks((prev) => {
+      // Only reorder among open tasks; keep done tasks at end
+      const openIds = prev.filter((t) => t.status !== 'Done').map((t) => t.id)
+      const doneItems = prev.filter((t) => t.status === 'Done')
+      const oldIdx = openIds.indexOf(active.id as string)
+      const newIdx = openIds.indexOf(over.id as string)
+      if (oldIdx === -1 || newIdx === -1) return prev
+      const reorderedOpen = arrayMove(openIds, oldIdx, newIdx).map(
+        (id) => prev.find((t) => t.id === id)!,
+      )
+      const next = [...reorderedOpen, ...doneItems]
+      saveOrder(next, dealId)
+      return next
+    })
+  }
 
   function toggleDone(task: Task) {
     const newStatus = task.status === 'Done' ? 'To Do' : 'Done'
-    setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, status: newStatus } : t))
+    setTasks((prev) => {
+      const next = prev.map((t) => t.id === task.id ? { ...t, status: newStatus } : t)
+      saveOrder(next, dealId)
+      return next
+    })
     startTransition(() => updateTaskStatus(task.id, newStatus as 'To Do' | 'Done', dealId))
   }
 
   function remove(taskId: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId))
+    setTasks((prev) => {
+      const next = prev.filter((t) => t.id !== taskId)
+      saveOrder(next, dealId)
+      return next
+    })
     startTransition(() => deleteTask(taskId, dealId))
   }
 
@@ -58,48 +251,6 @@ export function TasksSection({ dealId, initialTasks }: Props) {
 
   const inputCls = 'h-8 px-2.5 rounded-lg bg-muted/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all'
 
-  const Row = ({ task }: { task: Task }) => (
-    <div className={cn('flex items-center gap-3 px-4 py-2.5 group rounded-xl transition-colors hover:bg-muted/30', task.status === 'Done' && 'opacity-50')}>
-      <button
-        onClick={() => toggleDone(task)}
-        className={cn(
-          'w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-all',
-          task.status === 'Done'
-            ? 'bg-primary border-primary'
-            : 'border-border hover:border-primary/50'
-        )}
-      >
-        {task.status === 'Done' && (
-          <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </button>
-
-      <div className="flex-1 min-w-0">
-        <p className={cn('text-sm text-foreground leading-snug', task.status === 'Done' && 'line-through text-muted-foreground')}>
-          {task.title}
-        </p>
-        {task.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{task.notes}</p>}
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${PRIORITY_PILL[task.priority] ?? 'bg-gray-50 text-gray-500'}`}>
-          {task.priority}
-        </span>
-        {task.due_date && (
-          <span className="text-[11px] text-muted-foreground tabular-nums">{task.due_date}</span>
-        )}
-        <button
-          onClick={() => remove(task.id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive ml-1"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </div>
-  )
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -117,10 +268,35 @@ export function TasksSection({ dealId, initialTasks }: Props) {
       </div>
 
       <div className="space-y-0.5">
-        {open.map((t) => <Row key={t.id} task={t} />)}
+        {hydrated && open.length > 0 ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={open.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+              {open.map((t) => (
+                <SortableRow
+                  key={t.id}
+                  task={t}
+                  onToggle={toggleDone}
+                  onRemove={remove}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay>
+              {activeTask ? <DragGhost task={activeTask} /> : null}
+            </DragOverlay>
+          </DndContext>
+        ) : (
+          open.map((t) => (
+            <SortableRow key={t.id} task={t} onToggle={toggleDone} onRemove={remove} />
+          ))
+        )}
 
         {showAdd && (
-          <form onSubmit={handleAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/[0.03] border border-primary/10 flex-wrap">
+          <form onSubmit={handleAdd} className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-primary/[0.03] border border-primary/10 flex-wrap mt-1">
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
@@ -143,14 +319,16 @@ export function TasksSection({ dealId, initialTasks }: Props) {
         )}
 
         {done.length > 0 && open.length > 0 && (
-          <div className="px-4 py-1">
+          <div className="px-3 py-1">
             <div className="border-t border-black/[0.06]" />
           </div>
         )}
-        {done.map((t) => <Row key={t.id} task={t} />)}
+        {done.map((t) => (
+          <SortableRow key={t.id} task={t} onToggle={toggleDone} onRemove={remove} />
+        ))}
       </div>
 
-      {tasks.length === 0 && (
+      {tasks.length === 0 && !showAdd && (
         <p className="text-sm text-muted-foreground italic text-center py-6">No tasks yet.</p>
       )}
     </div>

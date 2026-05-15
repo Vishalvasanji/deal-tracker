@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useCallback } from 'react'
 import { type Deal, STAGES, PRODUCT_TYPES } from '@/lib/db/schema'
 import { updateDeal } from '@/lib/actions'
 import {
@@ -18,8 +18,25 @@ interface Props { deal: Deal }
 const inputCls = 'w-full h-9 px-3 rounded-xl bg-muted/50 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all'
 const labelCls = 'text-[11px] font-semibold text-muted-foreground uppercase tracking-wide'
 
+type FormState = {
+  name: string
+  stage: string
+  location: string
+  product_type: string
+  lot_size: string
+  units: string
+  development_cost: string
+  loi_date: string
+  target_close: string
+  target_completion: string
+  broker: string
+  partner: string
+  lender: string
+  gc: string
+}
+
 export function DealProperties({ deal }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: deal.name,
     stage: deal.stage,
     location: deal.location ?? '',
@@ -35,48 +52,75 @@ export function DealProperties({ deal }: Props) {
     lender: deal.lender ?? '',
     gc: deal.gc ?? '',
   })
-  const [dirty, setDirty] = useState(false)
+  const formRef = useRef(form)
+  formRef.current = form
+
   const [saved, setSaved] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function set(key: string, value: string) {
+  function set(key: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [key]: value }))
-    setDirty(true)
-    setSaved(false)
   }
 
-  function save() {
+  const persist = useCallback((snapshot: FormState) => {
     startTransition(async () => {
       await updateDeal(deal.id, {
-        ...form,
-        development_cost: form.development_cost ? parseFloat(form.development_cost) : null,
-        units: form.units ? parseInt(form.units, 10) : null,
-        product_type: form.product_type || null,
-        location: form.location || null,
-        lot_size: form.lot_size || null,
-        loi_date: form.loi_date || null,
-        target_close: form.target_close || null,
-        target_completion: form.target_completion || null,
-        broker: form.broker || null,
-        partner: form.partner || null,
-        lender: form.lender || null,
-        gc: form.gc || null,
+        ...snapshot,
+        development_cost: snapshot.development_cost ? parseFloat(snapshot.development_cost) : null,
+        units: snapshot.units ? parseInt(snapshot.units, 10) : null,
+        product_type: snapshot.product_type || null,
+        location: snapshot.location || null,
+        lot_size: snapshot.lot_size || null,
+        loi_date: snapshot.loi_date || null,
+        target_close: snapshot.target_close || null,
+        target_completion: snapshot.target_completion || null,
+        broker: snapshot.broker || null,
+        partner: snapshot.partner || null,
+        lender: snapshot.lender || null,
+        gc: snapshot.gc || null,
       })
-      setDirty(false)
       setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      saveTimer.current = setTimeout(() => setSaved(false), 2000)
     })
+  }, [deal.id])
+
+  // text inputs: save on blur
+  function handleBlur() {
+    persist(formRef.current)
   }
 
-  const Field = ({ label, name, type = 'text', placeholder = '' }: { label: string; name: keyof typeof form; type?: string; placeholder?: string }) => (
+  // selects: save immediately on change
+  function setAndSave(key: keyof FormState, value: string) {
+    const next = { ...formRef.current, [key]: value }
+    setForm(next)
+    persist(next)
+  }
+
+  // Reusable text field with auto-save on blur
+  const Field = ({
+    label,
+    name,
+    type = 'text',
+    placeholder = '',
+    className = '',
+  }: {
+    label: string
+    name: keyof FormState
+    type?: string
+    placeholder?: string
+    className?: string
+  }) => (
     <div className="space-y-1.5">
       <label className={labelCls}>{label}</label>
       <input
         type={type}
         value={form[name]}
         onChange={(e) => set(name, e.target.value)}
+        onBlur={handleBlur}
         placeholder={placeholder}
-        className={inputCls}
+        className={inputCls + (className ? ' ' + className : '')}
       />
     </div>
   )
@@ -85,22 +129,11 @@ export function DealProperties({ deal }: Props) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Properties</h2>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-              <Check className="h-3 w-3" /> Saved
-            </span>
-          )}
-          {dirty && (
-            <button
-              onClick={save}
-              disabled={isPending}
-              className="h-7 px-3 rounded-lg bg-primary text-white text-xs font-medium transition-all hover:bg-primary/90 active:scale-[0.97] disabled:opacity-50"
-            >
-              {isPending ? 'Saving…' : 'Save'}
-            </button>
-          )}
-        </div>
+        {(saved || isPending) && (
+          <span className={`flex items-center gap-1 text-xs font-medium transition-opacity ${saved ? 'text-green-600' : 'text-muted-foreground'}`}>
+            {saved ? <><Check className="h-3 w-3" /> Saved</> : 'Saving…'}
+          </span>
+        )}
       </div>
 
       {/* Section: Basics */}
@@ -114,12 +147,13 @@ export function DealProperties({ deal }: Props) {
             <input
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
+              onBlur={handleBlur}
               className={inputCls + ' font-medium'}
             />
           </div>
           <div className="space-y-1.5">
             <label className={labelCls}>Product Type</label>
-            <Select value={form.product_type} onValueChange={(v) => set('product_type', v ?? '')}>
+            <Select value={form.product_type} onValueChange={(v) => setAndSave('product_type', v ?? '')}>
               <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
                 <SelectValue placeholder="—" />
               </SelectTrigger>
@@ -130,7 +164,7 @@ export function DealProperties({ deal }: Props) {
           </div>
           <div className="space-y-1.5">
             <label className={labelCls}>Stage</label>
-            <Select value={form.stage} onValueChange={(v) => set('stage', v ?? form.stage)}>
+            <Select value={form.stage} onValueChange={(v) => setAndSave('stage', v ?? form.stage)}>
               <SelectTrigger className="h-9 text-sm rounded-xl bg-muted/50 border-border">
                 <SelectValue />
               </SelectTrigger>
@@ -148,6 +182,7 @@ export function DealProperties({ deal }: Props) {
             <input
               value={form.location}
               onChange={(e) => set('location', e.target.value)}
+              onBlur={handleBlur}
               placeholder="124 Mill St, Asheville, NC 28801"
               className={inputCls}
             />
@@ -177,6 +212,7 @@ export function DealProperties({ deal }: Props) {
               min="0"
               value={form.units}
               onChange={(e) => set('units', e.target.value)}
+              onBlur={handleBlur}
               placeholder="84"
               className={inputCls}
             />
@@ -195,15 +231,29 @@ export function DealProperties({ deal }: Props) {
               type="number"
               value={form.development_cost}
               onChange={(e) => set('development_cost', e.target.value)}
+              onBlur={handleBlur}
               placeholder="0"
               className={inputCls}
             />
             {form.development_cost && (
-              <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(parseFloat(form.development_cost))}</p>
+              <p className="text-[11px] text-muted-foreground tabular-nums">
+                {formatCurrency(parseFloat(form.development_cost))}
+              </p>
             )}
           </div>
         </div>
       </div>
+
+      {/* Section: Dates */}
+      <div className="space-y-3">
+        <p className={labelCls + ' text-muted-foreground/60'}>Dates</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Field label="LOI Date" name="loi_date" type="date" />
+          <Field label="Target Close" name="target_close" type="date" />
+          <Field label="Target Completion" name="target_completion" type="date" />
+        </div>
+      </div>
+
     </div>
   )
 }

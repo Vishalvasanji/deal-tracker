@@ -80,14 +80,14 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
         <OverviewSection dealId={deal.id} initial={deal.overview ?? ''} />
       </div>
 
-      {/* Notes */}
-      <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-5">
-        <NotesSection dealId={deal.id} initialNotes={deal.notes ?? ''} />
-      </div>
-
       {/* Tasks */}
       <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-5">
         <TasksSection dealId={deal.id} initialTasks={dealTasks} />
+      </div>
+
+      {/* Notes */}
+      <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-5">
+        <NotesSection dealId={deal.id} initialNotes={deal.notes ?? ''} />
       </div>
     </div>
   )
