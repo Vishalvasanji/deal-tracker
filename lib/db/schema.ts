@@ -34,6 +34,9 @@ export type TaskStatus = (typeof TASK_STATUSES)[number]
 export const TASK_PRIORITIES = ['High', 'Med', 'Low'] as const
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 
+export const AMI_RESTRICTIONS = ['20', '30', '40', '50', '60', '70', '80', '120', 'unrestricted'] as const
+export type AmiRestriction = (typeof AMI_RESTRICTIONS)[number]
+
 export const deals = sqliteTable('deals', {
   id: text('id').primaryKey(),
   deal_id: text('deal_id').unique().notNull(),
@@ -75,7 +78,56 @@ export const tasks = sqliteTable('tasks', {
   completed_at: text('completed_at'),
 })
 
+// QAP scalar fields (narrative, project description, etc.)
+export const qapFields = sqliteTable('qap_fields', {
+  id: text('id').primaryKey(),
+  deal_id: text('deal_id')
+    .notNull()
+    .references(() => deals.id, { onDelete: 'cascade' }),
+  section: text('section').notNull(),
+  field_key: text('field_key').notNull(),
+  value: text('value'),
+  updated_at: text('updated_at').default(sql`(datetime('now'))`),
+})
+
+// QAP unit mix rows (up to 30 per deal)
+export const qapUnitTypes = sqliteTable('qap_unit_types', {
+  id: text('id').primaryKey(),
+  deal_id: text('deal_id')
+    .notNull()
+    .references(() => deals.id, { onDelete: 'cascade' }),
+  row_index: integer('row_index').notNull(),
+  label: text('label'),
+  bedrooms: integer('bedrooms'),
+  baths: real('baths'),
+  sqft: integer('sqft'),
+  num_units: integer('num_units'),
+  is_lihtc: integer('is_lihtc').default(1),
+  is_staff: integer('is_staff').default(0),
+  is_subsidy: integer('is_subsidy').default(0),
+  is_psh: integer('is_psh').default(0),
+  ami_restriction: text('ami_restriction').default('60'),
+  monthly_rent: integer('monthly_rent'),
+  updated_at: text('updated_at').default(sql`(datetime('now'))`),
+})
+
+// QAP development cost line items
+export const qapCostItems = sqliteTable('qap_cost_items', {
+  id: text('id').primaryKey(),
+  deal_id: text('deal_id')
+    .notNull()
+    .references(() => deals.id, { onDelete: 'cascade' }),
+  category: text('category').notNull(),
+  line_key: text('line_key').notNull(),
+  label: text('label').notNull(),
+  amount: integer('amount'),
+  updated_at: text('updated_at').default(sql`(datetime('now'))`),
+})
+
 export type Deal = typeof deals.$inferSelect
 export type NewDeal = typeof deals.$inferInsert
 export type Task = typeof tasks.$inferSelect
 export type NewTask = typeof tasks.$inferInsert
+export type QapField = typeof qapFields.$inferSelect
+export type QapUnitType = typeof qapUnitTypes.$inferSelect
+export type QapCostItem = typeof qapCostItems.$inferSelect
