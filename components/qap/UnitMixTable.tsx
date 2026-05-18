@@ -14,8 +14,8 @@ interface Props {
   initialUnits: QapUnitType[]
 }
 
-const cellCls =
-  'border-0 bg-transparent text-sm px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-ring rounded'
+const inputCls =
+  'border-0 bg-transparent text-sm px-2 py-2 w-full focus:outline-none focus:ring-1 focus:ring-ring rounded'
 
 function makeNewRow(dealId: string, rowIndex: number): UnitRow {
   return {
@@ -37,17 +37,10 @@ function makeNewRow(dealId: string, rowIndex: number): UnitRow {
   }
 }
 
-// Derive the display label from bedrooms + baths (mirrors the QAP Excel formula)
 function unitTypeLabel(bedrooms: number | null, baths: number | null): string {
   if (!bedrooms && !baths) return '—'
   return `${bedrooms ?? '?'} BR ${baths ?? '?'} Bath`
 }
-
-// --- paste helpers ---
-// Paste format (Mickens Model blue input cells):
-// Col 0: # BRs | Col 1: # Baths | Col 2: Sqft | Col 3: # Units
-// Col 4: LIHTC | Col 5: Staff Unit | Col 6: Subsidy | Col 7: PSH
-// Col 8: % AMI | Col 9: Net Rent
 
 function parseBoolCol(val: string): number {
   return ['yes', 'y', '1', 'true', 'x', '✓'].includes(val.trim().toLowerCase()) ? 1 : 0
@@ -107,7 +100,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
     const merged = { ...row, ...overrides }
     startTransition(async () => {
       await upsertQapUnitType(dealId, rowIndex, {
-        label: null, // derived by QAP Excel formula — not stored
+        label: null,
         bedrooms: merged.bedrooms,
         baths: merged.baths,
         sqft: merged.sqft,
@@ -203,10 +196,24 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
         )
       : 0
 
-  const thCls = 'text-left text-xs font-semibold text-muted-foreground px-2 py-2 whitespace-nowrap'
+  // Column widths — fixed so nothing truncates
+  const col = {
+    unitType: 'w-36',   // "2 BR 2.5 Bath"
+    brs:      'w-16',   // "2"
+    baths:    'w-16',   // "2.5"
+    sqft:     'w-24',   // "1,100"
+    units:    'w-20',   // "24"
+    flag:     'w-16',   // checkbox columns
+    ami:      'w-28',   // "Not Restricted" dropdown
+    rent:     'w-28',   // "$1,759"
+    del:      'w-10',
+  }
+
+  const thCls = 'text-left text-xs font-semibold text-muted-foreground px-3 py-3 whitespace-nowrap'
+  const tdCls = 'px-2 py-1.5'
 
   return (
-    <div className="space-y-3" onPaste={handlePaste}>
+    <div className="space-y-4" onPaste={handlePaste}>
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-base">Unit Mix & Rents</h2>
         <span className="text-xs text-muted-foreground">
@@ -220,7 +227,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
         </span>
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2.5">
         <ClipboardPaste className="h-3.5 w-3.5 shrink-0" />
         <span>
           Copy the blue input cells from the Mickens Model unit mix tab and paste here (Ctrl+V / ⌘V).
@@ -228,145 +235,151 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
         </span>
       </div>
 
-      <table className="w-full text-sm border-collapse min-w-[860px]">
-        <thead>
-          <tr className="border-b border-border">
-            <th className={thCls + ' text-muted-foreground/50'}>Unit Type</th>
-            <th className={thCls}>BRs</th>
-            <th className={thCls}>Baths</th>
-            <th className={thCls}>Sqft</th>
-            <th className={thCls}># Units</th>
-            <th className={thCls}>LIHTC</th>
-            <th className={thCls}>Staff</th>
-            <th className={thCls}>Sub</th>
-            <th className={thCls}>PSH</th>
-            <th className={thCls}>AMI %</th>
-            <th className={thCls}>Rent/mo</th>
-            <th className={thCls} />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(row => (
-            <tr key={row.row_index} className="border-b border-border/50 hover:bg-muted/30">
-              {/* Unit Type: read-only, derived from BRs + Baths */}
-              <td className="px-2 py-2 text-sm text-muted-foreground whitespace-nowrap">
-                {unitTypeLabel(row.bedrooms, row.baths)}
-              </td>
-              <td className="px-1 py-1 w-14">
-                <input
-                  className={cellCls + ' text-center'}
-                  type="number"
-                  min={0}
-                  max={5}
-                  value={row.bedrooms ?? ''}
-                  onChange={e => updateRow(row.row_index, 'bedrooms', e.target.value)}
-                  onBlur={() => saveRow(row.row_index)}
-                />
-              </td>
-              <td className="px-1 py-1 w-14">
-                <input
-                  className={cellCls + ' text-center'}
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={row.baths ?? ''}
-                  onChange={e => updateRow(row.row_index, 'baths', e.target.value)}
-                  onBlur={() => saveRow(row.row_index)}
-                />
-              </td>
-              <td className="px-1 py-1 w-20">
-                <input
-                  className={cellCls + ' text-right'}
-                  type="number"
-                  value={row.sqft ?? ''}
-                  onChange={e => updateRow(row.row_index, 'sqft', e.target.value)}
-                  onBlur={() => saveRow(row.row_index)}
-                />
-              </td>
-              <td className="px-1 py-1 w-16">
-                <input
-                  className={cellCls + ' text-center'}
-                  type="number"
-                  min={0}
-                  value={row.num_units ?? ''}
-                  onChange={e => updateRow(row.row_index, 'num_units', e.target.value)}
-                  onBlur={() => saveRow(row.row_index)}
-                />
-              </td>
-              {(['is_lihtc', 'is_staff', 'is_subsidy', 'is_psh'] as const).map(flag => (
-                <td key={flag} className="px-1 py-1 text-center w-10">
+      <div className="overflow-x-auto rounded-lg border border-border/50">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className={`${thCls} ${col.unitType} text-muted-foreground/60`}>Unit Type</th>
+              <th className={`${thCls} ${col.brs} text-center`}>BRs</th>
+              <th className={`${thCls} ${col.baths} text-center`}>Baths</th>
+              <th className={`${thCls} ${col.sqft} text-right`}>Sqft</th>
+              <th className={`${thCls} ${col.units} text-center`}># Units</th>
+              <th className={`${thCls} ${col.flag} text-center`}>LIHTC</th>
+              <th className={`${thCls} ${col.flag} text-center`}>Staff</th>
+              <th className={`${thCls} ${col.flag} text-center`}>Sub</th>
+              <th className={`${thCls} ${col.flag} text-center`}>PSH</th>
+              <th className={`${thCls} ${col.ami}`}>AMI %</th>
+              <th className={`${thCls} ${col.rent} text-right`}>Rent / mo</th>
+              <th className={`${thCls} ${col.del}`} />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr key={row.row_index} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
+                {/* Unit Type — read-only */}
+                <td className={`${tdCls} ${col.unitType} text-sm text-muted-foreground whitespace-nowrap pl-3`}>
+                  {unitTypeLabel(row.bedrooms, row.baths)}
+                </td>
+                {/* BRs */}
+                <td className={`${tdCls} ${col.brs}`}>
                   <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded"
-                    checked={(row[flag] ?? 0) === 1}
-                    onChange={e => {
-                      const newVal = e.target.checked ? 1 : 0
-                      updateRow(row.row_index, flag, String(newVal))
-                      saveRow(row.row_index, { [flag]: newVal })
-                    }}
+                    className={inputCls + ' text-center'}
+                    type="number" min={0} max={5}
+                    value={row.bedrooms ?? ''}
+                    onChange={e => updateRow(row.row_index, 'bedrooms', e.target.value)}
+                    onBlur={() => saveRow(row.row_index)}
                   />
                 </td>
-              ))}
-              <td className="px-1 py-1 w-28">
-                <select
-                  className={cellCls}
-                  value={row.ami_restriction ?? '60'}
-                  onChange={e => {
-                    updateRow(row.row_index, 'ami_restriction', e.target.value)
-                    saveRow(row.row_index, { ami_restriction: e.target.value })
-                  }}
-                >
-                  {AMI_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>
-                      {opt === 'unrestricted' ? 'Not Restricted' : `${opt}%`}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className="px-1 py-1 w-24">
-                <input
-                  className={cellCls + ' text-right'}
-                  type="number"
-                  value={row.monthly_rent ?? ''}
-                  onChange={e => updateRow(row.row_index, 'monthly_rent', e.target.value)}
-                  onBlur={() => saveRow(row.row_index)}
-                  placeholder="$"
-                />
-              </td>
-              <td className="px-1 py-1 w-8">
-                <button
-                  onClick={() => handleDelete(row)}
-                  className="text-muted-foreground hover:text-rose-500 transition-colors p-1"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        {rows.length > 0 && (
-          <tfoot>
-            <tr className="border-t-2 border-border font-medium">
-              <td className="px-2 py-2 text-xs text-muted-foreground" colSpan={4}>
-                Totals
-              </td>
-              <td className="px-2 py-2 text-center text-sm">{totalUnits}</td>
-              <td className="px-2 py-2 text-center text-xs text-muted-foreground">
-                {lihtcUnits} LIHTC
-              </td>
-              <td colSpan={4} />
-              <td className="px-2 py-2 text-right text-sm">
-                {avgRent > 0 ? `$${avgRent.toLocaleString()} avg` : ''}
-              </td>
-              <td />
-            </tr>
-          </tfoot>
-        )}
-      </table>
+                {/* Baths */}
+                <td className={`${tdCls} ${col.baths}`}>
+                  <input
+                    className={inputCls + ' text-center'}
+                    type="number" min={0} step={0.5}
+                    value={row.baths ?? ''}
+                    onChange={e => updateRow(row.row_index, 'baths', e.target.value)}
+                    onBlur={() => saveRow(row.row_index)}
+                  />
+                </td>
+                {/* Sqft */}
+                <td className={`${tdCls} ${col.sqft}`}>
+                  <input
+                    className={inputCls + ' text-right'}
+                    type="number"
+                    value={row.sqft ?? ''}
+                    onChange={e => updateRow(row.row_index, 'sqft', e.target.value)}
+                    onBlur={() => saveRow(row.row_index)}
+                  />
+                </td>
+                {/* # Units */}
+                <td className={`${tdCls} ${col.units}`}>
+                  <input
+                    className={inputCls + ' text-center'}
+                    type="number" min={0}
+                    value={row.num_units ?? ''}
+                    onChange={e => updateRow(row.row_index, 'num_units', e.target.value)}
+                    onBlur={() => saveRow(row.row_index)}
+                  />
+                </td>
+                {/* Flag checkboxes */}
+                {(['is_lihtc', 'is_staff', 'is_subsidy', 'is_psh'] as const).map(flag => (
+                  <td key={flag} className={`${tdCls} ${col.flag} text-center`}>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded cursor-pointer"
+                      checked={(row[flag] ?? 0) === 1}
+                      onChange={e => {
+                        const newVal = e.target.checked ? 1 : 0
+                        updateRow(row.row_index, flag, String(newVal))
+                        saveRow(row.row_index, { [flag]: newVal })
+                      }}
+                    />
+                  </td>
+                ))}
+                {/* AMI % */}
+                <td className={`${tdCls} ${col.ami}`}>
+                  <select
+                    className={inputCls}
+                    value={row.ami_restriction ?? '60'}
+                    onChange={e => {
+                      updateRow(row.row_index, 'ami_restriction', e.target.value)
+                      saveRow(row.row_index, { ami_restriction: e.target.value })
+                    }}
+                  >
+                    {AMI_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>
+                        {opt === 'unrestricted' ? 'Not Restricted' : `${opt}%`}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                {/* Rent/mo */}
+                <td className={`${tdCls} ${col.rent}`}>
+                  <input
+                    className={inputCls + ' text-right'}
+                    type="number"
+                    value={row.monthly_rent ?? ''}
+                    onChange={e => updateRow(row.row_index, 'monthly_rent', e.target.value)}
+                    onBlur={() => saveRow(row.row_index)}
+                    placeholder="$"
+                  />
+                </td>
+                {/* Delete */}
+                <td className={`${tdCls} ${col.del} text-center`}>
+                  <button
+                    onClick={() => handleDelete(row)}
+                    className="text-muted-foreground hover:text-rose-500 transition-colors p-1 rounded"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {rows.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-border bg-muted/20 font-medium">
+                <td className="px-3 py-2.5 text-xs text-muted-foreground" colSpan={3}>Totals</td>
+                <td className="px-3 py-2.5 text-right text-sm tabular-nums">
+                  {rows.reduce((s, r) => s + (r.sqft ?? 0) * (r.num_units ?? 0), 0).toLocaleString()}
+                </td>
+                <td className="px-3 py-2.5 text-center text-sm tabular-nums">{totalUnits}</td>
+                <td className="px-3 py-2.5 text-center text-xs text-muted-foreground" colSpan={4}>
+                  {lihtcUnits} LIHTC
+                </td>
+                <td />
+                <td className="px-3 py-2.5 text-right text-sm tabular-nums">
+                  {avgRent > 0 ? `$${avgRent.toLocaleString()} avg` : ''}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
 
       <button
         onClick={addRow}
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <Plus className="h-4 w-4" />
         Add unit type
