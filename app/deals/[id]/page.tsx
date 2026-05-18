@@ -4,7 +4,7 @@ import { deals, tasks } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { DealProperties } from '@/components/deals/DealProperties'
 import { OverviewSection } from '@/components/deals/OverviewSection'
 import { NotesSection } from '@/components/deals/NotesSection'
@@ -76,6 +76,21 @@ export default async function DealDetailPage({ params }: { params: Promise<{ id:
       <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-5">
         <DealProperties deal={deal} />
       </div>
+
+      {/* QAP Application */}
+      <Link
+        href={`/deals/${deal.id}/qap`}
+        className="block bg-card rounded-2xl card-shadow border border-black/[0.06] p-5 hover:shadow-md transition-shadow"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-sm">QAP Application</span>
+          </div>
+          <span className="text-xs text-muted-foreground">Open →</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Fill out and track LIHTC application data</p>
+      </Link>
 
       {/* Overview */}
       <div className="bg-card rounded-2xl card-shadow border border-black/[0.06] p-5">
