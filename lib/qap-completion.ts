@@ -13,17 +13,24 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
   ])
 
+  // Narrative: count how many of the 4 required fields have a saved value
   const narrativeFilled = narrativeFields.filter(
     f => NARRATIVE_REQUIRED.includes(f.field_key) && f.value?.trim()
   ).length
 
-  const hasUnits = unitTypes.length > 0
-  const unitMixFilled = unitTypes.filter(
-    u => u.label && u.bedrooms != null && u.num_units != null && u.monthly_rent != null && u.ami_restriction
-  ).length
+  // Unit Mix: binary â€” 100% once at least one fully-populated row exists, 0% otherwise.
+  // Always pasted in one shot so row-by-row tracking adds no value.
+  const hasCompleteRow = unitTypes.some(
+    u =>
+      u.bedrooms != null &&
+      u.baths != null &&
+      u.sqft != null &&
+      u.num_units != null &&
+      u.monthly_rent != null
+  )
 
   return {
     narrative: { filled: narrativeFilled, total: NARRATIVE_REQUIRED.length },
-    unitMix: { filled: hasUnits ? unitMixFilled : 0, total: hasUnits ? unitTypes.length : 1 },
+    unitMix: { filled: hasCompleteRow ? 1 : 0, total: 1 },
   }
 }
