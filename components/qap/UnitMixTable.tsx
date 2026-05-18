@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { upsertQapUnitType, deleteQapUnitType } from '@/lib/qap-actions'
+import { upsertQapUnitType, deleteQapUnitType, replaceQapUnitTypes } from '@/lib/qap-actions'
 import type { QapUnitType } from '@/lib/db/schema'
-import { Trash2, Plus } from 'lucide-react'
+import { Trash2, Plus, ClipboardPaste } from 'lucide-react'
 
 const AMI_OPTIONS = ['20', '30', '40', '50', '60', '70', '80', '120', 'unrestricted'] as const
 
@@ -37,11 +37,46 @@ function makeNewRow(dealId: string, rowIndex: number): UnitRow {
   }
 }
 
+// --- paste parsing helpers ---
+
+function parseBoolCol(val: string): number {
+  const v = val.trim().toLowerCase()
+  return ['yes', 'y', '1', 'true', 'x', '✓'].includes(v) ? 1 : 0
+}
+
+function parseAmiCol(val: string): string {
+  // Strip "% AMI", "%", whitespace, then match known values
+  const v = val.trim().replace(/%\s*(ami)?/i, '').trim().toLowerCase()
+  if (!v || ['not restricted', 'unrestricted', 'nr', 'market', 'n/a', 'na'].includes(v)) return 'unrestricted'
+  const num = parseInt(v, 10)
+  if ([20, 30, 40, 50, 60, 70, 80, 120].includes(num)) return String(num)
+  return '60'
+}
+
+function parseNumCol(val: string): number | null {
+  const n = parseFloat(val.replace(/[$,\s]/g, ''))
+  return isNaN(n) ? null : Math.round(n)
+}
+
+function parseBathsCol(val: string): number | null {
+  const n = parseFloat(val.replace(/[$,\s]/g, ''))
+  return isNaN(n) ? null : n
+}
+
+// Detect if a row looks like a header (skip it)
+const HEADER_WORDS = ['unit type', 'type', 'label', 'beds', 'bedrooms', 'baths', 'sqft', 'sq ft', '# units', 'units', 'lihtc', 'staff', 'subsidy', 'psh', 'ami', 'rent']
+function isHeaderRow(cols: string[]): boolean {
+  const first = cols[0]?.toLowerCase().trim() ?? ''
+  if (!first) return true
+  return HEADER_WORDS.some(h => first === h)
+}
+
 export function UnitMixTable({ dealId, initialUnits }: Props) {
   const [rows, setRows] = useState<UnitRow[]>(
     initialUnits.length > 0 ? initialUnits : [makeNewRow(dealId, 0)]
   )
   const [savedAt, setSavedAt] = useState<string | null>(null)
+  const [pasteCount, setPasteCount] = useState<number | null>(null)
   const [isPending, startTransition] = useTransition()
 
   function updateRow(rowIndex: number, field: string, rawValue: string) {
@@ -49,7 +84,11 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
       prev.map(r => {
         if (r.row_index !== rowIndex) return r
         let parsed: string | number | null = rawValue
-        if (['bedrooms', 'sqft', 'num_units', 'monthly_rent', 'is_lihtc', 'is_staff', 'is_subsidy', 'is_psh'].includes(field)) {
+        if (
+          ['bedrooms', 'sqft', 'num_units', 'monthly_rent', 'is_lihtc', 'is_staff', 'is_subsidy', 'is_psh'].includes(
+            field
+          )
+        ) {
           parsed = rawValue === '' ? null : parseInt(rawValue, 10)
         } else if (field === 'baths') {
           parsed = rawValue === '' ? null : parseFloat(rawValue)
@@ -81,6 +120,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
         prev.map(r => (r.row_index === rowIndex ? { ...r, ...overrides, isNew: false } : r))
       )
       setSavedAt(new Date().toLocaleTimeString())
+      setPasteCount(null)
     })
   }
 
@@ -96,21 +136,95 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
     })
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    const text = e.clipboardData.getData('text/plain')
+    if (!text.trim()) return
+
+    const lines = text.trim().split(/\r?\n/).filter(l => l.trim())
+    if (lines.length === 0) return
+
+    const allCols = lines.map(l => l.split('\t').map(c => c.trim()))
+    const dataLines = allCols.filter(cols => !isHeaderRow(cols) && cols.length >= 2)
+    if (dataLines.length === 0) return
+
+    e.preventDefault()
+
+    // Column order matches our table: Unit Type | Beds | Baths | Sqft | # Units | LIHTC | Staff | Sub | PSH | AMI% | Rent/mo
+    const newRows: UnitRow[] = dataLines.map((cols, idx) => ({
+      id: `temp-${Date.now()}-${idx}`,
+      deal_id: dealId,
+      row_index: idx,
+      label: cols[0] ?? '',
+      bedrooms: cols[1] ? parseNumCol(cols[1]) : null,
+      baths: cols[2] ? parseBathsCol(cols[2]) : null,
+      sqft: cols[3] ? parseNumCol(cols[3]) : null,
+      num_units: cols[4] ? parseNumCol(cols[4]) : null,
+      is_lihtc: parseBoolCol(cols[5] ?? '1'),
+      is_staff: parseBoolCol(cols[6] ?? '0'),
+      is_subsidy: parseBoolCol(cols[7] ?? '0'),
+      is_psh: parseBoolCol(cols[8] ?? '0'),
+      ami_restriction: parseAmiCol(cols[9] ?? '60'),
+      monthly_rent: cols[10] ? parseNumCol(cols[10]) : null,
+      isNew: true,
+    }))
+
+    setRows(newRows)
+    setPasteCount(newRows.length)
+
+    startTransition(async () => {
+      await replaceQapUnitTypes(
+        dealId,
+        newRows.map(r => ({
+          row_index: r.row_index,
+          label: r.label,
+          bedrooms: r.bedrooms,
+          baths: r.baths,
+          sqft: r.sqft,
+          num_units: r.num_units,
+          is_lihtc: r.is_lihtc ?? 1,
+          is_staff: r.is_staff ?? 0,
+          is_subsidy: r.is_subsidy ?? 0,
+          is_psh: r.is_psh ?? 0,
+          ami_restriction: r.ami_restriction ?? '60',
+          monthly_rent: r.monthly_rent,
+        }))
+      )
+      setRows(prev => prev.map(r => ({ ...r, isNew: false })))
+      setSavedAt(new Date().toLocaleTimeString())
+    })
+  }
+
   const totalUnits = rows.reduce((s, r) => s + (r.num_units ?? 0), 0)
   const lihtcUnits = rows.reduce((s, r) => s + (r.is_lihtc ? (r.num_units ?? 0) : 0), 0)
   const avgRent =
     totalUnits > 0
-      ? Math.round(rows.reduce((s, r) => s + (r.monthly_rent ?? 0) * (r.num_units ?? 0), 0) / totalUnits)
+      ? Math.round(
+          rows.reduce((s, r) => s + (r.monthly_rent ?? 0) * (r.num_units ?? 0), 0) / totalUnits
+        )
       : 0
 
   const thCls = 'text-left text-xs font-semibold text-muted-foreground px-2 py-2 whitespace-nowrap'
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" onPaste={handlePaste}>
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-base">Unit Mix & Rents</h2>
         <span className="text-xs text-muted-foreground">
-          {isPending ? 'Saving…' : savedAt ? `Saved at ${savedAt}` : 'Changes save on blur'}
+          {isPending
+            ? 'Saving…'
+            : savedAt
+            ? pasteCount
+              ? `Pasted ${pasteCount} rows · Saved ${savedAt}`
+              : `Saved at ${savedAt}`
+            : 'Changes save on blur'}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+        <ClipboardPaste className="h-3.5 w-3.5 shrink-0" />
+        <span>
+          Copy your unit mix from Excel and paste here (Ctrl+V / ⌘V) — replaces all rows.
+          Column order: <span className="font-mono">Unit Type · Beds · Baths · Sqft · Units · LIHTC · Staff · Sub · PSH · AMI% · Rent</span>
         </span>
       </div>
 
