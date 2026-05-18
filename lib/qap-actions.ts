@@ -118,3 +118,49 @@ export async function deleteQapUnitType(id: string, dealId: string) {
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
 }
+
+type UnitRowData = {
+  row_index: number
+  label?: string | null
+  bedrooms?: number | null
+  baths?: number | null
+  sqft?: number | null
+  num_units?: number | null
+  is_lihtc?: number
+  is_staff?: number
+  is_subsidy?: number
+  is_psh?: number
+  ami_restriction?: string
+  monthly_rent?: number | null
+}
+
+export async function replaceQapUnitTypes(dealId: string, rows: UnitRowData[]) {
+  const now = new Date().toISOString()
+
+  await db.delete(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId))
+
+  if (rows.length > 0) {
+    await db.insert(qapUnitTypes).values(
+      rows.map(row => ({
+        id: uuid(),
+        deal_id: dealId,
+        row_index: row.row_index,
+        label: row.label ?? null,
+        bedrooms: row.bedrooms ?? null,
+        baths: row.baths ?? null,
+        sqft: row.sqft ?? null,
+        num_units: row.num_units ?? null,
+        is_lihtc: row.is_lihtc ?? 1,
+        is_staff: row.is_staff ?? 0,
+        is_subsidy: row.is_subsidy ?? 0,
+        is_psh: row.is_psh ?? 0,
+        ami_restriction: row.ami_restriction ?? '60',
+        monthly_rent: row.monthly_rent ?? null,
+        updated_at: now,
+      }))
+    )
+  }
+
+  revalidatePath(`/deals/${dealId}/qap`)
+  revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+}
