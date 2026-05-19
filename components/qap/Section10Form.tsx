@@ -83,20 +83,6 @@ export function Section10Form({ dealId, initial }: Props) {
           />
         </div>
 
-        {bondYes && (
-          <div className="space-y-4 pl-4 border-l-2 border-border">
-            <div>
-              <label className={labelCls}>Explain the role of bond financing and planned issuer</label>
-              <textarea
-                className={inputCls + ' min-h-[100px] resize-y'}
-                value={values.bond_financing_explanation ?? ''}
-                onChange={e => setValues(v => ({ ...v, bond_financing_explanation: e.target.value }))}
-                onBlur={e => handleBlur('bond_financing_explanation', e.target.value)}
-                placeholder="Describe the governmental entity planned as issuer and the current state of discussions…"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 10.02 */}
