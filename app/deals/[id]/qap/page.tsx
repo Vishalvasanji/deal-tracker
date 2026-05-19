@@ -91,11 +91,11 @@ export default async function QapHubPage({ params }: { params: Promise<{ id: str
           href={`/deals/${deal.id}/qap/unit-mix`}
         />
         <ProgressCard
-          title="Project Funding (§10)"
+          title="Project Description"
           icon={ClipboardList}
           filled={completion.section10.filled}
           total={completion.section10.total}
-          href={`/deals/${deal.id}/qap/section-10`}
+          href={`/deals/${deal.id}/qap/project-description`}
         />
       </div>
     </div>
