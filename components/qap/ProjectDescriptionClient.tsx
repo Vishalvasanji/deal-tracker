@@ -3,24 +3,40 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Section10Form } from './Section10Form'
+import { Section11Form } from './Section11Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
+const SECTION_11_REQUIRED = [
+  'taxpayer_name',
+  'developer_name',
+  'developer_meets_vc1',
+  'developer_is_new',
+  'other_credits_requested',
+  'ioi_dev_builder',
+  'not_in_good_standing',
+  'qualified_nonprofit',
+  'is_chdo',
+  'mgmt_agent_name',
+  'mgmt_agent_ioi',
+]
 
 function SectionAccordion({
   number,
   title,
   fields,
+  required,
   children,
 }: {
   number: string
   title: string
   fields: Record<string, string>
+  required: string[]
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
 
-  const filled = SECTION_10_REQUIRED.filter(k => fields[k]?.trim()).length
-  const total = SECTION_10_REQUIRED.length
+  const filled = required.filter(k => fields[k]?.trim()).length
+  const total = required.length
   const pct = Math.round((filled / total) * 100)
   const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-rose-400'
   const textColor = pct === 100 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-rose-500'
@@ -64,9 +80,11 @@ function SectionAccordion({
 export function ProjectDescriptionClient({
   dealId,
   section10Initial,
+  section11Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
+  section11Initial: Record<string, string>
 }) {
   return (
     <div className="space-y-3">
@@ -74,8 +92,18 @@ export function ProjectDescriptionClient({
         number="Section 10"
         title="Project Funding Characteristics"
         fields={section10Initial}
+        required={SECTION_10_REQUIRED}
       >
         <Section10Form dealId={dealId} initial={section10Initial} />
+      </SectionAccordion>
+
+      <SectionAccordion
+        number="Section 11"
+        title="Characteristics of The Applicant"
+        fields={section11Initial}
+        required={SECTION_11_REQUIRED}
+      >
+        <Section11Form dealId={dealId} initial={section11Initial} />
       </SectionAccordion>
     </div>
   )
