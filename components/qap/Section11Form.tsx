@@ -184,10 +184,13 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Is the Developer a New Developer as defined in the QAP? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.developer_is_new ?? ''} onChange={v => handleToggle('developer_is_new', v)} />
           {values.developer_is_new === 'Yes' && (
-            <textarea className={inputCls + ' min-h-[80px] resize-y mt-2'}
-              value={values.developer_new_comment ?? ''}
-              onChange={e => setValues(v => ({ ...v, developer_new_comment: e.target.value }))}
-              onBlur={e => handleBlur('developer_new_comment', e.target.value)} />
+            <div className="mt-2">
+              <label className={labelCls}>Comment</label>
+              <textarea className={inputCls + ' min-h-[80px] resize-y'}
+                value={values.developer_new_comment ?? ''}
+                onChange={e => setValues(v => ({ ...v, developer_new_comment: e.target.value }))}
+                onBlur={e => handleBlur('developer_new_comment', e.target.value)} />
+            </div>
           )}
         </div>
         <div>
@@ -195,10 +198,13 @@ export function Section11Form({ dealId, initial }: Props) {
           <p className="text-xs text-muted-foreground mb-1">No single developer will be awarded credits in excess of $3,000,000</p>
           <YesNoToggle value={values.other_credits_requested ?? ''} onChange={v => handleToggle('other_credits_requested', v)} />
           {values.other_credits_requested === 'Yes' && (
-            <textarea className={inputCls + ' min-h-[80px] resize-y mt-2'}
-              value={values.other_credits_comment ?? ''}
-              onChange={e => setValues(v => ({ ...v, other_credits_comment: e.target.value }))}
-              onBlur={e => handleBlur('other_credits_comment', e.target.value)} />
+            <div className="mt-2">
+              <label className={labelCls}>Comment</label>
+              <textarea className={inputCls + ' min-h-[80px] resize-y'}
+                value={values.other_credits_comment ?? ''}
+                onChange={e => setValues(v => ({ ...v, other_credits_comment: e.target.value }))}
+                onBlur={e => handleBlur('other_credits_comment', e.target.value)} />
+            </div>
           )}
         </div>
       </div>
