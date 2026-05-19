@@ -127,15 +127,6 @@ export function Section10Form({ dealId, initial }: Props) {
                 </p>
               </div>
               <div>
-                <label className={labelCls}>Additional notes</label>
-                <textarea
-                  className={inputCls + ' min-h-[80px] resize-y'}
-                  value={values.lihtc_4pct_note ?? ''}
-                  onChange={e => setValues(v => ({ ...v, lihtc_4pct_note: e.target.value }))}
-                  onBlur={e => handleBlur('lihtc_4pct_note', e.target.value)}
-                />
-              </div>
-              <div>
                 <label className={labelCls}>Comment</label>
                 <textarea
                   className={inputCls + ' min-h-[80px] resize-y'}
