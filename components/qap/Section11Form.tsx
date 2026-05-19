@@ -225,10 +225,13 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Is any member of the proposed project team "not in good standing" with the LHC, as defined in the QAP? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.not_in_good_standing ?? ''} onChange={v => handleToggle('not_in_good_standing', v)} />
           {values.not_in_good_standing === 'Yes' && (
-            <textarea className={inputCls + ' min-h-[80px] resize-y mt-2'}
-              value={values.not_in_good_standing_comment ?? ''}
-              onChange={e => setValues(v => ({ ...v, not_in_good_standing_comment: e.target.value }))}
-              onBlur={e => handleBlur('not_in_good_standing_comment', e.target.value)} />
+            <div className="mt-2">
+              <label className={labelCls}>Comment</label>
+              <textarea className={inputCls + ' min-h-[80px] resize-y'}
+                value={values.not_in_good_standing_comment ?? ''}
+                onChange={e => setValues(v => ({ ...v, not_in_good_standing_comment: e.target.value }))}
+                onBlur={e => handleBlur('not_in_good_standing_comment', e.target.value)} />
+            </div>
           )}
         </div>
       </div>
@@ -240,10 +243,13 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Does the Applicant evidence material participation of a Qualified Non-Profit Organization (as defined in the Glossary)? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.qualified_nonprofit ?? ''} onChange={v => handleToggle('qualified_nonprofit', v)} />
           {values.qualified_nonprofit === 'Yes' && (
-            <textarea className={inputCls + ' min-h-[80px] resize-y mt-2'}
-              value={values.qualified_nonprofit_details ?? ''}
-              onChange={e => setValues(v => ({ ...v, qualified_nonprofit_details: e.target.value }))}
-              onBlur={e => handleBlur('qualified_nonprofit_details', e.target.value)} />
+            <div className="mt-2">
+              <label className={labelCls}>Comment</label>
+              <textarea className={inputCls + ' min-h-[80px] resize-y'}
+                value={values.qualified_nonprofit_details ?? ''}
+                onChange={e => setValues(v => ({ ...v, qualified_nonprofit_details: e.target.value }))}
+                onBlur={e => handleBlur('qualified_nonprofit_details', e.target.value)} />
+            </div>
           )}
         </div>
       </div>
@@ -255,10 +261,13 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Is the Applicant a CHDO (Community Housing Development Organization) that (a) meets the definition in the Glossary and (b) is certified as a CHDO by the LHC? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.is_chdo ?? ''} onChange={v => handleToggle('is_chdo', v)} />
           {values.is_chdo === 'Yes' && (
-            <textarea className={inputCls + ' min-h-[80px] resize-y mt-2'}
-              value={values.chdo_details ?? ''}
-              onChange={e => setValues(v => ({ ...v, chdo_details: e.target.value }))}
-              onBlur={e => handleBlur('chdo_details', e.target.value)} />
+            <div className="mt-2">
+              <label className={labelCls}>Comment</label>
+              <textarea className={inputCls + ' min-h-[80px] resize-y'}
+                value={values.chdo_details ?? ''}
+                onChange={e => setValues(v => ({ ...v, chdo_details: e.target.value }))}
+                onBlur={e => handleBlur('chdo_details', e.target.value)} />
+            </div>
           )}
         </div>
       </div>
