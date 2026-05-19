@@ -2,7 +2,9 @@ import { db } from './db'
 import { qapFields, qapUnitTypes } from './db/schema'
 import { eq, and } from 'drizzle-orm'
 
-const NARRATIVE_REQUIRED = ['project_name', 'parish_county', 'submitting_org', 'narrative']
+// Narrative tab has exactly one true user input â€” the narrative text itself.
+// Project name, parish, and submitting org are referenced from Project Description.
+const NARRATIVE_REQUIRED = ['narrative']
 
 export async function getQapCompletion(dealId: string) {
   const [narrativeFields, unitTypes] = await Promise.all([
@@ -13,7 +15,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
   ])
 
-  // Narrative: count how many of the 4 required fields have a saved value
+  // Narrative: only the narrative text itself is a required input here
   const narrativeFilled = narrativeFields.filter(
     f => NARRATIVE_REQUIRED.includes(f.field_key) && f.value?.trim()
   ).length
