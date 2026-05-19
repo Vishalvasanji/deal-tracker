@@ -42,9 +42,6 @@ export default async function NarrativePage({ params }: { params: Promise<{ id: 
         <NarrativeForm
           dealId={deal.id}
           initial={{
-            project_name: fieldMap.project_name ?? deal.name,
-            parish_county: fieldMap.parish_county ?? '',
-            submitting_org: fieldMap.submitting_org ?? '',
             narrative: fieldMap.narrative ?? '',
           }}
         />
