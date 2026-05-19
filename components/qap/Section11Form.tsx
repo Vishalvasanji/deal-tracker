@@ -97,31 +97,6 @@ export function Section11Form({ dealId, initial }: Props) {
           </div>
         </div>
 
-        <p className={sectionHeaderCls + ' pt-0'}>Taxpayer Contact *</p>
-        <p className="text-xs text-muted-foreground -mt-2">
-          This person will be LHC's single point of contact during underwriting.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Contact Name</label>
-            <input className={inputCls} value={values.taxpayer_contact ?? ''}
-              onChange={e => setValues(v => ({ ...v, taxpayer_contact: e.target.value }))}
-              onBlur={e => handleBlur('taxpayer_contact', e.target.value)} />
-          </div>
-          <div>
-            <label className={labelCls}>Phone</label>
-            <input className={inputCls} value={values.taxpayer_phone ?? ''}
-              onChange={e => setValues(v => ({ ...v, taxpayer_phone: e.target.value }))}
-              onBlur={e => handleBlur('taxpayer_phone', e.target.value)} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelCls}>Email</label>
-            <input className={inputCls} type="email" value={values.taxpayer_email ?? ''}
-              onChange={e => setValues(v => ({ ...v, taxpayer_email: e.target.value }))}
-              onBlur={e => handleBlur('taxpayer_email', e.target.value)} />
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Federal Tax ID / SSN</label>
@@ -151,6 +126,31 @@ export function Section11Form({ dealId, initial }: Props) {
               <option>Other</option>
               <option>Missing</option>
             </select>
+          </div>
+        </div>
+
+        <p className={sectionHeaderCls + ' pt-0'}>Taxpayer Contact *</p>
+        <p className="text-xs text-muted-foreground -mt-2">
+          This person will be LHC's single point of contact during underwriting.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Contact Name</label>
+            <input className={inputCls} value={values.taxpayer_contact ?? ''}
+              onChange={e => setValues(v => ({ ...v, taxpayer_contact: e.target.value }))}
+              onBlur={e => handleBlur('taxpayer_contact', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Phone</label>
+            <input className={inputCls} value={values.taxpayer_phone ?? ''}
+              onChange={e => setValues(v => ({ ...v, taxpayer_phone: e.target.value }))}
+              onBlur={e => handleBlur('taxpayer_phone', e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Email</label>
+            <input className={inputCls} type="email" value={values.taxpayer_email ?? ''}
+              onChange={e => setValues(v => ({ ...v, taxpayer_email: e.target.value }))}
+              onBlur={e => handleBlur('taxpayer_email', e.target.value)} />
           </div>
         </div>
       </div>
