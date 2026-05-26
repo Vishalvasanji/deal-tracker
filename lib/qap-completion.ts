@@ -60,9 +60,15 @@ const SECTION_17_REQUIRED = [
   'cp_interest_expense_method',
   'cp_funding_sources_detail',
 ]
+const SECTION_18_REQUIRED = [
+  's18_01_active', 's18_02_active', 's18_03_active', 's18_04_active',
+  's18_05_active', 's18_06_active', 's18_07_active', 's18_08_active',
+  's18_09_active', 's18_10_active', 's18_11_active', 's18_12_active',
+  's18_13_active', 's18_14_active', 's18_15_active', 's18_16_active',
+]
 
 export async function getQapCompletion(dealId: string) {
-  const [narrativeFields, unitTypes, s10, s11, s12, s13, s14, s15, s16, s17] = await Promise.all([
+  const [narrativeFields, unitTypes, s10, s11, s12, s13, s14, s15, s16, s17, s18] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_10'))),
@@ -73,6 +79,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_15'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_16'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_17'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_18'))),
   ])
 
   const narrativeFilled = narrativeFields.filter(f => NARRATIVE_REQUIRED.includes(f.field_key) && f.value?.trim()).length
@@ -85,6 +92,7 @@ export async function getQapCompletion(dealId: string) {
   const s15Filled = s15.filter(f => SECTION_15_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s16Filled = s16.filter(f => SECTION_16_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s17Filled = s17.filter(f => SECTION_17_REQUIRED.includes(f.field_key) && f.value?.trim()).length
+  const s18Filled = s18.filter(f => SECTION_18_REQUIRED.includes(f.field_key) && f.value?.trim()).length
 
   return {
     narrative: { filled: narrativeFilled, total: NARRATIVE_REQUIRED.length },
@@ -97,5 +105,6 @@ export async function getQapCompletion(dealId: string) {
     section15: { filled: s15Filled, total: SECTION_15_REQUIRED.length },
     section16: { filled: s16Filled, total: SECTION_16_REQUIRED.length },
     section17: { filled: s17Filled, total: SECTION_17_REQUIRED.length },
+    section18: { filled: s18Filled, total: SECTION_18_REQUIRED.length },
   }
 }
