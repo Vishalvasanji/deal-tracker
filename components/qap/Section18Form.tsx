@@ -35,11 +35,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function TextInput({ fk, values, setValues, onBlur, placeholder = '' }: {
-  fk: string; values: Record<string, string>
+interface FieldProps {
+  fk: string
+  values: Record<string, string>
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onBlur: (k: string, v: string) => void; placeholder?: string
-}) {
+  onBlur: (k: string, v: string) => void
+  onSave: (k: string, v: string) => void
+  placeholder?: string
+  suffix?: string
+}
+
+function TextInput({ fk, values, setValues, onBlur, placeholder = '' }: FieldProps) {
   return (
     <input className={inputCls} value={values[fk] ?? ''} placeholder={placeholder}
       onChange={e => setValues(v => ({ ...v, [fk]: e.target.value }))}
@@ -47,11 +53,7 @@ function TextInput({ fk, values, setValues, onBlur, placeholder = '' }: {
   )
 }
 
-function NumberInput({ fk, values, setValues, onBlur, placeholder = '', suffix = '' }: {
-  fk: string; values: Record<string, string>
-  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onBlur: (k: string, v: string) => void; placeholder?: string; suffix?: string
-}) {
+function NumberInput({ fk, values, setValues, onBlur, placeholder = '', suffix = '' }: FieldProps) {
   return (
     <div className="flex items-center gap-2">
       <input type="number" className={inputCls} value={values[fk] ?? ''} placeholder={placeholder}
@@ -62,11 +64,7 @@ function NumberInput({ fk, values, setValues, onBlur, placeholder = '', suffix =
   )
 }
 
-function SelectInput({ fk, opts, values, setValues, onSave }: {
-  fk: string; opts: string[]; values: Record<string, string>
-  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onSave: (k: string, v: string) => void
-}) {
+function SelectInput({ fk, opts, values, setValues, onSave }: FieldProps & { opts: string[] }) {
   return (
     <select className={selectCls} value={values[fk] ?? ''}
       onChange={e => { setValues(v => ({ ...v, [fk]: e.target.value })); onSave(fk, e.target.value) }}>
@@ -76,11 +74,7 @@ function SelectInput({ fk, opts, values, setValues, onSave }: {
   )
 }
 
-function TextArea({ fk, values, setValues, onBlur, placeholder = '' }: {
-  fk: string; values: Record<string, string>
-  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onBlur: (k: string, v: string) => void; placeholder?: string
-}) {
+function TextArea({ fk, values, setValues, onBlur, placeholder = '' }: FieldProps) {
   return (
     <textarea className={inputCls + ' min-h-[80px] resize-y'} value={values[fk] ?? ''}
       placeholder={placeholder}
@@ -89,73 +83,49 @@ function TextArea({ fk, values, setValues, onBlur, placeholder = '' }: {
   )
 }
 
-// ─── Shared loan field blocks ─────────────────────────────────────────────────
+// ─── Source-specific field blocks ─────────────────────────────────────────────
 
 /**
- * Standard loan fields for 18.01, 18.04, 18.05, 18.06.
- * - showLoanAmount: false for 18.04/05/06 (amount is formula-driven from LHC commitment)
- * - Annual Payment is a formula cell (=+M###) — not shown
+ * 18.01 — New LHC Risk Sharing First Mortgage
+ * Blue inputs: Loan Amount, Interest Rate, Fixed/Float, Amort Term, Maturity Term,
+ *              MIP, Payment Type, Payment Req, Comment
+ * NOT blue (pre-filled by LHC): Description, Lender, Lender is
  */
-function StandardLoanFields({ prefix, showLoanType = false, showLoanAmount = true, loanAmountNote, values, setValues, onBlur, handleSave }: {
-  prefix: string
-  showLoanType?: boolean
-  showLoanAmount?: boolean
-  loanAmountNote?: string
-  values: Record<string, string>
+function Loan01Fields({ p, values, setValues, onBlur, onSave }: {
+  p: string; values: Record<string, string>
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onBlur: (k: string, v: string) => void
-  handleSave: (k: string, v: string) => void
+  onBlur: (k: string, v: string) => void; onSave: (k: string, v: string) => void
 }) {
-  const p = prefix
+  const fp: FieldProps = { fk: '', values, setValues, onBlur, onSave }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {showLoanType && (
-        <Field label="Loan Type">
-          <SelectInput fk={`${p}_loan_type`} opts={LOAN_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-        </Field>
-      )}
-      <Field label="Description">
-        <TextInput fk={`${p}_description`} values={values} setValues={setValues} onBlur={onBlur} />
-      </Field>
-      {showLoanAmount ? (
-        <Field label="Loan Amount ($)">
-          <TextInput fk={`${p}_loan_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 5000000" />
-        </Field>
-      ) : loanAmountNote ? (
-        <div className="sm:col-span-1">
-          <p className="text-xs text-muted-foreground mt-1 rounded-lg px-3 py-2 bg-muted/50">{loanAmountNote}</p>
-        </div>
-      ) : null}
-      <Field label="Lender">
-        <TextInput fk={`${p}_lender`} values={values} setValues={setValues} onBlur={onBlur} />
-      </Field>
-      <Field label="Lender is">
-        <SelectInput fk={`${p}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+      <Field label="Loan Amount ($)">
+        <TextInput {...fp} fk={`${p}_loan_amount`} placeholder="e.g. 5000000" />
       </Field>
       <Field label="Interest Rate (%)">
-        <TextInput fk={`${p}_interest_rate`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 5.25" />
+        <TextInput {...fp} fk={`${p}_interest_rate`} placeholder="e.g. 5.25" />
       </Field>
       <Field label="Fixed or Floating Rate">
-        <SelectInput fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} />
       </Field>
       <Field label="Amortization Term">
-        <NumberInput fk={`${p}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+        <NumberInput {...fp} fk={`${p}_amort_term`} suffix="months" />
       </Field>
       <Field label="Maturity Term">
-        <NumberInput fk={`${p}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+        <NumberInput {...fp} fk={`${p}_maturity_term`} suffix="months" />
       </Field>
       <Field label="Mortgage Insurance Premium (%)">
-        <TextInput fk={`${p}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.65" />
+        <TextInput {...fp} fk={`${p}_mtg_ins_premium`} placeholder="e.g. 0.65" />
       </Field>
       <Field label="Type of Payment">
-        <SelectInput fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} />
       </Field>
       <Field label="Payment Requirement">
-        <SelectInput fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} />
       </Field>
       <div className="col-span-full">
         <Field label="Comment">
-          <TextArea fk={`${p}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
+          <TextArea {...fp} fk={`${p}_comment`} />
         </Field>
       </div>
     </div>
@@ -163,25 +133,26 @@ function StandardLoanFields({ prefix, showLoanType = false, showLoanAmount = tru
 }
 
 /**
- * Extended fields for existing/new mortgage loans (18.02, 18.03).
- * Removed formula cells: Annual Payment (=+M###),
- * Amortization Remaining (=IFERROR(+G*12,"")), Maturity Remaining (=IFERROR(+E-O*12,"")).
+ * 18.02 / 18.03 — Existing or New First/Second Mortgage
+ * Blue inputs: Description, Original Loan Amount, Origination Date, Est'd Balance,
+ *              Lender, Loan Type, Loan Servicer, Prepayment Penalty, Lock Out Date,
+ *              Lender is, Interest Rate, Fixed/Float, Amort End Date, Amort Term,
+ *              Maturity Date, MIP, Payment Type, Payment Req, Comment
+ * Formula cells excluded: Annual Payment (=+M###), Amort Remaining, Maturity Remaining
  */
-function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
-  prefix: string
-  values: Record<string, string>
+function ExistingLoanFields({ p, values, setValues, onBlur, onSave }: {
+  p: string; values: Record<string, string>
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  onBlur: (k: string, v: string) => void
-  handleSave: (k: string, v: string) => void
+  onBlur: (k: string, v: string) => void; onSave: (k: string, v: string) => void
 }) {
-  const p = prefix
+  const fp: FieldProps = { fk: '', values, setValues, onBlur, onSave }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <Field label="Description">
-        <TextInput fk={`${p}_description`} values={values} setValues={setValues} onBlur={onBlur} />
+        <TextInput {...fp} fk={`${p}_description`} />
       </Field>
       <Field label="Original Loan Amount ($)">
-        <TextInput fk={`${p}_original_amount`} values={values} setValues={setValues} onBlur={onBlur} />
+        <TextInput {...fp} fk={`${p}_original_amount`} />
       </Field>
       <Field label="Origination Date">
         <input type="date" className={inputCls} value={values[`${p}_origination_date`] ?? ''}
@@ -189,19 +160,19 @@ function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
           onBlur={e => onBlur(`${p}_origination_date`, e.target.value)} />
       </Field>
       <Field label="Estimated Balance ($)">
-        <TextInput fk={`${p}_est_balance`} values={values} setValues={setValues} onBlur={onBlur} />
+        <TextInput {...fp} fk={`${p}_est_balance`} />
       </Field>
       <Field label="Lender">
-        <TextInput fk={`${p}_lender`} values={values} setValues={setValues} onBlur={onBlur} />
+        <TextInput {...fp} fk={`${p}_lender`} />
       </Field>
       <Field label="Loan Type">
-        <SelectInput fk={`${p}_loan_type`} opts={LOAN_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_loan_type`} opts={LOAN_TYPE_OPTS} />
       </Field>
       <Field label="Loan Servicer">
-        <TextInput fk={`${p}_loan_servicer`} values={values} setValues={setValues} onBlur={onBlur} />
+        <TextInput {...fp} fk={`${p}_loan_servicer`} />
       </Field>
       <Field label="Prepayment Penalty?">
-        <SelectInput fk={`${p}_prepayment_penalty`} opts={['Yes', 'No', 'Missing']} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_prepayment_penalty`} opts={['Yes', 'No', 'Missing']} />
       </Field>
       <Field label="Lock Out Date?">
         <input type="date" className={inputCls} value={values[`${p}_lockout_date`] ?? ''}
@@ -209,13 +180,13 @@ function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
           onBlur={e => onBlur(`${p}_lockout_date`, e.target.value)} />
       </Field>
       <Field label="Lender is">
-        <SelectInput fk={`${p}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_lender_is`} opts={LENDER_IS_OPTS} />
       </Field>
       <Field label="Interest Rate (%)">
-        <TextInput fk={`${p}_interest_rate`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 5.25" />
+        <TextInput {...fp} fk={`${p}_interest_rate`} placeholder="e.g. 5.25" />
       </Field>
       <Field label="Fixed or Floating Rate">
-        <SelectInput fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} />
       </Field>
       <Field label="Amortization End Date">
         <input type="date" className={inputCls} value={values[`${p}_amort_end_date`] ?? ''}
@@ -223,7 +194,7 @@ function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
           onBlur={e => onBlur(`${p}_amort_end_date`, e.target.value)} />
       </Field>
       <Field label="Amortization Term">
-        <NumberInput fk={`${p}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+        <NumberInput {...fp} fk={`${p}_amort_term`} suffix="months" />
       </Field>
       <Field label="Maturity Date">
         <input type="date" className={inputCls} value={values[`${p}_maturity_date`] ?? ''}
@@ -231,17 +202,107 @@ function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
           onBlur={e => onBlur(`${p}_maturity_date`, e.target.value)} />
       </Field>
       <Field label="Mortgage Insurance Premium (%)">
-        <TextInput fk={`${p}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.65" />
+        <TextInput {...fp} fk={`${p}_mtg_ins_premium`} placeholder="e.g. 0.65" />
       </Field>
       <Field label="Type of Payment">
-        <SelectInput fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} />
       </Field>
       <Field label="Payment Requirement">
-        <SelectInput fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+        <SelectInput {...fp} fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} />
       </Field>
       <div className="col-span-full">
         <Field label="Comment">
-          <TextArea fk={`${p}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
+          <TextArea {...fp} fk={`${p}_comment`} />
+        </Field>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 18.04 / 18.05 — HOME Loan from LHC / NHTF Loan from LHC
+ * Blue inputs: Loan Type, Description, Interest Rate, Fixed/Float, Amort Term,
+ *              Maturity Term, MIP, Payment Type, Payment Req, Comment
+ * NOT blue: Loan Amount (formula =+H189/183), Lender, Lender is
+ */
+function LhcLoanFields({ p, loanAmountNote, values, setValues, onBlur, onSave }: {
+  p: string; loanAmountNote: string
+  values: Record<string, string>
+  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  onBlur: (k: string, v: string) => void; onSave: (k: string, v: string) => void
+}) {
+  const fp: FieldProps = { fk: '', values, setValues, onBlur, onSave }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <Field label="Loan Type">
+        <SelectInput {...fp} fk={`${p}_loan_type`} opts={LOAN_TYPE_OPTS} />
+      </Field>
+      <Field label="Description">
+        <TextInput {...fp} fk={`${p}_description`} />
+      </Field>
+      <div className="sm:col-span-2">
+        <p className="text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50">{loanAmountNote}</p>
+      </div>
+      <Field label="Interest Rate (%)">
+        <TextInput {...fp} fk={`${p}_interest_rate`} placeholder="e.g. 1.00" />
+      </Field>
+      <Field label="Fixed or Floating Rate">
+        <SelectInput {...fp} fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} />
+      </Field>
+      <Field label="Amortization Term">
+        <NumberInput {...fp} fk={`${p}_amort_term`} suffix="months" />
+      </Field>
+      <Field label="Maturity Term">
+        <NumberInput {...fp} fk={`${p}_maturity_term`} suffix="months" />
+      </Field>
+      <Field label="Mortgage Insurance Premium (%)">
+        <TextInput {...fp} fk={`${p}_mtg_ins_premium`} placeholder="e.g. 0.65" />
+      </Field>
+      <Field label="Type of Payment">
+        <SelectInput {...fp} fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} />
+      </Field>
+      <Field label="Payment Requirement">
+        <SelectInput {...fp} fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} />
+      </Field>
+      <div className="col-span-full">
+        <Field label="Comment">
+          <TextArea {...fp} fk={`${p}_comment`} />
+        </Field>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 18.06 — CDBG-DR Loan from LHC or OCD
+ * Blue inputs ONLY: Description, Interest Rate, Amortization Term, Maturity Term, Comment
+ * NOT blue: Loan Type, Fixed/Float, MIP, Payment Type, Payment Req, Lender, Lender is
+ */
+function CdbgFields({ p, values, setValues, onBlur, onSave }: {
+  p: string; values: Record<string, string>
+  setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  onBlur: (k: string, v: string) => void; onSave: (k: string, v: string) => void
+}) {
+  const fp: FieldProps = { fk: '', values, setValues, onBlur, onSave }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="col-span-full">
+        <Field label="Description">
+          <TextInput {...fp} fk={`${p}_description`} />
+        </Field>
+      </div>
+      <Field label="Interest Rate (%)">
+        <TextInput {...fp} fk={`${p}_interest_rate`} placeholder="e.g. 0.00" />
+      </Field>
+      <Field label="Amortization Term">
+        <NumberInput {...fp} fk={`${p}_amort_term`} suffix="months" />
+      </Field>
+      <Field label="Maturity Term">
+        <NumberInput {...fp} fk={`${p}_maturity_term`} suffix="months" />
+      </Field>
+      <div className="col-span-full">
+        <Field label="Comment">
+          <TextArea {...fp} fk={`${p}_comment`} />
         </Field>
       </div>
     </div>
@@ -303,18 +364,18 @@ export function Section18Form({ dealId, initial }: Props) {
   }
 
   const onBlur = (k: string, v: string) => save(k, v)
-  const handleSave = (k: string, v: string) => save(k, v)
+  const onSave = (k: string, v: string) => save(k, v)
   function handleToggle(k: string, v: string) {
     setValues(prev => ({ ...prev, [k]: v }))
     save(k, v)
   }
 
-  const shared = { values, setValues, onBlur, handleSave }
-
   // Alert helpers
   const ddfAmount    = parseFloat(values.s18_07_amount ?? '0') || 0
   const stateEquity  = parseFloat(values.s18_09_equity_amount ?? '0') || 0
   const stateCredits = parseFloat(values.s18_09_credits_amount ?? '0') || 0
+
+  const sharedFields = { values, setValues, onBlur, onSave }
 
   return (
     <div className="space-y-4">
@@ -334,48 +395,46 @@ export function Section18Form({ dealId, initial }: Props) {
       <FundingSourceCard id="s18_01" title="18.01 — New LHC Risk Sharing First Mortgage Loan"
         subtitle="LHC first mortgage with government risk sharing"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_01" {...shared} />
+        <Loan01Fields p="s18_01" {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.02 Existing or New First Mortgage ────────────────────────────── */}
       <FundingSourceCard id="s18_02" title="18.02 — Existing or New First Mortgage Loan"
         subtitle="Non-LHC first mortgage (conventional, FHA, USDA, etc.)"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <ExistingLoanFields prefix="s18_02" {...shared} />
+        <ExistingLoanFields p="s18_02" {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.03 Existing or New Second Mortgage ───────────────────────────── */}
       <FundingSourceCard id="s18_03" title="18.03 — Existing or New Second Mortgage Loan"
         subtitle="Non-LHC second mortgage"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <ExistingLoanFields prefix="s18_03" {...shared} />
+        <ExistingLoanFields p="s18_03" {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.04 HOME Loan from LHC ─────────────────────────────────────────── */}
       <FundingSourceCard id="s18_04" title="18.04 — HOME Loan from LHC"
         subtitle="HOME Investment Partnership Program funds"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_04" showLoanType showLoanAmount={false}
-          loanAmountNote="Loan amount is auto-calculated from the LHC HOME funding commitment."
-          {...shared} />
+        <LhcLoanFields p="s18_04"
+          loanAmountNote="Loan amount is auto-calculated from the LHC HOME funding commitment (Section 13)."
+          {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.05 NHTF Loan from LHC ─────────────────────────────────────────── */}
       <FundingSourceCard id="s18_05" title="18.05 — NHTF Loan from LHC"
         subtitle="National Housing Trust Fund"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_05" showLoanType showLoanAmount={false}
-          loanAmountNote="Loan amount is auto-calculated from the LHC NHTF funding commitment."
-          {...shared} />
+        <LhcLoanFields p="s18_05"
+          loanAmountNote="Loan amount is auto-calculated from the LHC NHTF funding commitment (Section 13)."
+          {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.06 CDBG-DR Loan ───────────────────────────────────────────────── */}
       <FundingSourceCard id="s18_06" title="18.06 — CDBG-DR Loan from LHC or OCD"
         subtitle="CDBG Disaster Recovery gap financing"
         {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_06" showLoanType showLoanAmount={false}
-          loanAmountNote="Loan amount is auto-calculated from the LHC CDBG-DR funding commitment."
-          {...shared} />
+        <CdbgFields p="s18_06" {...sharedFields} />
       </FundingSourceCard>
 
       {/* ── 18.07 Deferred Developer Fee ─────────────────────────────────────── */}
@@ -384,11 +443,11 @@ export function Section18Form({ dealId, initial }: Props) {
         {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Amount ($)">
-            <TextInput fk="s18_07_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 1000000" />
+            <TextInput fk="s18_07_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 1000000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_07_comment" values={values} setValues={setValues} onBlur={onBlur} />
+              <TextArea fk="s18_07_comment" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
           </div>
         </div>
@@ -405,14 +464,14 @@ export function Section18Form({ dealId, initial }: Props) {
         {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Amount of Equity ($)">
-            <TextInput fk="s18_08_equity_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 2000000" />
+            <TextInput fk="s18_08_equity_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 2000000" />
           </Field>
           <Field label="Amount of Credits ($)">
-            <TextInput fk="s18_08_credits_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 2500000" />
+            <TextInput fk="s18_08_credits_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 2500000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_08_comment" values={values} setValues={setValues} onBlur={onBlur} />
+              <TextArea fk="s18_08_comment" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
           </div>
         </div>
@@ -424,14 +483,14 @@ export function Section18Form({ dealId, initial }: Props) {
         {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Amount of Equity ($)">
-            <TextInput fk="s18_09_equity_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 500000" />
+            <TextInput fk="s18_09_equity_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 500000" />
           </Field>
           <Field label="Amount of Credits ($)">
-            <TextInput fk="s18_09_credits_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 625000" />
+            <TextInput fk="s18_09_credits_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 625000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_09_comment" values={values} setValues={setValues} onBlur={onBlur} />
+              <TextArea fk="s18_09_comment" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
           </div>
         </div>
@@ -448,7 +507,7 @@ export function Section18Form({ dealId, initial }: Props) {
         {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Amount ($)">
-            <TextInput fk="s18_10_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 8000000" />
+            <TextInput fk="s18_10_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 8000000" />
           </Field>
         </div>
       </FundingSourceCard>
@@ -461,17 +520,17 @@ export function Section18Form({ dealId, initial }: Props) {
           {...{ values, setValues, onToggle: handleToggle }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Donation Type">
-              <SelectInput fk={`s18_${n}_donation_type`} opts={DONATION_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_donation_type`} opts={DONATION_TYPE_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Description">
-              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} />
+              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Amount ($)">
-              <TextInput fk={`s18_${n}_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 500000" />
+              <TextInput fk={`s18_${n}_amount`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 500000" />
             </Field>
             <div className="col-span-full">
               <Field label="Comment">
-                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
+                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
               </Field>
             </div>
           </div>
@@ -486,47 +545,47 @@ export function Section18Form({ dealId, initial }: Props) {
           {...{ values, setValues, onToggle: handleToggle }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Description">
-              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} />
+              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Type of Funding">
-              <SelectInput fk={`s18_${n}_funding_type`} opts={FUNDING_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_funding_type`} opts={FUNDING_TYPE_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Federal Grant?">
-              <SelectInput fk={`s18_${n}_federal_grant`} opts={['Yes', 'No', 'Missing']} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_federal_grant`} opts={['Yes', 'No', 'Missing']} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Funding Amount ($)">
-              <TextInput fk={`s18_${n}_funding_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 1000000" />
+              <TextInput fk={`s18_${n}_funding_amount`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 1000000" />
             </Field>
             <Field label="Lender">
-              <TextInput fk={`s18_${n}_lender`} values={values} setValues={setValues} onBlur={onBlur} />
+              <TextInput fk={`s18_${n}_lender`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Lender is">
-              <SelectInput fk={`s18_${n}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Interest Rate (%)">
-              <TextInput fk={`s18_${n}_interest_rate`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.00" />
+              <TextInput fk={`s18_${n}_interest_rate`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 0.00" />
             </Field>
             <Field label="Fixed or Floating Rate">
-              <SelectInput fk={`s18_${n}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Amortization Term">
-              <NumberInput fk={`s18_${n}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+              <NumberInput fk={`s18_${n}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} suffix="months" />
             </Field>
             <Field label="Maturity Term">
-              <NumberInput fk={`s18_${n}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+              <NumberInput fk={`s18_${n}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} suffix="months" />
             </Field>
             <Field label="Mortgage Insurance Premium (%)">
-              <TextInput fk={`s18_${n}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} />
+              <TextInput fk={`s18_${n}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Type of Payment">
-              <SelectInput fk={`s18_${n}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <Field label="Payment Requirement">
-              <SelectInput fk={`s18_${n}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
             </Field>
             <div className="col-span-full">
               <Field label="Comment">
-                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
+                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} />
               </Field>
             </div>
           </div>
