@@ -6,6 +6,7 @@ import { Section10Form } from './Section10Form'
 import { Section11Form } from './Section11Form'
 import { Section12Form } from './Section12Form'
 import { Section13Form } from './Section13Form'
+import { Section14Form } from './Section14Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -31,6 +32,7 @@ const SECTION_12_REQUIRED = [
   'is_sro', 'is_reallocated_credits', 'receives_federal_funds', 'hud_rd_assistance', 'is_pha',
 ]
 const SECTION_13_REQUIRED = ['funding_pool']
+const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -80,15 +82,21 @@ export function ProjectDescriptionClient({
   section11Initial,
   section12Initial,
   section13Initial,
+  section14Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
   section11Initial: Record<string, string>
   section12Initial: Record<string, string>
   section13Initial: Record<string, string>
+  section14Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
   const isChdo = section11Initial.is_chdo === 'Yes'
+  const bondFinancing = section10Initial.bond_financing === 'Yes'
+  const lihtc9pct = section10Initial.lihtc_9pct === 'Yes'
+  const existingAcquired = section12Initial.existing_acquired === 'Yes'
+  const fundingPool = section13Initial.funding_pool ?? ''
 
   return (
     <div className="space-y-3">
@@ -106,6 +114,18 @@ export function ProjectDescriptionClient({
 
       <SectionAccordion number="Section 13" title="Selection of Funding Pool" fields={section13Initial} required={SECTION_13_REQUIRED}>
         <Section13Form dealId={dealId} initial={section13Initial} isRural={isRural} isChdo={isChdo} />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 14" title="Requests for LIHTCs" fields={section14Initial} required={SECTION_14_REQUIRED}>
+        <Section14Form
+          dealId={dealId}
+          initial={section14Initial}
+          bondFinancing={bondFinancing}
+          lihtc9pct={lihtc9pct}
+          existingAcquired={existingAcquired}
+          fundingPool={fundingPool}
+          isRural={isRural}
+        />
       </SectionAccordion>
     </div>
   )
