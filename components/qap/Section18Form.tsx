@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ChevronDown } from 'lucide-react'
 import { upsertQapField } from '@/lib/qap-actions'
 
 interface Props {
@@ -19,10 +18,10 @@ const FUNDING_TYPE_OPTS = ['Permanent Hard Debt', 'Permanent Soft Debt', 'Grant'
 const DONATION_TYPE_OPTS = ['Donated / Volunteer Labor', 'Donated Materials', 'Donated Land Value', 'NPV of Reduced RE Taxes', 'Other (Explain)']
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const inputCls  = 'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
-const selectCls = inputCls
-const labelCls  = 'block text-xs font-medium text-muted-foreground mb-1'
-const activeBtn = 'bg-primary text-primary-foreground rounded-lg px-4 py-1.5 text-sm font-medium'
+const inputCls    = 'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
+const selectCls   = inputCls
+const labelCls    = 'block text-xs font-medium text-muted-foreground mb-1'
+const activeBtn   = 'bg-primary text-primary-foreground rounded-lg px-4 py-1.5 text-sm font-medium'
 const inactiveBtn = 'bg-muted text-muted-foreground rounded-lg px-4 py-1.5 text-sm'
 
 // ─── Shared field helpers ─────────────────────────────────────────────────────
@@ -92,9 +91,16 @@ function TextArea({ fk, values, setValues, onBlur, placeholder = '' }: {
 
 // ─── Shared loan field blocks ─────────────────────────────────────────────────
 
-/** Standard loan fields shared by 18.01, 18.04, 18.05, 18.06 */
-function StandardLoanFields({ prefix, showLoanType = false, values, setValues, onBlur, handleSave }: {
-  prefix: string; showLoanType?: boolean
+/**
+ * Standard loan fields for 18.01, 18.04, 18.05, 18.06.
+ * - showLoanAmount: false for 18.04/05/06 (amount is formula-driven from LHC commitment)
+ * - Annual Payment is a formula cell (=+M###) — not shown
+ */
+function StandardLoanFields({ prefix, showLoanType = false, showLoanAmount = true, loanAmountNote, values, setValues, onBlur, handleSave }: {
+  prefix: string
+  showLoanType?: boolean
+  showLoanAmount?: boolean
+  loanAmountNote?: string
   values: Record<string, string>
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
   onBlur: (k: string, v: string) => void
@@ -111,9 +117,15 @@ function StandardLoanFields({ prefix, showLoanType = false, values, setValues, o
       <Field label="Description">
         <TextInput fk={`${p}_description`} values={values} setValues={setValues} onBlur={onBlur} />
       </Field>
-      <Field label="Loan Amount ($)">
-        <TextInput fk={`${p}_loan_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 5000000" />
-      </Field>
+      {showLoanAmount ? (
+        <Field label="Loan Amount ($)">
+          <TextInput fk={`${p}_loan_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 5000000" />
+        </Field>
+      ) : loanAmountNote ? (
+        <div className="sm:col-span-1">
+          <p className="text-xs text-muted-foreground mt-1 rounded-lg px-3 py-2 bg-muted/50">{loanAmountNote}</p>
+        </div>
+      ) : null}
       <Field label="Lender">
         <TextInput fk={`${p}_lender`} values={values} setValues={setValues} onBlur={onBlur} />
       </Field>
@@ -127,19 +139,16 @@ function StandardLoanFields({ prefix, showLoanType = false, values, setValues, o
         <SelectInput fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
       </Field>
       <Field label="Amortization Term">
-        <NumberInput fk={`${p}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
+        <NumberInput fk={`${p}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
       </Field>
       <Field label="Maturity Term">
-        <NumberInput fk={`${p}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
+        <NumberInput fk={`${p}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
       </Field>
       <Field label="Mortgage Insurance Premium (%)">
         <TextInput fk={`${p}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.65" />
       </Field>
       <Field label="Type of Payment">
         <SelectInput fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-      </Field>
-      <Field label="Annual Payment ($)">
-        <TextInput fk={`${p}_annual_payment`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 300000" />
       </Field>
       <Field label="Payment Requirement">
         <SelectInput fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
@@ -153,7 +162,11 @@ function StandardLoanFields({ prefix, showLoanType = false, values, setValues, o
   )
 }
 
-/** Extended fields for existing/new mortgage loans (18.02, 18.03) */
+/**
+ * Extended fields for existing/new mortgage loans (18.02, 18.03).
+ * Removed formula cells: Annual Payment (=+M###),
+ * Amortization Remaining (=IFERROR(+G*12,"")), Maturity Remaining (=IFERROR(+E-O*12,"")).
+ */
 function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
   prefix: string
   values: Record<string, string>
@@ -205,28 +218,23 @@ function ExistingLoanFields({ prefix, values, setValues, onBlur, handleSave }: {
         <SelectInput fk={`${p}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
       </Field>
       <Field label="Amortization End Date">
-        <NumberInput fk={`${p}_amort_end_years`} values={values} setValues={setValues} onBlur={onBlur} suffix="years from origination" />
+        <input type="date" className={inputCls} value={values[`${p}_amort_end_date`] ?? ''}
+          onChange={e => setValues(v => ({ ...v, [`${p}_amort_end_date`]: e.target.value }))}
+          onBlur={e => onBlur(`${p}_amort_end_date`, e.target.value)} />
       </Field>
       <Field label="Amortization Term">
-        <NumberInput fk={`${p}_amort_term_years`} values={values} setValues={setValues} onBlur={onBlur} suffix="years from origination" />
-      </Field>
-      <Field label="Amortization Remaining">
-        <NumberInput fk={`${p}_amort_remaining`} values={values} setValues={setValues} onBlur={onBlur} suffix="years from initial closing" />
+        <NumberInput fk={`${p}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
       </Field>
       <Field label="Maturity Date">
-        <NumberInput fk={`${p}_maturity_years`} values={values} setValues={setValues} onBlur={onBlur} suffix="years from origination" />
-      </Field>
-      <Field label="Maturity Remaining">
-        <NumberInput fk={`${p}_maturity_remaining`} values={values} setValues={setValues} onBlur={onBlur} suffix="years from initial closing" />
+        <input type="date" className={inputCls} value={values[`${p}_maturity_date`] ?? ''}
+          onChange={e => setValues(v => ({ ...v, [`${p}_maturity_date`]: e.target.value }))}
+          onBlur={e => onBlur(`${p}_maturity_date`, e.target.value)} />
       </Field>
       <Field label="Mortgage Insurance Premium (%)">
         <TextInput fk={`${p}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.65" />
       </Field>
       <Field label="Type of Payment">
         <SelectInput fk={`${p}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-      </Field>
-      <Field label="Annual Payment ($)">
-        <TextInput fk={`${p}_annual_payment`} values={values} setValues={setValues} onBlur={onBlur} />
       </Field>
       <Field label="Payment Requirement">
         <SelectInput fk={`${p}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
@@ -275,9 +283,7 @@ function FundingSourceCard({ id, title, subtitle, values, setValues, onToggle, c
           {children}
         </div>
       )}
-      {!isYes && !isNo && (
-        <div />
-      )}
+      {!isYes && !isNo && <div />}
     </div>
   )
 }
@@ -306,8 +312,8 @@ export function Section18Form({ dealId, initial }: Props) {
   const shared = { values, setValues, onBlur, handleSave }
 
   // Alert helpers
-  const ddfAmount = parseFloat(values.s18_07_amount ?? '0') || 0
-  const stateEquity = parseFloat(values.s18_09_equity_amount ?? '0') || 0
+  const ddfAmount    = parseFloat(values.s18_07_amount ?? '0') || 0
+  const stateEquity  = parseFloat(values.s18_09_equity_amount ?? '0') || 0
   const stateCredits = parseFloat(values.s18_09_credits_amount ?? '0') || 0
 
   return (
@@ -326,53 +332,63 @@ export function Section18Form({ dealId, initial }: Props) {
 
       {/* ── 18.01 New LHC Risk Sharing First Mortgage ───────────────────────── */}
       <FundingSourceCard id="s18_01" title="18.01 — New LHC Risk Sharing First Mortgage Loan"
-        subtitle="LHC first mortgage with government risk sharing" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="LHC first mortgage with government risk sharing"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <StandardLoanFields prefix="s18_01" {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.02 Existing or New First Mortgage ────────────────────────────── */}
       <FundingSourceCard id="s18_02" title="18.02 — Existing or New First Mortgage Loan"
-        subtitle="Non-LHC first mortgage (conventional, FHA, USDA, etc.)" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="Non-LHC first mortgage (conventional, FHA, USDA, etc.)"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <ExistingLoanFields prefix="s18_02" {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.03 Existing or New Second Mortgage ───────────────────────────── */}
       <FundingSourceCard id="s18_03" title="18.03 — Existing or New Second Mortgage Loan"
-        subtitle="Non-LHC second mortgage" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="Non-LHC second mortgage"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <ExistingLoanFields prefix="s18_03" {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.04 HOME Loan from LHC ─────────────────────────────────────────── */}
       <FundingSourceCard id="s18_04" title="18.04 — HOME Loan from LHC"
-        subtitle="HOME Investment Partnership Program funds" {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_04" showLoanType {...shared} />
+        subtitle="HOME Investment Partnership Program funds"
+        {...{ values, setValues, onToggle: handleToggle }}>
+        <StandardLoanFields prefix="s18_04" showLoanType showLoanAmount={false}
+          loanAmountNote="Loan amount is auto-calculated from the LHC HOME funding commitment."
+          {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.05 NHTF Loan from LHC ─────────────────────────────────────────── */}
       <FundingSourceCard id="s18_05" title="18.05 — NHTF Loan from LHC"
-        subtitle="National Housing Trust Fund" {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_05" showLoanType {...shared} />
+        subtitle="National Housing Trust Fund"
+        {...{ values, setValues, onToggle: handleToggle }}>
+        <StandardLoanFields prefix="s18_05" showLoanType showLoanAmount={false}
+          loanAmountNote="Loan amount is auto-calculated from the LHC NHTF funding commitment."
+          {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.06 CDBG-DR Loan ───────────────────────────────────────────────── */}
       <FundingSourceCard id="s18_06" title="18.06 — CDBG-DR Loan from LHC or OCD"
-        subtitle="CDBG Disaster Recovery gap financing" {...{ values, setValues, onToggle: handleToggle }}>
-        <StandardLoanFields prefix="s18_06" showLoanType {...shared} />
+        subtitle="CDBG Disaster Recovery gap financing"
+        {...{ values, setValues, onToggle: handleToggle }}>
+        <StandardLoanFields prefix="s18_06" showLoanType showLoanAmount={false}
+          loanAmountNote="Loan amount is auto-calculated from the LHC CDBG-DR funding commitment."
+          {...shared} />
       </FundingSourceCard>
 
       {/* ── 18.07 Deferred Developer Fee ─────────────────────────────────────── */}
       <FundingSourceCard id="s18_07" title="18.07 — Deferred Developer Fee"
-        subtitle="Portion of developer fee deferred as soft equity" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="Portion of developer fee deferred as soft equity"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Description">
-            <TextInput fk="s18_07_description" {...shared} />
-          </Field>
           <Field label="Amount ($)">
-            <TextInput fk="s18_07_amount" {...shared} placeholder="e.g. 1000000" />
+            <TextInput fk="s18_07_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 1000000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_07_comment" {...shared} />
+              <TextArea fk="s18_07_comment" values={values} setValues={setValues} onBlur={onBlur} />
             </Field>
           </div>
         </div>
@@ -385,20 +401,18 @@ export function Section18Form({ dealId, initial }: Props) {
 
       {/* ── 18.08 Federal Historic Tax Credits ───────────────────────────────── */}
       <FundingSourceCard id="s18_08" title="18.08 — Federal Historic Tax Credits and Equity"
-        subtitle="Federal HTC equity proceeds" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="Federal HTC equity proceeds"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Description">
-            <TextInput fk="s18_08_description" {...shared} />
-          </Field>
           <Field label="Amount of Equity ($)">
-            <TextInput fk="s18_08_equity_amount" {...shared} placeholder="e.g. 2000000" />
+            <TextInput fk="s18_08_equity_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 2000000" />
           </Field>
           <Field label="Amount of Credits ($)">
-            <TextInput fk="s18_08_credits_amount" {...shared} placeholder="e.g. 2500000" />
+            <TextInput fk="s18_08_credits_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 2500000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_08_comment" {...shared} />
+              <TextArea fk="s18_08_comment" values={values} setValues={setValues} onBlur={onBlur} />
             </Field>
           </div>
         </div>
@@ -406,20 +420,18 @@ export function Section18Form({ dealId, initial }: Props) {
 
       {/* ── 18.09 State Historic Tax Credits ─────────────────────────────────── */}
       <FundingSourceCard id="s18_09" title="18.09 — State Historic Tax Credits and Equity"
-        subtitle="Louisiana state HTC equity proceeds" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="Louisiana state HTC equity proceeds"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Description">
-            <TextInput fk="s18_09_description" {...shared} />
-          </Field>
           <Field label="Amount of Equity ($)">
-            <TextInput fk="s18_09_equity_amount" {...shared} placeholder="e.g. 500000" />
+            <TextInput fk="s18_09_equity_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 500000" />
           </Field>
           <Field label="Amount of Credits ($)">
-            <TextInput fk="s18_09_credits_amount" {...shared} placeholder="e.g. 625000" />
+            <TextInput fk="s18_09_credits_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 625000" />
           </Field>
           <div className="col-span-full">
             <Field label="Comment">
-              <TextArea fk="s18_09_comment" {...shared} />
+              <TextArea fk="s18_09_comment" values={values} setValues={setValues} onBlur={onBlur} />
             </Field>
           </div>
         </div>
@@ -432,36 +444,34 @@ export function Section18Form({ dealId, initial }: Props) {
 
       {/* ── 18.10 Estimated LIHTC Equity Proceeds ────────────────────────────── */}
       <FundingSourceCard id="s18_10" title="18.10 — Estimated LIHTC Equity Proceeds"
-        subtitle="4% or 9% LIHTC equity from investor" {...{ values, setValues, onToggle: handleToggle }}>
+        subtitle="4% or 9% LIHTC equity from investor"
+        {...{ values, setValues, onToggle: handleToggle }}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Description">
-            <TextInput fk="s18_10_description" {...shared} />
-          </Field>
           <Field label="Amount ($)">
-            <TextInput fk="s18_10_amount" {...shared} placeholder="e.g. 8000000" />
+            <TextInput fk="s18_10_amount" values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 8000000" />
           </Field>
         </div>
       </FundingSourceCard>
 
       {/* ── 18.11–18.13 Donated Amounts ──────────────────────────────────────── */}
-      {[1, 2, 3].map(n => (
-        <FundingSourceCard key={n} id={`s18_1${n}`}
-          title={`18.1${n} — Donated Amount #${n}`}
+      {([11, 12, 13] as const).map(n => (
+        <FundingSourceCard key={n} id={`s18_${n}`}
+          title={`18.${n} — Donated Amount #${n - 10}`}
           subtitle="In-kind donation, land value, reduced taxes, etc."
           {...{ values, setValues, onToggle: handleToggle }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Donation Type">
-              <SelectInput fk={`s18_1${n}_donation_type`} opts={DONATION_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+              <SelectInput fk={`s18_${n}_donation_type`} opts={DONATION_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
             </Field>
             <Field label="Description">
-              <TextInput fk={`s18_1${n}_description`} {...shared} />
+              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} />
             </Field>
             <Field label="Amount ($)">
-              <TextInput fk={`s18_1${n}_amount`} {...shared} placeholder="e.g. 500000" />
+              <TextInput fk={`s18_${n}_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 500000" />
             </Field>
             <div className="col-span-full">
               <Field label="Comment">
-                <TextArea fk={`s18_1${n}_comment`} {...shared} />
+                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
               </Field>
             </div>
           </div>
@@ -469,66 +479,59 @@ export function Section18Form({ dealId, initial }: Props) {
       ))}
 
       {/* ── 18.14–18.16 Other Permanent Sources ──────────────────────────────── */}
-      {[4, 5, 6].map(n => {
-        const num = n + 10  // 14, 15, 16
-        const label = n - 3 // 1, 2, 3
-        return (
-          <FundingSourceCard key={n} id={`s18_${num}`}
-            title={`18.${num} — Other Permanent Source #${label}`}
-            subtitle="Other debt, grant, equity, or soft financing"
-            {...{ values, setValues, onToggle: handleToggle }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Description">
-                <TextInput fk={`s18_${num}_description`} {...shared} />
+      {([14, 15, 16] as const).map(n => (
+        <FundingSourceCard key={n} id={`s18_${n}`}
+          title={`18.${n} — Other Permanent Source #${n - 13}`}
+          subtitle="Other debt, grant, equity, or soft financing"
+          {...{ values, setValues, onToggle: handleToggle }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Description">
+              <TextInput fk={`s18_${n}_description`} values={values} setValues={setValues} onBlur={onBlur} />
+            </Field>
+            <Field label="Type of Funding">
+              <SelectInput fk={`s18_${n}_funding_type`} opts={FUNDING_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <Field label="Federal Grant?">
+              <SelectInput fk={`s18_${n}_federal_grant`} opts={['Yes', 'No', 'Missing']} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <Field label="Funding Amount ($)">
+              <TextInput fk={`s18_${n}_funding_amount`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 1000000" />
+            </Field>
+            <Field label="Lender">
+              <TextInput fk={`s18_${n}_lender`} values={values} setValues={setValues} onBlur={onBlur} />
+            </Field>
+            <Field label="Lender is">
+              <SelectInput fk={`s18_${n}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <Field label="Interest Rate (%)">
+              <TextInput fk={`s18_${n}_interest_rate`} values={values} setValues={setValues} onBlur={onBlur} placeholder="e.g. 0.00" />
+            </Field>
+            <Field label="Fixed or Floating Rate">
+              <SelectInput fk={`s18_${n}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <Field label="Amortization Term">
+              <NumberInput fk={`s18_${n}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+            </Field>
+            <Field label="Maturity Term">
+              <NumberInput fk={`s18_${n}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="months" />
+            </Field>
+            <Field label="Mortgage Insurance Premium (%)">
+              <TextInput fk={`s18_${n}_mtg_ins_premium`} values={values} setValues={setValues} onBlur={onBlur} />
+            </Field>
+            <Field label="Type of Payment">
+              <SelectInput fk={`s18_${n}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <Field label="Payment Requirement">
+              <SelectInput fk={`s18_${n}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
+            </Field>
+            <div className="col-span-full">
+              <Field label="Comment">
+                <TextArea fk={`s18_${n}_comment`} values={values} setValues={setValues} onBlur={onBlur} />
               </Field>
-              <Field label="Type of Funding">
-                <SelectInput fk={`s18_${num}_funding_type`} opts={FUNDING_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <Field label="Federal Grant?">
-                <SelectInput fk={`s18_${num}_federal_grant`} opts={['Yes', 'No', 'Missing']} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <Field label="Funding Amount ($)">
-                <TextInput fk={`s18_${num}_funding_amount`} {...shared} placeholder="e.g. 1000000" />
-              </Field>
-              <Field label="Lender">
-                <TextInput fk={`s18_${num}_lender`} {...shared} />
-              </Field>
-              <Field label="Lender is">
-                <SelectInput fk={`s18_${num}_lender_is`} opts={LENDER_IS_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <Field label="Interest Rate (%)">
-                <TextInput fk={`s18_${num}_interest_rate`} {...shared} placeholder="e.g. 0.00" />
-              </Field>
-              <Field label="Fixed or Floating Rate">
-                <SelectInput fk={`s18_${num}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <Field label="Amortization Term">
-                <NumberInput fk={`s18_${num}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
-              </Field>
-              <Field label="Maturity Term">
-                <NumberInput fk={`s18_${num}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
-              </Field>
-              <Field label="Mortgage Insurance Premium (%)">
-                <TextInput fk={`s18_${num}_mtg_ins_premium`} {...shared} />
-              </Field>
-              <Field label="Type of Payment">
-                <SelectInput fk={`s18_${num}_payment_type`} opts={PAYMENT_TYPE_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <Field label="Annual Payment ($)">
-                <TextInput fk={`s18_${num}_annual_payment`} {...shared} />
-              </Field>
-              <Field label="Payment Requirement">
-                <SelectInput fk={`s18_${num}_payment_req`} opts={PAYMENT_REQ_OPTS} values={values} setValues={setValues} onSave={handleSave} />
-              </Field>
-              <div className="col-span-full">
-                <Field label="Comment">
-                  <TextArea fk={`s18_${num}_comment`} {...shared} />
-                </Field>
-              </div>
             </div>
-          </FundingSourceCard>
-        )
-      })}
+          </div>
+        </FundingSourceCard>
+      ))}
     </div>
   )
 }
