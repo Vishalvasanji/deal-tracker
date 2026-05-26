@@ -7,6 +7,7 @@ import { Section11Form } from './Section11Form'
 import { Section12Form } from './Section12Form'
 import { Section13Form } from './Section13Form'
 import { Section14Form } from './Section14Form'
+import { Section15Form } from './Section15Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -33,6 +34,7 @@ const SECTION_12_REQUIRED = [
 ]
 const SECTION_13_REQUIRED = ['funding_pool']
 const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
+const SECTION_15_REQUIRED = ['basis_boost_applying']
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -83,6 +85,7 @@ export function ProjectDescriptionClient({
   section12Initial,
   section13Initial,
   section14Initial,
+  section15Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
@@ -90,12 +93,15 @@ export function ProjectDescriptionClient({
   section12Initial: Record<string, string>
   section13Initial: Record<string, string>
   section14Initial: Record<string, string>
+  section15Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
   const isChdo = section11Initial.is_chdo === 'Yes'
   const bondFinancing = section10Initial.bond_financing === 'Yes'
+  const lihtc4pct = section10Initial.lihtc_4pct === 'Yes'
   const lihtc9pct = section10Initial.lihtc_9pct === 'Yes'
   const existingAcquired = section12Initial.existing_acquired === 'Yes'
+  const isSingleSite = section12Initial.is_single_site === 'Yes'
   const fundingPool = section13Initial.funding_pool ?? ''
 
   return (
@@ -125,6 +131,16 @@ export function ProjectDescriptionClient({
           existingAcquired={existingAcquired}
           fundingPool={fundingPool}
           isRural={isRural}
+        />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 15" title="Basis Boost" fields={section15Initial} required={SECTION_15_REQUIRED}>
+        <Section15Form
+          dealId={dealId}
+          initial={section15Initial}
+          lihtc4pct={lihtc4pct}
+          lihtc9pct={lihtc9pct}
+          isSingleSite={isSingleSite}
         />
       </SectionAccordion>
     </div>
