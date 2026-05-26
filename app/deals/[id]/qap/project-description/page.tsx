@@ -19,7 +19,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
   const [
     section10Fields, section11Fields, section12Fields,
     section13Fields, section14Fields, section15Fields,
-    section17Fields,
+    section16Fields, section17Fields,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_10'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
@@ -27,6 +27,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_13'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_14'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_15'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_16'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_17'))),
   ])
 
@@ -36,6 +37,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
   const section13Initial = Object.fromEntries(section13Fields.map(f => [f.field_key, f.value ?? '']))
   const section14Initial = Object.fromEntries(section14Fields.map(f => [f.field_key, f.value ?? '']))
   const section15Initial = Object.fromEntries(section15Fields.map(f => [f.field_key, f.value ?? '']))
+  const section16Initial = Object.fromEntries(section16Fields.map(f => [f.field_key, f.value ?? '']))
   const section17Initial = Object.fromEntries(section17Fields.map(f => [f.field_key, f.value ?? '']))
 
   return (
@@ -61,6 +63,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
         section13Initial={section13Initial}
         section14Initial={section14Initial}
         section15Initial={section15Initial}
+        section16Initial={section16Initial}
         section17Initial={section17Initial}
       />
     </div>
