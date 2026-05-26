@@ -97,12 +97,6 @@ export function Section12Form({ dealId, initial }: Props) {
               onBlur={e => handleBlur('zip_code', e.target.value)} />
           </div>
         </div>
-        <div>
-          <label className={labelCls}>MSA</label>
-          <input className={inputCls} value={values.msa ?? ''} placeholder="e.g. Baton Rouge MSA"
-            onChange={e => setValues(v => ({ ...v, msa: e.target.value }))}
-            onBlur={e => handleBlur('msa', e.target.value)} />
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Latitude (X)</label>
