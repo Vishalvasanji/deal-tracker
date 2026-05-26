@@ -275,8 +275,8 @@ function LhcLoanFields({ p, loanAmountNote, values, setValues, onBlur, onSave }:
 
 /**
  * 18.06 — CDBG-DR Loan from LHC or OCD
- * Blue inputs ONLY: Description, Interest Rate, Amortization Term, Maturity Term, Comment
- * NOT blue: Loan Type, Fixed/Float, MIP, Payment Type, Payment Req, Lender, Lender is
+ * Blue inputs ONLY: Interest Rate, Amortization Term, Maturity Term, Comment
+ * NOT blue: Description, Loan Type, Fixed/Float, MIP, Payment Type, Payment Req, Lender, Lender is
  */
 function CdbgFields({ p, values, setValues, onBlur, onSave }: {
   p: string; values: Record<string, string>
@@ -286,11 +286,6 @@ function CdbgFields({ p, values, setValues, onBlur, onSave }: {
   const fp: FieldProps = { fk: '', values, setValues, onBlur, onSave }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div className="col-span-full">
-        <Field label="Description">
-          <TextInput {...fp} fk={`${p}_description`} />
-        </Field>
-      </div>
       <Field label="Interest Rate (%)">
         <TextInput {...fp} fk={`${p}_interest_rate`} placeholder="e.g. 0.00" />
       </Field>
