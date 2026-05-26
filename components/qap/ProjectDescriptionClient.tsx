@@ -8,6 +8,7 @@ import { Section12Form } from './Section12Form'
 import { Section13Form } from './Section13Form'
 import { Section14Form } from './Section14Form'
 import { Section15Form } from './Section15Form'
+import { Section16Form } from './Section16Form'
 import { Section17Form } from './Section17Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
@@ -36,6 +37,19 @@ const SECTION_12_REQUIRED = [
 const SECTION_13_REQUIRED = ['funding_pool']
 const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
 const SECTION_15_REQUIRED = ['basis_boost_applying']
+const SECTION_16_REQUIRED = [
+  's16_anchor_date',
+  's16_site_acq_days',
+  's16_zoning_days',
+  's16_site_analysis_days',
+  's16_env_clearance_days',
+  's16_cl_app_days',
+  's16_cl_firm_days',
+  's16_pl_firm_days',
+  's16_plans_specs_days',
+  's16_initial_closing_days',
+  's16_constr_start_days',
+]
 const SECTION_17_REQUIRED = [
   'cp_funding_timeline',
   'cp_cost_coverage_plan',
@@ -93,6 +107,7 @@ export function ProjectDescriptionClient({
   section13Initial,
   section14Initial,
   section15Initial,
+  section16Initial,
   section17Initial,
 }: {
   dealId: string
@@ -102,6 +117,7 @@ export function ProjectDescriptionClient({
   section13Initial: Record<string, string>
   section14Initial: Record<string, string>
   section15Initial: Record<string, string>
+  section16Initial: Record<string, string>
   section17Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
@@ -151,6 +167,10 @@ export function ProjectDescriptionClient({
           lihtc9pct={lihtc9pct}
           isSingleSite={isSingleSite}
         />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 16" title="Project Schedule" fields={section16Initial} required={SECTION_16_REQUIRED}>
+        <Section16Form dealId={dealId} initial={section16Initial} />
       </SectionAccordion>
 
       <SectionAccordion number="Section 17" title="Construction Period Sources of Funds" fields={section17Initial} required={SECTION_17_REQUIRED}>
