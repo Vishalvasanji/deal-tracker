@@ -95,6 +95,18 @@ export function Section11Form({ dealId, initial }: Props) {
               <option>Missing</option>
             </select>
           </div>
+          <div>
+            <label className={labelCls}>Taxpayer is a <span className="text-rose-500">*</span></label>
+            <select className={selectCls} value={values.taxpayer_is_a ?? ''}
+              onChange={e => handleSelect('taxpayer_is_a', e.target.value)}>
+              <option value="">Select…</option>
+              <option>Limited Liability Company</option>
+              <option>Limited Partnership</option>
+              <option>{'\'S\' Corporation'}</option>
+              <option>Other</option>
+              <option>Missing</option>
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
