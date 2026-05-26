@@ -5,7 +5,8 @@ import { eq, and } from 'drizzle-orm'
 const NARRATIVE_REQUIRED = ['narrative']
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
-  'taxpayer_name', 'developer_name', 'developer_meets_vc1', 'developer_is_new',
+  'taxpayer_name', 'taxpayer_is', 'taxpayer_is_a',
+  'developer_name', 'developer_meets_vc1', 'developer_is_new',
   'other_credits_requested', 'ioi_dev_builder', 'not_in_good_standing',
   'qualified_nonprofit', 'is_chdo', 'mgmt_agent_name', 'mgmt_agent_ioi',
 ]
@@ -27,7 +28,7 @@ const SECTION_12_REQUIRED = [
   'is_sro', 'is_reallocated_credits', 'receives_federal_funds', 'hud_rd_assistance', 'is_pha',
 ]
 const SECTION_13_REQUIRED = ['funding_pool']
-const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
+const SECTION_14_REQUIRED = ['credits_requested', 'lihtc_set_aside_election']
 const SECTION_15_REQUIRED = ['basis_boost_applying']
 const SECTION_16_REQUIRED = [
   's16_anchor_date',
@@ -54,12 +55,7 @@ const SECTION_16_REQUIRED = [
   's16_occ_10pct_days',
   's16_final_closing_days',
 ]
-const SECTION_17_REQUIRED = [
-  'cp_funding_timeline',
-  'cp_cost_coverage_plan',
-  'cp_interest_expense_method',
-  'cp_funding_sources_detail',
-]
+const SECTION_17_REQUIRED = ['cp_comment']
 const SECTION_18_REQUIRED = [
   's18_01_active', 's18_02_active', 's18_03_active', 's18_04_active',
   's18_05_active', 's18_06_active', 's18_07_active', 's18_08_active',
