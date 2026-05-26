@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Section10Form } from './Section10Form'
 import { Section11Form } from './Section11Form'
+import { Section12Form } from './Section12Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -18,6 +19,25 @@ const SECTION_11_REQUIRED = [
   'is_chdo',
   'mgmt_agent_name',
   'mgmt_agent_ioi',
+]
+const SECTION_12_REQUIRED = [
+  'project_name', 'street_address', 'city', 'parish',
+  'is_single_site',
+  'dev_type',
+  'existing_acquired', 'rehab', 'substantial_rehab', 'historic_rehab',
+  'purchase_price_500k', 'acq_cost_in_basis',
+  'rental_housing_acquired',
+  'is_infill', 'is_flood_hazard', 'is_levee',
+  'building_type', 'other_building_types',
+  'census_tract', 'census_tract_outside',
+  'is_dda', 'is_qct', 'is_tribal', 'is_choice_neighborhood', 'is_concerted_revitalization',
+  'is_rural',
+  'is_incorporated', 'is_urban', 'is_town_15k',
+  'is_distressed', 'is_redevelopment', 'is_owner_occupied_dev', 'is_existing_lihtc',
+  'is_usda_funded', 'is_nonhistoric_rehab', 'is_blighted', 'is_rehab_infill',
+  'is_historic_preservation', 'is_hap_contract', 'is_nc_infill_scattered',
+  'is_homeownership', 'veteran_preference', 'is_preservation_property',
+  'is_sro', 'is_reallocated_credits', 'receives_federal_funds', 'hud_rd_assistance', 'is_pha',
 ]
 
 function SectionAccordion({
@@ -81,10 +101,12 @@ export function ProjectDescriptionClient({
   dealId,
   section10Initial,
   section11Initial,
+  section12Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
   section11Initial: Record<string, string>
+  section12Initial: Record<string, string>
 }) {
   return (
     <div className="space-y-3">
@@ -104,6 +126,15 @@ export function ProjectDescriptionClient({
         required={SECTION_11_REQUIRED}
       >
         <Section11Form dealId={dealId} initial={section11Initial} />
+      </SectionAccordion>
+
+      <SectionAccordion
+        number="Section 12"
+        title="Characteristics of The Project"
+        fields={section12Initial}
+        required={SECTION_12_REQUIRED}
+      >
+        <Section12Form dealId={dealId} initial={section12Initial} />
       </SectionAccordion>
     </div>
   )
