@@ -14,33 +14,6 @@ const inputCls =
 const sectionHeaderCls =
   'text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2'
 
-const FIELDS: { key: string; label: string; hint?: string; placeholder: string }[] = [
-  {
-    key: 'cp_funding_timeline',
-    label: 'When is each permanent source of funding expected to be received?',
-    hint: 'Describe the expected timing for each permanent source (e.g., equity close, loan closings, grants).',
-    placeholder: 'e.g. LHC Risk Sharing loan expected to close at construction closing in Q3 2026; LIHTC equity expected at construction closing and 50% completion…',
-  },
-  {
-    key: 'cp_cost_coverage_plan',
-    label: 'How do you plan to meet construction period development costs prior to all permanent sources being received?',
-    hint: 'Explain the bridge financing, construction loan, or other mechanism used to cover costs before permanent sources are in place.',
-    placeholder: 'e.g. Construction period costs will be funded via a construction loan from [Lender]…',
-  },
-  {
-    key: 'cp_interest_expense_method',
-    label: 'How did you estimate construction period interest expense?',
-    hint: 'Describe the method or assumptions used (loan amount, rate, draw schedule, term).',
-    placeholder: 'e.g. Construction period interest calculated on a $X construction loan at Y% over Z months, assuming a straight-line draw schedule…',
-  },
-  {
-    key: 'cp_funding_sources_detail',
-    label: 'Describe each construction period source of funding.',
-    hint: 'For each source include: (a) who is providing the funds, (b) whether the provider is third party or identity of interest (IOI), (c) the amount, (d) whether any source involves tax-exempt bond financing (LHC or other issuer), and (e) key business terms.',
-    placeholder: 'e.g. Source 1: [Lender] — Third Party — $X construction loan — Tax-exempt bonds issued by LHC — Fixed rate Y%, 18-month term, interest-only…',
-  },
-]
-
 export function Section17Form({ dealId, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -66,26 +39,29 @@ export function Section17Form({ dealId, initial }: Props) {
         </span>
       </div>
 
-      <p className={sectionHeaderCls}>17.01 — Construction Period Financing</p>
-
-      {FIELDS.map((f, i) => (
-        <div key={f.key} className="space-y-1">
+      <div className="space-y-3">
+        <p className={sectionHeaderCls}>17.01 — Construction Period Financing</p>
+        <p className="text-xs text-muted-foreground">
+          Please explain: (1) when each permanent source of funding is expected to be received;
+          (2) how construction period development costs will be met prior to all permanent sources
+          being received; (3) how you estimated construction period interest expense; and (4) for
+          each construction period source of funding, describe the provider, whether third party or
+          identity of interest, the amount, whether any source involves tax-exempt bond financing,
+          and key business terms.
+        </p>
+        <div>
           <label className={labelCls}>
-            <span className="text-xs font-semibold text-muted-foreground mr-2">{i + 1}.</span>
-            {f.label} <span className="text-rose-500">*</span>
+            Comment <span className="text-rose-500">*</span>
           </label>
-          {f.hint && (
-            <p className="text-xs text-muted-foreground mb-1">{f.hint}</p>
-          )}
           <textarea
-            className={inputCls + ' min-h-[100px] resize-y'}
-            value={values[f.key] ?? ''}
-            placeholder={f.placeholder}
-            onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
-            onBlur={e => handleBlur(f.key, e.target.value)}
+            className={inputCls + ' min-h-[160px] resize-y'}
+            value={values.cp_comment ?? ''}
+            placeholder="Describe your construction period financing plan…"
+            onChange={e => setValues(v => ({ ...v, cp_comment: e.target.value }))}
+            onBlur={e => handleBlur('cp_comment', e.target.value)}
           />
         </div>
-      ))}
+      </div>
     </div>
   )
 }
