@@ -16,17 +16,19 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     .limit(1)
   if (!deal) notFound()
 
-  const [section10Fields, section11Fields, section12Fields, section13Fields] = await Promise.all([
+  const [section10Fields, section11Fields, section12Fields, section13Fields, section14Fields] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_10'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_13'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_14'))),
   ])
 
   const section10Initial = Object.fromEntries(section10Fields.map(f => [f.field_key, f.value ?? '']))
   const section11Initial = Object.fromEntries(section11Fields.map(f => [f.field_key, f.value ?? '']))
   const section12Initial = Object.fromEntries(section12Fields.map(f => [f.field_key, f.value ?? '']))
   const section13Initial = Object.fromEntries(section13Fields.map(f => [f.field_key, f.value ?? '']))
+  const section14Initial = Object.fromEntries(section14Fields.map(f => [f.field_key, f.value ?? '']))
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 pb-20">
@@ -49,6 +51,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
         section11Initial={section11Initial}
         section12Initial={section12Initial}
         section13Initial={section13Initial}
+        section14Initial={section14Initial}
       />
     </div>
   )
