@@ -503,10 +503,10 @@ export function Section18Form({ dealId, initial }: Props) {
                 <SelectInput fk={`s18_${num}_fixed_floating`} opts={FIXED_FLOAT_OPTS} values={values} setValues={setValues} onSave={handleSave} />
               </Field>
               <Field label="Amortization Term">
-                <NumberInput fk={`s18_${num}_amort_term`} values={values} setValues={setValues} onBlur={handleBlur} suffix="years" />
+                <NumberInput fk={`s18_${num}_amort_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
               </Field>
               <Field label="Maturity Term">
-                <NumberInput fk={`s18_${num}_maturity_term`} values={values} setValues={setValues} onBlur={handleBlur} suffix="years" />
+                <NumberInput fk={`s18_${num}_maturity_term`} values={values} setValues={setValues} onBlur={onBlur} suffix="years" />
               </Field>
               <Field label="Mortgage Insurance Premium (%)">
                 <TextInput fk={`s18_${num}_mtg_ins_premium`} {...shared} />
