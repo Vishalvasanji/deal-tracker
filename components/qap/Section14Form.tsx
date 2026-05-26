@@ -27,7 +27,7 @@ const POOL_LIHTC_CAP: Record<string, number> = {
   'Choice Neighborhood Initiative CNI Set-Aside': 1_500_000,
 }
 
-const SET_ASIDE_OPTIONS = ['20/50', '40/60', 'Average Income', 'Missing']
+const SET_ASIDE_OPTIONS = ['20/50', '40/60', 'Income Averaging', 'Missing']
 
 const labelCls = 'block text-sm font-medium text-foreground mb-1'
 const inputCls =
@@ -152,23 +152,6 @@ export function Section14Form({
       {/* 14.01 — Housing Credit Rates */}
       <div className="space-y-3">
         <p className={sectionHeaderCls}>14.01 — Housing Credit Rates</p>
-
-        <div>
-          <label className={labelCls}>
-            New construction / rehabilitation housing credit rate{' '}
-            <span className="text-rose-500">*</span>
-          </label>
-          <input
-            className={inputCls}
-            value={values.nc_rehab_credit_rate ?? ''}
-            placeholder="e.g. 0.09"
-            onChange={e => setValues(v => ({ ...v, nc_rehab_credit_rate: e.target.value }))}
-            onBlur={e => handleBlur('nc_rehab_credit_rate', e.target.value)}
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Enter as decimal (e.g. 0.09 for 9%). Published monthly by the IRS.
-          </p>
-        </div>
 
         {showAcqRate && (
           <div className="pl-4 border-l-2 border-border space-y-3 mt-2">
