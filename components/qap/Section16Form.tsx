@@ -14,7 +14,7 @@ const sectionHeaderCls =
   'text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-4 pb-1'
 const labelCls = 'block text-sm font-medium text-foreground mb-1'
 
-// ─── Date helpers ────────────────────────────────────────────────────────────
+// ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date)
@@ -28,9 +28,10 @@ function parseDate(s: string): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-function parseDays(s: string): number {
+function parseDays(s: string): number | null {
+  if (!s?.trim()) return null
   const n = parseInt(s, 10)
-  return isNaN(n) ? 0 : n
+  return isNaN(n) ? null : n
 }
 
 function fmt(d: Date | null): string {
@@ -38,14 +39,19 @@ function fmt(d: Date | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+function compute(base: Date | null, days: string): Date | null {
+  const d = parseDays(days)
+  return base !== null && d !== null ? addDays(base, d) : null
+}
 
-/** A milestone row where the user enters a number of days */
+// ─── Milestone row ────────────────────────────────────────────────────────────
+
 function MilestoneInput({
   label,
   fieldKey,
   computedDate,
   fromLabel,
+  placeholder,
   values,
   setValues,
   onBlur,
@@ -54,25 +60,27 @@ function MilestoneInput({
   fieldKey: string
   computedDate: Date | null
   fromLabel: string
+  placeholder?: string
   values: Record<string, string>
   setValues: React.Dispatch<React.SetStateAction<Record<string, string>>>
   onBlur: (key: string, val: string) => void
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-2.5 border-b border-border/40 last:border-0">
-      <span className="text-sm font-medium text-foreground leading-tight">{label}</span>
+      <div className="min-w-0">
+        <span className="text-sm font-medium text-foreground leading-tight block">{label}</span>
+        <span className="text-xs text-muted-foreground">from {fromLabel}</span>
+      </div>
       <div className="flex items-center gap-1.5">
         <input
           type="number"
-          min={-9999}
           className="w-20 rounded-lg border border-input bg-background px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-ring"
           value={values[fieldKey] ?? ''}
-          placeholder="0"
-          title={`Days from ${fromLabel}`}
+          placeholder={placeholder ?? ''}
           onChange={e => setValues(v => ({ ...v, [fieldKey]: e.target.value }))}
           onBlur={e => onBlur(fieldKey, e.target.value)}
         />
-        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
+        <span className="text-xs text-muted-foreground">days</span>
       </div>
       <span className="text-xs font-medium text-foreground w-28 text-right tabular-nums">
         {fmt(computedDate)}
@@ -81,28 +89,6 @@ function MilestoneInput({
   )
 }
 
-/** A read-only formula-derived row */
-function MilestoneAuto({
-  label,
-  computedDate,
-  formula,
-}: {
-  label: string
-  computedDate: Date | null
-  formula: string
-}) {
-  return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-2 border-b border-border/40 last:border-0">
-      <span className="text-sm text-muted-foreground leading-tight">{label}</span>
-      <span className="text-xs text-muted-foreground italic whitespace-nowrap">{formula}</span>
-      <span className="text-xs font-medium text-foreground w-28 text-right tabular-nums">
-        {fmt(computedDate)}
-      </span>
-    </div>
-  )
-}
-
-/** Column header for the schedule table */
 function TableHeader() {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 pb-1 border-b-2 border-border">
@@ -131,44 +117,48 @@ export function Section16Form({ dealId, initial }: Props) {
     save(fieldKey, value)
   }
 
-  function handleSelect(fieldKey: string, value: string) {
-    setValues(v => ({ ...v, [fieldKey]: value }))
-    save(fieldKey, value)
-  }
+  // ── Compute all dates ────────────────────────────────────────────────────────
 
-  // ── Compute all dates from the stored day offsets ─────────────────────────
+  const anchor        = parseDate(values.s16_anchor_date)
 
-  const anchor           = parseDate(values.s16_anchor_date)          // Option/Contract
+  const siteAcq       = compute(anchor,       values.s16_site_acq_days)
+  const zoning        = compute(siteAcq,      values.s16_zoning_days)
+  const siteAnalysis  = compute(zoning,       values.s16_site_analysis_days)
+  const envClearance  = compute(siteAnalysis, values.s16_env_clearance_days)
 
-  const siteAcq          = anchor        ? addDays(anchor,       parseDays(values.s16_site_acq_days))         : null
-  const zoning           = siteAcq       ? addDays(siteAcq,      parseDays(values.s16_zoning_days))           : null
-  const siteAnalysis     = zoning        ? addDays(zoning,       parseDays(values.s16_site_analysis_days))    : null
-  const envClearance     = siteAnalysis  ? addDays(siteAnalysis, parseDays(values.s16_env_clearance_days))   : null
+  // Construction loan: App → Conditional → Firm (all user-input)
+  const clApp         = compute(envClearance,  values.s16_cl_app_days)
+  const clConditional = compute(clApp,         values.s16_cl_conditional_days)
+  const clFirm        = compute(clConditional, values.s16_cl_firm_days)
 
-  const clApp            = envClearance  ? addDays(envClearance, parseDays(values.s16_cl_app_days))           : null
-  const clConditional    = clApp         ? addDays(clApp,        30)                                          : null  // auto: +30
-  const clFirm           = clConditional ? addDays(clConditional, parseDays(values.s16_cl_firm_days))         : null
+  // Permanent loan: App → Conditional → Firm (sequential from CL Firm)
+  const plApp         = compute(clFirm,        values.s16_pl_app_days)
+  const plConditional = compute(plApp,         values.s16_pl_conditional_days)
+  const plFirm        = compute(plConditional, values.s16_pl_firm_days)
 
-  const plApp            = clFirm        ? addDays(clFirm,       -120)                                        : null  // auto: -120
-  const plConditional    = clFirm        ? addDays(clFirm,       -60)                                         : null  // auto: -60
-  const plFirm           = clFirm        ? addDays(clFirm,       parseDays(values.s16_pl_firm_days))          : null
+  // Main milestones: Plans/Specs → Initial Closing → Construction Start
+  const plansSpecs    = compute(plFirm,        values.s16_plans_specs_days)
+  const initialClose  = compute(plansSpecs,    values.s16_initial_closing_days)
+  const constrStart   = compute(initialClose,  values.s16_constr_start_days)
 
-  const plansSpecs       = plFirm        ? addDays(plFirm,       parseDays(values.s16_plans_specs_days))      : null
-  const initialClosing   = plansSpecs    ? addDays(plansSpecs,   parseDays(values.s16_initial_closing_days))  : null
-  const constrStart      = initialClosing? addDays(initialClosing, parseDays(values.s16_constr_start_days))  : null
+  // Construction phases: all offset from Construction Start
+  const complete10    = compute(constrStart,   values.s16_complete_10_days)
+  const complete50    = compute(constrStart,   values.s16_complete_50_days)
+  const complete90    = compute(constrStart,   values.s16_complete_90_days)
+  const completion    = compute(constrStart,   values.s16_completion_days)
 
-  // All remaining: formula-derived from constrStart / completion
-  const complete10       = constrStart   ? addDays(constrStart,  90)                                          : null
-  const complete50       = constrStart   ? addDays(constrStart,  240)                                         : null
-  const complete90       = constrStart   ? addDays(constrStart,  420)                                         : null
-  const completion       = constrStart   ? addDays(constrStart,  540)                                         : null
-  const certOcc          = completion    ? addDays(completion,   14)                                          : null
-  const pisFirst         = constrStart   ? addDays(constrStart,  240)                                         : null  // same as 50%
-  const pisFinal         = completion                                                                          // same as completion
-  const occ10pct         = pisFirst      ? addDays(pisFirst,     30)                                          : null
-  const finalClosing     = completion    ? addDays(completion,   720)                                         : null  // 24 * 30
+  // Post-completion: offset from Completion
+  const certOcc       = compute(completion,    values.s16_cert_occ_days)
+  const pisFinal      = compute(completion,    values.s16_pis_final_days)
+  const finalClosing  = compute(completion,    values.s16_final_closing_days)
 
-  const sharedProps = { values, setValues, onBlur: handleBlur }
+  // PIS First: offset from Construction Start (same anchor as % complete milestones)
+  const pisFirst      = compute(constrStart,   values.s16_pis_first_days)
+
+  // 10% Occupancy: offset from PIS First
+  const occ10pct      = compute(pisFirst,      values.s16_occ_10pct_days)
+
+  const shared = { values, setValues, onBlur: handleBlur }
 
   return (
     <div className="space-y-5">
@@ -180,20 +170,17 @@ export function Section16Form({ dealId, initial }: Props) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Enter each milestone as a number of days from the previous milestone. The estimated date
-        is calculated automatically. Milestones shaded in grey are formula-derived and update
-        automatically when their anchor changes.
+        Enter the Option/Contract date as your starting point, then enter the number of days
+        between each milestone. Estimated dates update automatically as you type.
       </p>
 
-      {/* ── A. SITE ─────────────────────────────────────────────────────────── */}
+      {/* ── A. SITE ──────────────────────────────────────────────────────────── */}
       <div>
         <p className={sectionHeaderCls}>A. Site</p>
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30">
-            <TableHeader />
-          </div>
+          <div className="px-4 py-2 bg-muted/30"><TableHeader /></div>
           <div className="px-4">
-            {/* Anchor: date picker */}
+            {/* Anchor date picker */}
             <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 py-2.5 border-b border-border/40">
               <label className="text-sm font-medium text-foreground">
                 Option / Contract <span className="text-rose-500">*</span>
@@ -212,47 +199,47 @@ export function Section16Form({ dealId, initial }: Props) {
               </span>
             </div>
 
-            <MilestoneInput label="Site Acquisition"       fieldKey="s16_site_acq_days"       computedDate={siteAcq}      fromLabel="Option/Contract"         {...sharedProps} />
-            <MilestoneInput label="Zoning Approval"        fieldKey="s16_zoning_days"          computedDate={zoning}       fromLabel="Site Acquisition"        {...sharedProps} />
-            <MilestoneInput label="Site Analysis"          fieldKey="s16_site_analysis_days"   computedDate={siteAnalysis} fromLabel="Zoning Approval"         {...sharedProps} />
-            <MilestoneInput label="Environmental Clearance" fieldKey="s16_env_clearance_days"  computedDate={envClearance} fromLabel="Site Analysis"           {...sharedProps} />
+            <MilestoneInput label="Site Acquisition"        fieldKey="s16_site_acq_days"       computedDate={siteAcq}      fromLabel="Option/Contract"       {...shared} />
+            <MilestoneInput label="Zoning Approval"         fieldKey="s16_zoning_days"          computedDate={zoning}       fromLabel="Site Acquisition"      {...shared} />
+            <MilestoneInput label="Site Analysis"           fieldKey="s16_site_analysis_days"   computedDate={siteAnalysis} fromLabel="Zoning Approval"       {...shared} />
+            <MilestoneInput label="Environmental Clearance" fieldKey="s16_env_clearance_days"   computedDate={envClearance} fromLabel="Site Analysis"         {...shared} />
           </div>
         </div>
       </div>
 
-      {/* ── B. FINANCING ────────────────────────────────────────────────────── */}
+      {/* ── B. FINANCING — Construction Loan ─────────────────────────────────── */}
       <div>
         <p className={sectionHeaderCls}>B. Financing — Construction Loan</p>
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30">
-            <TableHeader />
-          </div>
+          <div className="px-4 py-2 bg-muted/30"><TableHeader /></div>
           <div className="px-4">
-            <MilestoneInput  label="Loan Application"          fieldKey="s16_cl_app_days"   computedDate={clApp}         fromLabel="Environmental Clearance" {...sharedProps} />
-            <MilestoneAuto   label="Conditional Commitment"    computedDate={clConditional}  formula="App. + 30 days" />
-            <MilestoneInput  label="Firm Commitment"           fieldKey="s16_cl_firm_days"  computedDate={clFirm}        fromLabel="Conditional Commitment"  {...sharedProps} />
+            <MilestoneInput label="Loan Application"       fieldKey="s16_cl_app_days"          computedDate={clApp}         fromLabel="Env. Clearance"        placeholder="0"  {...shared} />
+            <MilestoneInput label="Conditional Commitment" fieldKey="s16_cl_conditional_days"  computedDate={clConditional} fromLabel="Loan Application"      placeholder="30" {...shared} />
+            <MilestoneInput label="Firm Commitment"        fieldKey="s16_cl_firm_days"         computedDate={clFirm}        fromLabel="Conditional Commitment" placeholder="21" {...shared} />
           </div>
         </div>
       </div>
 
+      {/* ── B. FINANCING — Permanent Loan ────────────────────────────────────── */}
       <div>
         <p className={sectionHeaderCls}>B. Financing — Permanent Loan</p>
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30">
-            <TableHeader />
-          </div>
+          <div className="px-4 py-2 bg-muted/30"><TableHeader /></div>
           <div className="px-4">
-            <MilestoneAuto   label="Loan Application"          computedDate={plApp}          formula="Firm − 120 days" />
-            <MilestoneAuto   label="Conditional Commitment"    computedDate={plConditional}  formula="Firm − 60 days" />
-            <MilestoneInput  label="Firm Commitment"           fieldKey="s16_pl_firm_days"  computedDate={plFirm}        fromLabel="Construction Loan Firm"  {...sharedProps} />
+            <MilestoneInput label="Loan Application"       fieldKey="s16_pl_app_days"          computedDate={plApp}         fromLabel="CL Firm Commitment"    {...shared} />
+            <MilestoneInput label="Conditional Commitment" fieldKey="s16_pl_conditional_days"  computedDate={plConditional} fromLabel="PL Loan Application"   placeholder="60" {...shared} />
+            <MilestoneInput label="Firm Commitment"        fieldKey="s16_pl_firm_days"         computedDate={plFirm}        fromLabel="PL Conditional Commit." placeholder="60" {...shared} />
           </div>
         </div>
       </div>
 
-      {/* ── Other Loans / Grants (optional, date pickers) ────────────────── */}
+      {/* ── Other Loans / Grants (optional, date pickers) ─────────────────────── */}
       {[1, 2, 3].map(n => (
         <div key={n}>
-          <p className={sectionHeaderCls}>B. Financing — Other Loans / Grants #{n} <span className="normal-case font-normal text-muted-foreground">(optional)</span></p>
+          <p className={sectionHeaderCls}>
+            B. Financing — Other Loans / Grants #{n}{' '}
+            <span className="normal-case font-normal text-muted-foreground">(optional)</span>
+          </p>
           <div className="space-y-3 rounded-xl border border-border px-4 py-4">
             <div>
               <label className={labelCls}>Type and Source</label>
@@ -290,43 +277,39 @@ export function Section16Form({ dealId, initial }: Props) {
         </div>
       ))}
 
-      {/* ── C–E (main construction milestones) ──────────────────────────────── */}
+      {/* ── C–E. Plans, Closing & Construction ───────────────────────────────── */}
       <div>
         <p className={sectionHeaderCls}>C – E. Plans, Closing &amp; Construction</p>
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30">
-            <TableHeader />
-          </div>
+          <div className="px-4 py-2 bg-muted/30"><TableHeader /></div>
           <div className="px-4">
-            <MilestoneInput label="C. Plans and Specs / Working Drawings" fieldKey="s16_plans_specs_days"    computedDate={plansSpecs}     fromLabel="Perm. Loan Firm Commitment" {...sharedProps} />
-            <MilestoneInput label="D. Initial Closing / Transfer of Property" fieldKey="s16_initial_closing_days" computedDate={initialClosing} fromLabel="Plans and Specs"        {...sharedProps} />
-            <MilestoneInput label="E. Construction Start"                  fieldKey="s16_constr_start_days"  computedDate={constrStart}    fromLabel="Initial Closing"            {...sharedProps} />
+            <MilestoneInput label="C. Plans and Specs / Working Drawings"  fieldKey="s16_plans_specs_days"    computedDate={plansSpecs}   fromLabel="PL Firm Commitment"  {...shared} />
+            <MilestoneInput label="D. Initial Closing / Transfer of Property" fieldKey="s16_initial_closing_days" computedDate={initialClose} fromLabel="Plans and Specs"     {...shared} />
+            <MilestoneInput label="E. Construction Start"                   fieldKey="s16_constr_start_days"  computedDate={constrStart}  fromLabel="Initial Closing"     {...shared} />
           </div>
         </div>
       </div>
 
-      {/* ── F–K (all auto-calculated from Construction Start / Completion) ── */}
+      {/* ── F–K. Construction & Completion ────────────────────────────────────── */}
       <div>
-        <p className={sectionHeaderCls}>F – K. Construction &amp; Completion (auto-calculated)</p>
+        <p className={sectionHeaderCls}>F – K. Construction &amp; Completion</p>
         <div className="rounded-xl border border-border overflow-hidden">
-          <div className="px-4 py-2 bg-muted/30">
-            <TableHeader />
-          </div>
-          <div className="px-4 bg-muted/10">
-            <MilestoneAuto label="10% Construction Complete"              computedDate={complete10}   formula="Start + 90 days"    />
-            <MilestoneAuto label="50% Construction Complete"              computedDate={complete50}   formula="Start + 240 days"   />
-            <MilestoneAuto label="90% Construction Complete"              computedDate={complete90}   formula="Start + 420 days"   />
-            <MilestoneAuto label="F. Completion Date"                     computedDate={completion}   formula="Start + 540 days"   />
-            <MilestoneAuto label="G. Certificate of Occupancy"            computedDate={certOcc}      formula="Completion + 14 days" />
-            <MilestoneAuto label="H. Placed in Service (First Building)"  computedDate={pisFirst}     formula="Start + 240 days"   />
-            <MilestoneAuto label="I. Placed in Service (Final Building)"  computedDate={pisFinal}     formula="= Completion"       />
-            <MilestoneAuto label="J. 10% of Unit Occupancy Achieved"      computedDate={occ10pct}     formula="First PIS + 30 days" />
-            <MilestoneAuto label="K. Final Closing (All Permanent Fin.)"  computedDate={finalClosing} formula="Completion + 720 days" />
+          <div className="px-4 py-2 bg-muted/30"><TableHeader /></div>
+          <div className="px-4">
+            <MilestoneInput label="10% Construction Complete"             fieldKey="s16_complete_10_days"  computedDate={complete10}  fromLabel="Construction Start" placeholder="90"  {...shared} />
+            <MilestoneInput label="50% Construction Complete"             fieldKey="s16_complete_50_days"  computedDate={complete50}  fromLabel="Construction Start" placeholder="240" {...shared} />
+            <MilestoneInput label="90% Construction Complete"             fieldKey="s16_complete_90_days"  computedDate={complete90}  fromLabel="Construction Start" placeholder="420" {...shared} />
+            <MilestoneInput label="F. Completion Date"                    fieldKey="s16_completion_days"   computedDate={completion}  fromLabel="Construction Start" placeholder="540" {...shared} />
+            <MilestoneInput label="G. Certificate of Occupancy"           fieldKey="s16_cert_occ_days"     computedDate={certOcc}     fromLabel="Completion Date"    placeholder="14"  {...shared} />
+            <MilestoneInput label="H. Placed in Service (First Building)" fieldKey="s16_pis_first_days"    computedDate={pisFirst}    fromLabel="Construction Start" placeholder="240" {...shared} />
+            <MilestoneInput label="I. Placed in Service (Final Building)" fieldKey="s16_pis_final_days"    computedDate={pisFinal}    fromLabel="Completion Date"    placeholder="0"   {...shared} />
+            <MilestoneInput label="J. 10% of Unit Occupancy Achieved"     fieldKey="s16_occ_10pct_days"    computedDate={occ10pct}    fromLabel="PIS First Building" placeholder="30"  {...shared} />
+            <MilestoneInput label="K. Final Closing (All Permanent Fin.)" fieldKey="s16_final_closing_days" computedDate={finalClosing} fromLabel="Completion Date"   placeholder="720" {...shared} />
           </div>
         </div>
       </div>
 
-      {/* ── Comment ─────────────────────────────────────────────────────────── */}
+      {/* ── Comment ──────────────────────────────────────────────────────────── */}
       <div>
         <label className={labelCls}>Applicant comment regarding Project Schedule</label>
         <textarea
