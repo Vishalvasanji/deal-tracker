@@ -29,7 +29,12 @@ const SECTION_12_REQUIRED = [
 const SECTION_13_REQUIRED = ['funding_pool']
 const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
 const SECTION_15_REQUIRED = ['basis_boost_applying']
-const SECTION_17_REQUIRED = ['construction_period_comment']
+const SECTION_17_REQUIRED = [
+  'cp_funding_timeline',
+  'cp_cost_coverage_plan',
+  'cp_interest_expense_method',
+  'cp_funding_sources_detail',
+]
 
 export async function getQapCompletion(dealId: string) {
   const [narrativeFields, unitTypes, s10, s11, s12, s13, s14, s15, s17] = await Promise.all([
