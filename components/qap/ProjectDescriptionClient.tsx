@@ -10,6 +10,7 @@ import { Section14Form } from './Section14Form'
 import { Section15Form } from './Section15Form'
 import { Section16Form } from './Section16Form'
 import { Section17Form } from './Section17Form'
+import { Section18Form } from './Section18Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -68,6 +69,12 @@ const SECTION_17_REQUIRED = [
   'cp_interest_expense_method',
   'cp_funding_sources_detail',
 ]
+const SECTION_18_REQUIRED = [
+  's18_01_active', 's18_02_active', 's18_03_active', 's18_04_active',
+  's18_05_active', 's18_06_active', 's18_07_active', 's18_08_active',
+  's18_09_active', 's18_10_active', 's18_11_active', 's18_12_active',
+  's18_13_active', 's18_14_active', 's18_15_active', 's18_16_active',
+]
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -121,6 +128,7 @@ export function ProjectDescriptionClient({
   section15Initial,
   section16Initial,
   section17Initial,
+  section18Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
@@ -131,6 +139,7 @@ export function ProjectDescriptionClient({
   section15Initial: Record<string, string>
   section16Initial: Record<string, string>
   section17Initial: Record<string, string>
+  section18Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
   const isChdo = section11Initial.is_chdo === 'Yes'
@@ -187,6 +196,10 @@ export function ProjectDescriptionClient({
 
       <SectionAccordion number="Section 17" title="Construction Period Sources of Funds" fields={section17Initial} required={SECTION_17_REQUIRED}>
         <Section17Form dealId={dealId} initial={section17Initial} />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 18" title="Permanent Sources of Funds" fields={section18Initial} required={SECTION_18_REQUIRED}>
+        <Section18Form dealId={dealId} initial={section18Initial} />
       </SectionAccordion>
     </div>
   )
