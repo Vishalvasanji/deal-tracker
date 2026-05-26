@@ -8,10 +8,38 @@ interface Props {
   initial: Record<string, string>
 }
 
+const labelCls = 'block text-sm font-medium text-foreground mb-1'
 const inputCls =
   'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 const sectionHeaderCls =
   'text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2'
+
+const FIELDS: { key: string; label: string; hint?: string; placeholder: string }[] = [
+  {
+    key: 'cp_funding_timeline',
+    label: 'When is each permanent source of funding expected to be received?',
+    hint: 'Describe the expected timing for each permanent source (e.g., equity close, loan closings, grants).',
+    placeholder: 'e.g. LHC Risk Sharing loan expected to close at construction closing in Q3 2026; LIHTC equity expected at construction closing and 50% completion…',
+  },
+  {
+    key: 'cp_cost_coverage_plan',
+    label: 'How do you plan to meet construction period development costs prior to all permanent sources being received?',
+    hint: 'Explain the bridge financing, construction loan, or other mechanism used to cover costs before permanent sources are in place.',
+    placeholder: 'e.g. Construction period costs will be funded via a construction loan from [Lender]…',
+  },
+  {
+    key: 'cp_interest_expense_method',
+    label: 'How did you estimate construction period interest expense?',
+    hint: 'Describe the method or assumptions used (loan amount, rate, draw schedule, term).',
+    placeholder: 'e.g. Construction period interest calculated on a $X construction loan at Y% over Z months, assuming a straight-line draw schedule…',
+  },
+  {
+    key: 'cp_funding_sources_detail',
+    label: 'Describe each construction period source of funding.',
+    hint: 'For each source include: (a) who is providing the funds, (b) whether the provider is third party or identity of interest (IOI), (c) the amount, (d) whether any source involves tax-exempt bond financing (LHC or other issuer), and (e) key business terms.',
+    placeholder: 'e.g. Source 1: [Lender] — Third Party — $X construction loan — Tax-exempt bonds issued by LHC — Fixed rate Y%, 18-month term, interest-only…',
+  },
+]
 
 export function Section17Form({ dealId, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
@@ -38,30 +66,26 @@ export function Section17Form({ dealId, initial }: Props) {
         </span>
       </div>
 
-      {/* 17.01 — Comment */}
-      <div className="space-y-3">
-        <p className={sectionHeaderCls}>17.01 — Construction Period Financing</p>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Please explain: (1) When each permanent source of funding is expected to be received;
-          (2) How you plan to meet construction period development costs, prior to the time that
-          all permanent sources of funds have been received; (3) How you estimated construction
-          period interest expense; and (4) Each construction period source of funding including
-          at least: who is providing the funds, whether the funds provider is third party or IOI,
-          the amount of each source of funds, whether any source of funds involves tax-exempt bond
-          financing (whether by LHC or by another issuer), and the key business terms on which
-          funding will be provided. The explanation can be provided below, or in an attachment,
-          whichever approach the applicant prefers.
-        </p>
-        <div>
+      <p className={sectionHeaderCls}>17.01 — Construction Period Financing</p>
+
+      {FIELDS.map((f, i) => (
+        <div key={f.key} className="space-y-1">
+          <label className={labelCls}>
+            <span className="text-xs font-semibold text-muted-foreground mr-2">{i + 1}.</span>
+            {f.label} <span className="text-rose-500">*</span>
+          </label>
+          {f.hint && (
+            <p className="text-xs text-muted-foreground mb-1">{f.hint}</p>
+          )}
           <textarea
-            className={inputCls + ' min-h-[160px] resize-y'}
-            value={values.construction_period_comment ?? ''}
-            placeholder="Enter your explanation here, or note that it is provided as an attachment…"
-            onChange={e => setValues(v => ({ ...v, construction_period_comment: e.target.value }))}
-            onBlur={e => handleBlur('construction_period_comment', e.target.value)}
+            className={inputCls + ' min-h-[100px] resize-y'}
+            value={values[f.key] ?? ''}
+            placeholder={f.placeholder}
+            onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
+            onBlur={e => handleBlur(f.key, e.target.value)}
           />
         </div>
-      </div>
+      ))}
     </div>
   )
 }
