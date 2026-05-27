@@ -88,6 +88,7 @@ const SECTION_23_REQUIRED = [
   's23_05_heating_payer', 's23_05_ac_payer', 's23_05_sewer_payer', 's23_05_trash_payer',
   's23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br',
   's23_09_market_0br', 's23_09_market_1br', 's23_09_market_2br', 's23_09_market_3br', 's23_09_market_4br',
+  's23_10_fmr_0br', 's23_10_fmr_1br', 's23_10_fmr_2br', 's23_10_fmr_3br', 's23_10_fmr_4br',
 ]
 const SECTION_24_REQUIRED = ['s24_01_special_needs_points', 's24_03_elderly_100pct']
 const SECTION_25_REQUIRED = ['s25_01_extended_afford_points', 's25_02_additional_financial']
@@ -240,7 +241,7 @@ export function ProjectDescriptionClient({
         <Section22Form dealId={dealId} section14={section14Initial} section18={section18Initial} initial={section22Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 23" title="Information Related to Rent Limits" fields={section23Initial} required={SECTION_23_REQUIRED}>
-        <Section23Form dealId={dealId} initial={section23Initial} />
+        <Section23Form dealId={dealId} initial={section23Initial} parish={section12Initial.parish ?? ''} />
       </SectionAccordion>
       <SectionAccordion number="Section 24" title="Targeted Population Type" fields={section24Initial} required={SECTION_24_REQUIRED}>
         <Section24Form dealId={dealId} initial={section24Initial} />
