@@ -261,7 +261,10 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Does the Applicant evidence material participation of a Qualified Non-Profit Organization (as defined in the Glossary)? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.qualified_nonprofit ?? ''} onChange={v => handleToggle('qualified_nonprofit', v)} />
           {values.qualified_nonprofit === 'Yes' && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
+              <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+                Consider applying in the Nonprofit/CHDO funding pool (Section 13).
+              </p>
               <label className={labelCls}>Comment</label>
               <textarea className={inputCls + ' min-h-[80px] resize-y'}
                 value={values.qualified_nonprofit_details ?? ''}
@@ -279,7 +282,10 @@ export function Section11Form({ dealId, initial }: Props) {
           <label className={labelCls}>Is the Applicant a CHDO (Community Housing Development Organization) that (a) meets the definition in the Glossary and (b) is certified as a CHDO by the LHC? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.is_chdo ?? ''} onChange={v => handleToggle('is_chdo', v)} />
           {values.is_chdo === 'Yes' && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
+              <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+                Consider applying in the CHDO funding pool (Section 13).
+              </p>
               <label className={labelCls}>Comment</label>
               <textarea className={inputCls + ' min-h-[80px] resize-y'}
                 value={values.chdo_details ?? ''}
