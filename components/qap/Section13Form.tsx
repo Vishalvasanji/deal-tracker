@@ -59,6 +59,14 @@ const POOLS: Record<string, {
     homeCap: 0,
     cdbgCap: 0,
   },
+  // C-2: Reprocessing pool
+  'Reprocessing': {
+    advisory: 'Reprocessing projects are previously approved LIHTC projects that did not close. Contact LHC for specific eligibility requirements.',
+    lihtcCap: 1_500_000,
+    nhtfCap: 0,
+    homeCap: 0,
+    cdbgCap: 0,
+  },
 }
 
 const POOL_OPTIONS = Object.keys(POOLS)
