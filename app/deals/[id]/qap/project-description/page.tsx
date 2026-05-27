@@ -15,7 +15,8 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
   const sections = ['section_10','section_11','section_12','section_13','section_14',
     'section_15','section_16','section_17','section_18','section_19',
     'section_20','section_21','section_22','section_23','section_24',
-    'section_25','section_26','section_27','section_28'] as const
+    'section_25','section_26','section_27','section_28',
+    'section_29','section_30','section_31','section_32','section_33','section_34'] as const
 
   const [results, unitTypes] = await Promise.all([
     Promise.all(
@@ -27,12 +28,14 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
   ])
 
   const totalUnits = unitTypes.reduce((sum, u) => sum + (u.num_units ?? 0), 0)
+  const lihtcUnits = unitTypes.filter(u => u.is_lihtc).reduce((sum, u) => sum + (u.num_units ?? 0), 0)
 
   const [
     section10Fields, section11Fields, section12Fields, section13Fields, section14Fields,
     section15Fields, section16Fields, section17Fields, section18Fields, section19Fields,
     section20Fields, section21Fields, section22Fields, section23Fields, section24Fields,
     section25Fields, section26Fields, section27Fields, section28Fields,
+    section29Fields, section30Fields, section31Fields, section32Fields, section33Fields, section34Fields,
   ] = results
 
   function toMap(fields: { field_key: string; value: string | null }[]) {
@@ -54,6 +57,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
       <ProjectDescriptionClient
         dealId={deal.id}
         totalUnits={totalUnits}
+        lihtcUnits={lihtcUnits}
         section10Initial={toMap(section10Fields)}
         section11Initial={toMap(section11Fields)}
         section12Initial={toMap(section12Fields)}
@@ -73,6 +77,12 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
         section26Initial={toMap(section26Fields)}
         section27Initial={toMap(section27Fields)}
         section28Initial={toMap(section28Fields)}
+        section29Initial={toMap(section29Fields)}
+        section30Initial={toMap(section30Fields)}
+        section31Initial={toMap(section31Fields)}
+        section32Initial={toMap(section32Fields)}
+        section33Initial={toMap(section33Fields)}
+        section34Initial={toMap(section34Fields)}
       />
     </div>
   )
