@@ -111,14 +111,17 @@ const SECTION_27_REQUIRED = [
   's27_01_green_building', 's27_02_community_facilities',
   's27_03_washers_dryers', 's27_03_dishwashers', 's27_03_free_wifi',
   's27_03_universal_design', 's27_03_hud_defensible_space',
+  's27_03_fqhc',          // C-4
   's27_04_playground', 's27_04_computer_center',
   's27_04_exercise_room', 's27_04_picnic_area', 's27_04_courtyard_seating',
   's27_05_accessible_units', 's27_08_onsite_security', 's27_09_resiliency',
+  's27_09_tier1_2_parish', // M-4
   's27_10_eviction_prevention_plan', 's27_10_low_barrier_screening',
   's27_11_professional_services', 's27_11_sub_1_5pct', 's27_11_sub_over_5pct',
   's27_12_joint_venture',
 ]
-const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation']
+// L-7: Added s28_proposed_vacancy
+const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation', 's28_proposed_vacancy']
 const SECTION_29_REQUIRED = ['s29_hud_rd_mortgage', 's29_project_type', 's29_reserve_pupa']
 const SECTION_33_REQUIRED = ['s33_agree_score']
 
@@ -213,6 +216,24 @@ export function ProjectDescriptionClient({
   const isSingleSite    = section12Initial.is_single_site === 'Yes'
   const fundingPool     = section13Initial.funding_pool ?? ''
 
+  // New derived props
+  const isHomeownership  = section12Initial.is_homeownership === 'Yes'
+  const isTown15k        = section12Initial.is_town_15k === 'Yes'
+  const hudRdAssistance  = section12Initial.hud_rd_assistance === 'Yes'
+
+  // M-2: Compute initial closing reference date from §16 schedule
+  const s16Anchor = section16Initial['s16_anchor_date'] ?? ''
+  const s16ClosingDays = parseInt(section16Initial['s16_initial_closing_days'] ?? '')
+  const initialClosingDate = s16Anchor && !isNaN(s16ClosingDays)
+    ? (() => {
+        try {
+          const d = new Date(s16Anchor)
+          d.setDate(d.getDate() + s16ClosingDays)
+          return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        } catch { return '' }
+      })()
+    : ''
+
   return (
     <div className="space-y-3">
       <SectionAccordion number="Section 10" title="Project Funding Characteristics" fields={section10Initial} required={SECTION_10_REQUIRED}>
@@ -240,7 +261,7 @@ export function ProjectDescriptionClient({
         <Section17Form dealId={dealId} initial={section17Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 18" title="Permanent Sources of Funds" fields={section18Initial} required={SECTION_18_REQUIRED}>
-        <Section18Form dealId={dealId} initial={section18Initial} />
+        <Section18Form dealId={dealId} initial={section18Initial} initialClosingDate={initialClosingDate || undefined} />
       </SectionAccordion>
       <SectionAccordion number="Section 19" title="Summary — Permanent Sources" fields={section19Initial} required={SECTION_19_REQUIRED}>
         <Section19Form dealId={dealId} section18={section18Initial} initial={section19Initial} />
@@ -255,16 +276,16 @@ export function ProjectDescriptionClient({
         <Section22Form dealId={dealId} section14={section14Initial} section18={section18Initial} initial={section22Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 23" title="Information Related to Rent Limits" fields={section23Initial} required={SECTION_23_REQUIRED}>
-        <Section23Form dealId={dealId} initial={section23Initial} parish={section12Initial.parish ?? ''} />
+        <Section23Form dealId={dealId} initial={section23Initial} parish={section12Initial.parish ?? ''} bondFinancing={bondFinancing} />
       </SectionAccordion>
       <SectionAccordion number="Section 24" title="Targeted Population Type" fields={section24Initial} required={SECTION_24_REQUIRED}>
         <Section24Form dealId={dealId} initial={section24Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 25" title="Priority Development Areas and Other Preferences" fields={section25Initial} required={SECTION_25_REQUIRED}>
-        <Section25Form dealId={dealId} initial={section25Initial} />
+        <Section25Form dealId={dealId} initial={section25Initial} isHomeownership={isHomeownership} />
       </SectionAccordion>
       <SectionAccordion number="Section 26" title="Location Characteristics" fields={section26Initial} required={SECTION_26_REQUIRED}>
-        <Section26Form dealId={dealId} isRural={isRural} initial={section26Initial} />
+        <Section26Form dealId={dealId} isRural={isRural} isTown15k={isTown15k} initial={section26Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 27" title="Project Characteristics" fields={section27Initial} required={SECTION_27_REQUIRED}>
         <Section27Form dealId={dealId} initial={section27Initial} totalUnits={totalUnits} />
@@ -282,7 +303,7 @@ export function ProjectDescriptionClient({
         <Section31Form dealId={dealId} initial={section31Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 32" title="LHC Fees" fields={section32Initial} required={[]}>
-        <Section32Form dealId={dealId} initial={section32Initial} totalUnits={totalUnits} lihtcUnits={lihtcUnits} />
+        <Section32Form dealId={dealId} initial={section32Initial} totalUnits={totalUnits} lihtcUnits={lihtcUnits} bondFinancing={bondFinancing} hudRdAssistance={hudRdAssistance} />
       </SectionAccordion>
       <SectionAccordion number="Section 33" title="Selection Criteria" fields={section33Initial} required={SECTION_33_REQUIRED}>
         <Section33Form dealId={dealId} initial={section33Initial} />
