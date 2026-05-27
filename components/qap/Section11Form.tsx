@@ -195,7 +195,13 @@ export function Section11Form({ dealId, initial }: Props) {
         <div>
           <label className={labelCls}>Is the Developer a New Developer as defined in the QAP? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.developer_is_new ?? ''} onChange={v => handleToggle('developer_is_new', v)} />
-          {values.developer_is_new === 'Yes' && (
+        </div>
+        {/* L-2: New Developer info note — shown BEFORE the comment textarea */}
+        {values.developer_is_new === 'Yes' && (
+          <>
+            <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+              A New Developer must operate under the supervision of an Experienced Developer who has successfully completed at least two (2) LIHTC projects. See QAP Section V.C for full eligibility requirements.
+            </p>
             <div className="mt-2">
               <label className={labelCls}>Comment</label>
               <textarea className={inputCls + ' min-h-[80px] resize-y'}
@@ -203,8 +209,8 @@ export function Section11Form({ dealId, initial }: Props) {
                 onChange={e => setValues(v => ({ ...v, developer_new_comment: e.target.value }))}
                 onBlur={e => handleBlur('developer_new_comment', e.target.value)} />
             </div>
-          )}
-        </div>
+          </>
+        )}
         <div>
           <label className={labelCls}>Are you requesting credits for any other projects in this funding cycle? <span className="text-rose-500">*</span></label>
           <p className="text-xs text-muted-foreground mb-1">No single developer will be awarded credits in excess of $3,000,000</p>
