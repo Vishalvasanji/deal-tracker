@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { deals, qapFields } from '@/lib/db/schema'
+import { deals, qapFields, qapUnitTypes } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
 import { ProjectDescriptionClient } from '@/components/qap/ProjectDescriptionClient'
 import Link from 'next/link'
@@ -17,11 +17,16 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     'section_20','section_21','section_22','section_23','section_24',
     'section_25','section_26','section_27','section_28'] as const
 
-  const results = await Promise.all(
-    sections.map(sec =>
-      db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, sec)))
-    )
-  )
+  const [results, unitTypes] = await Promise.all([
+    Promise.all(
+      sections.map(sec =>
+        db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, sec)))
+      )
+    ),
+    db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)),
+  ])
+
+  const totalUnits = unitTypes.reduce((sum, u) => sum + (u.num_units ?? 0), 0)
 
   const [
     section10Fields, section11Fields, section12Fields, section13Fields, section14Fields,
@@ -48,6 +53,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
 
       <ProjectDescriptionClient
         dealId={deal.id}
+        totalUnits={totalUnits}
         section10Initial={toMap(section10Fields)}
         section11Initial={toMap(section11Fields)}
         section12Initial={toMap(section12Fields)}
