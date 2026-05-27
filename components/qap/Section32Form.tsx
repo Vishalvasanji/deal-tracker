@@ -38,9 +38,13 @@ interface Props {
   initial: Record<string, string>
   totalUnits: number
   lihtcUnits: number
+  /** L-8: Whether bond financing is included */
+  bondFinancing?: boolean
+  /** L-8: Whether HUD/RD assistance is provided */
+  hudRdAssistance?: boolean
 }
 
-export function Section32Form({ dealId, initial, totalUnits, lihtcUnits }: Props) {
+export function Section32Form({ dealId, initial, totalUnits, lihtcUnits, bondFinancing, hudRdAssistance }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -64,9 +68,14 @@ export function Section32Form({ dealId, initial, totalUnits, lihtcUnits }: Props
   const complianceFee = hasUnits ? COMPLIANCE_FEE_PER_UNIT * totalUnits : null
   const assetMgmtFee = hasUnits ? calcAssetMgmtFee(lihtcUnits) : null
 
+  // L-8: Subsidy Layering Review Fee
+  const subsidyLayeringFee = (bondFinancing || hudRdAssistance) && analysisFee !== null
+    ? Math.round(analysisFee / 4)
+    : null
+
   const totalFees =
     appFee !== null && analysisFee !== null && complianceFee !== null && assetMgmtFee !== null
-      ? appFee + analysisFee + marketFee + complianceFee + assetMgmtFee
+      ? appFee + analysisFee + marketFee + complianceFee + assetMgmtFee + (subsidyLayeringFee ?? 0)
       : null
 
   const feeRows: { label: string; value: React.ReactNode }[] = [
@@ -91,6 +100,11 @@ export function Section32Form({ dealId, initial, totalUnits, lihtcUnits }: Props
     {
       label: 'LHC Asset Management Fee',
       value: assetMgmtFee !== null ? fmt(assetMgmtFee) : '—',
+    },
+    // L-8: Subsidy Layering Review Fee row
+    {
+      label: 'LHC Subsidy Layering Review Fee',
+      value: subsidyLayeringFee !== null ? fmt(subsidyLayeringFee) : '— (bond/HUD-RD only)',
     },
   ]
 
@@ -133,7 +147,7 @@ export function Section32Form({ dealId, initial, totalUnits, lihtcUnits }: Props
         </div>
 
         <p className={noteCls}>
-          Subsidy Layering Review Fee (= Analysis Fee ÷ 4) applies only if bond financing is included.
+          Subsidy Layering Review Fee (= Analysis Fee ÷ 4) applies only if bond financing or HUD/RD assistance is included.
         </p>
         <p className={noteCls}>
           Application Fee, Analysis Fee, and Asset Management Fee are tiered based on total/LIHTC unit count per QAP §III.D.
