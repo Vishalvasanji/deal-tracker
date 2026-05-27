@@ -25,7 +25,7 @@ const LHC_RATES: { label: string }[] = [
   { label: 'Expenses Inflation Rate' },
 ]
 
-export default function Section28Form({ dealId, initial }: Props) {
+export function Section28Form({ dealId, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
