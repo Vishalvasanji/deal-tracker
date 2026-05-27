@@ -13,7 +13,8 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 const readOnlyCell = 'text-right text-sm tabular-nums px-2 py-1.5 bg-muted/30 rounded text-foreground'
 const pendingCell = 'text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground italic'
 
-const FUEL_OPTS = ['Natural Gas', 'Electric', 'Propane', 'Oil', 'Other', 'Missing']
+// M-6: Removed 'Propane' and 'Oil' from FUEL_OPTS to match HOT_WATER_FUEL_OPTS
+const FUEL_OPTS = ['Natural Gas', 'Electric', 'Other', 'Missing']
 const HOT_WATER_FUEL_OPTS = ['Natural Gas', 'Electric', 'Other', 'Missing']
 const HEAT_SYSTEM_OPTS = ['Forced Air', 'Hot Water', 'Other', 'Missing']
 const PAYER_OPTS = ['Owner', 'Tenant', 'Missing']
@@ -102,18 +103,12 @@ const BR_LABELS = ['0BR', '1BR', '2BR', '3BR', '4BR']
 
 /**
  * Calculates gross rent limits per the QAP AMI Rents sheet formula.
- *
- * Steps (matching the Excel exactly):
- *  1. Compute per-person incomes from 4-person AMI × AMI%, each rounded to nearest $50
- *  2. Map bedrooms to person-size income (0BR=1p, 1BR=avg(1p+2p), 2BR=3p, 3BR=avg(4p+5p), 4BR=6p)
- *  3. Gross rent = ROUNDDOWN(bedroom_income × 0.30 / 12, 0)
  */
 function calcGrossRents(ami4: number, amiPct: number): [number, number, number, number, number] {
   const inc4 = Math.round(ami4 * amiPct)
   const inc1 = Math.round(inc4 * 0.70 / 50) * 50
   const inc2 = Math.round(inc4 * 0.80 / 50) * 50
   const inc3 = Math.round(inc4 * 0.90 / 50) * 50
-  // inc4 already computed above
   const inc5 = Math.round(inc4 * 1.08 / 50) * 50
   const inc6 = Math.round(inc4 * 1.16 / 50) * 50
 
@@ -130,9 +125,11 @@ interface Props {
   dealId: string
   initial: Record<string, string>
   parish: string
+  /** H-5: Whether the project has tax-exempt bond financing */
+  bondFinancing?: boolean
 }
 
-export function Section23Form({ dealId, initial, parish }: Props) {
+export function Section23Form({ dealId, initial, parish, bondFinancing }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -269,6 +266,12 @@ export function Section23Form({ dealId, initial, parish }: Props) {
         {values['s23_01_nonmetro_income_limit'] === 'Yes' && (
           <p className={noteCls}>
             You are electing to use the national non-metropolitan income limit for this project per Housing Act Section 520.
+          </p>
+        )}
+        {/* H-5: Bond financing conflict with non-metro election */}
+        {values['s23_01_nonmetro_income_limit'] === 'Yes' && bondFinancing === true && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+            Error: The national non-metropolitan income limit election cannot be used for projects with tax-exempt bond financing. Projects with bond financing must use the applicable area median income.
           </p>
         )}
       </div>
@@ -451,7 +454,7 @@ export function Section23Form({ dealId, initial, parish }: Props) {
 
       {/* 23.07 — Contract Rents Table */}
       <div className="space-y-3">
-        <p className={subHeaderCls}>23.07 AMI "Contract" Rent Limits</p>
+        <p className={subHeaderCls}>23.07 AMI &ldquo;Contract&rdquo; Rent Limits</p>
         <p className={noteCls}>
           Contract rents = Gross Rent − Utility Allowance. Updated live as §12.01 parish and §23.06 UAs are entered.
         </p>
