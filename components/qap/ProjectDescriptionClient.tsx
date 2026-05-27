@@ -11,10 +11,12 @@ import { Section15Form } from './Section15Form'
 import { Section16Form } from './Section16Form'
 import { Section17Form } from './Section17Form'
 import { Section18Form } from './Section18Form'
+import { Section19Form } from './Section19Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
-  'taxpayer_name', 'developer_name', 'developer_meets_vc1', 'developer_is_new',
+  'taxpayer_name', 'taxpayer_is', 'taxpayer_is_a',
+  'developer_name', 'developer_meets_vc1', 'developer_is_new',
   'other_credits_requested', 'ioi_dev_builder', 'not_in_good_standing',
   'qualified_nonprofit', 'is_chdo', 'mgmt_agent_name', 'mgmt_agent_ioi',
 ]
@@ -36,7 +38,7 @@ const SECTION_12_REQUIRED = [
   'is_sro', 'is_reallocated_credits', 'receives_federal_funds', 'hud_rd_assistance', 'is_pha',
 ]
 const SECTION_13_REQUIRED = ['funding_pool']
-const SECTION_14_REQUIRED = ['credits_requested', 'nc_rehab_credit_rate', 'lihtc_set_aside_election']
+const SECTION_14_REQUIRED = ['credits_requested', 'lihtc_set_aside_election']
 const SECTION_15_REQUIRED = ['basis_boost_applying']
 const SECTION_16_REQUIRED = [
   's16_anchor_date',
@@ -63,18 +65,14 @@ const SECTION_16_REQUIRED = [
   's16_occ_10pct_days',
   's16_final_closing_days',
 ]
-const SECTION_17_REQUIRED = [
-  'cp_funding_timeline',
-  'cp_cost_coverage_plan',
-  'cp_interest_expense_method',
-  'cp_funding_sources_detail',
-]
+const SECTION_17_REQUIRED = ['cp_comment']
 const SECTION_18_REQUIRED = [
   's18_01_active', 's18_02_active', 's18_03_active', 's18_04_active',
   's18_05_active', 's18_06_active', 's18_07_active', 's18_08_active',
   's18_09_active', 's18_10_active', 's18_11_active', 's18_12_active',
   's18_13_active', 's18_14_active', 's18_15_active', 's18_16_active',
 ]
+const SECTION_19_REQUIRED = ['s19_comment']
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -129,6 +127,7 @@ export function ProjectDescriptionClient({
   section16Initial,
   section17Initial,
   section18Initial,
+  section19Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
@@ -140,6 +139,7 @@ export function ProjectDescriptionClient({
   section16Initial: Record<string, string>
   section17Initial: Record<string, string>
   section18Initial: Record<string, string>
+  section19Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
   const isChdo = section11Initial.is_chdo === 'Yes'
@@ -200,6 +200,10 @@ export function ProjectDescriptionClient({
 
       <SectionAccordion number="Section 18" title="Permanent Sources of Funds" fields={section18Initial} required={SECTION_18_REQUIRED}>
         <Section18Form dealId={dealId} initial={section18Initial} />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 19" title="Summary — Permanent Sources" fields={section19Initial} required={SECTION_19_REQUIRED}>
+        <Section19Form dealId={dealId} section18={section18Initial} initial={section19Initial} />
       </SectionAccordion>
     </div>
   )
