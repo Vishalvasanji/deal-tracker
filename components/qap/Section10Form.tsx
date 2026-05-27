@@ -173,6 +173,12 @@ export function Section10Form({ dealId, initial }: Props) {
             value={values.lihtc_9pct ?? ''}
             onChange={v => handleToggle('lihtc_9pct', v)}
           />
+          {/* C-1: Conflict error when both bond financing and 9% LIHTCs are selected */}
+          {bondYes && lihtc9Yes && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+              9% (&ldquo;70% PV&rdquo;) LIHTCs cannot be combined with tax-exempt bond financing. These are mutually exclusive financing structures.
+            </p>
+          )}
         </div>
 
         {lihtc9Yes && (
@@ -200,6 +206,12 @@ export function Section10Form({ dealId, initial }: Props) {
             value={values.other_lhc_funding ?? ''}
             onChange={v => handleToggle('other_lhc_funding', v)}
           />
+          {/* L-1: Info note when other LHC funding is Yes */}
+          {values.other_lhc_funding === 'Yes' && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+              If this project also includes tax-exempt bond financing, a separate LHC Bond Financing Application is required.
+            </p>
+          )}
         </div>
       </div>
     </div>
