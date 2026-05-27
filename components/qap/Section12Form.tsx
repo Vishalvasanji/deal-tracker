@@ -15,6 +15,95 @@ const selectCls = inputCls
 const sectionHeaderCls =
   'text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-2'
 
+// M-1: PARISH_MSA lookup table
+const PARISH_MSA: Record<string, string> = {
+  'Acadia': 'Lafayette, LA MSA',
+  'Allen': 'Non-Metro',
+  'Ascension': 'Baton Rouge, LA MSA',
+  'Assumption': 'Non-Metro',
+  'Avoyelles': 'Non-Metro',
+  'Beauregard': 'Non-Metro',
+  'Bienville': 'Non-Metro',
+  'Bossier': 'Shreveport-Bossier City, LA MSA',
+  'Caddo': 'Shreveport-Bossier City, LA MSA',
+  'Calcasieu': 'Lake Charles, LA MSA',
+  'Caldwell': 'Non-Metro',
+  'Cameron': 'Lake Charles, LA MSA',
+  'Catahoula': 'Non-Metro',
+  'Claiborne': 'Non-Metro',
+  'Concordia': 'Non-Metro',
+  'Desoto': 'Shreveport-Bossier City, LA MSA',
+  'East Baton Rouge': 'Baton Rouge, LA MSA',
+  'East Carroll': 'Non-Metro',
+  'East Feliciana': 'Baton Rouge, LA MSA',
+  'Evangeline': 'Non-Metro',
+  'Franklin': 'Non-Metro',
+  'Grant': 'Alexandria, LA MSA',
+  'Iberia': 'Lafayette, LA MSA',
+  'Iberville': 'Baton Rouge, LA MSA',
+  'Jackson': 'Non-Metro',
+  'Jefferson': 'New Orleans-Metairie, LA MSA',
+  'Jefferson Davis': 'Non-Metro',
+  'Lafayette': 'Lafayette, LA MSA',
+  'Lafourche': 'Houma-Thibodaux, LA MSA',
+  'Lasalle': 'Non-Metro',
+  'Lincoln': 'Non-Metro',
+  'Livingston': 'Baton Rouge, LA MSA',
+  'Madison': 'Non-Metro',
+  'Morehouse': 'Non-Metro',
+  'Natchitoches': 'Non-Metro',
+  'Orleans': 'New Orleans-Metairie, LA MSA',
+  'Ouachita': 'Monroe, LA MSA',
+  'Plaquemines': 'New Orleans-Metairie, LA MSA',
+  'Pointe Coupee': 'Baton Rouge, LA MSA',
+  'Rapides': 'Alexandria, LA MSA',
+  'Red River': 'Non-Metro',
+  'Richland': 'Non-Metro',
+  'Sabine': 'Non-Metro',
+  'St. Bernard': 'New Orleans-Metairie, LA MSA',
+  'St. Charles': 'New Orleans-Metairie, LA MSA',
+  'St. Helena': 'Baton Rouge, LA MSA',
+  'St. James': 'New Orleans-Metairie, LA MSA',
+  'St. John': 'New Orleans-Metairie, LA MSA',
+  'St. Landry': 'Non-Metro',
+  'St. Martin': 'Lafayette, LA MSA',
+  'St. Mary': 'Lafayette, LA MSA',
+  'St. Tammany': 'New Orleans-Metairie, LA MSA',
+  'Tangipahoa': 'Hammond, LA MSA',
+  'Tensas': 'Non-Metro',
+  'Terrebonne': 'Houma-Thibodaux, LA MSA',
+  'Union': 'Monroe, LA MSA',
+  'Vermilion': 'Lafayette, LA MSA',
+  'Vernon': 'Non-Metro',
+  'Washington': 'Non-Metro',
+  'Webster': 'Non-Metro',
+  'West Baton Rouge': 'Baton Rouge, LA MSA',
+  'West Carroll': 'Non-Metro',
+  'West Feliciana': 'Baton Rouge, LA MSA',
+  'Winn': 'Non-Metro',
+}
+
+// M-1: PARISH_AMI lookup table (same as Section23Form)
+const PARISH_AMI: Record<string, number> = {
+  'Acadia': 69200, 'Allen': 65200, 'Ascension': 91700, 'Assumption': 77200,
+  'Avoyelles': 54700, 'Beauregard': 85000, 'Bienville': 55300, 'Bossier': 81700,
+  'Caddo': 81700, 'Calcasieu': 91100, 'Caldwell': 86800, 'Cameron': 91100,
+  'Catahoula': 65700, 'Claiborne': 47300, 'Concordia': 54000, 'Desoto': 81700,
+  'East Baton Rouge': 91700, 'East Carroll': 39900, 'East Feliciana': 91700,
+  'Evangeline': 58100, 'Franklin': 58700, 'Grant': 78000, 'Iberia': 75500,
+  'Iberville': 79000, 'Jackson': 60400, 'Jefferson': 89800, 'Jefferson Davis': 80600,
+  'Lafayette': 84700, 'Lafourche': 75700, 'Lasalle': 92200, 'Lincoln': 70800,
+  'Livingston': 91700, 'Madison': 50400, 'Morehouse': 54100, 'Natchitoches': 72600,
+  'Orleans': 89800, 'Ouachita': 73400, 'Plaquemines': 89800, 'Pointe Coupee': 91700,
+  'Rapides': 78000, 'Red River': 63400, 'Richland': 69100, 'Sabine': 68600,
+  'St. Bernard': 89800, 'St. Charles': 89800, 'St. Helena': 91700, 'St. James': 94700,
+  'St. John': 89800, 'St. Landry': 62800, 'St. Martin': 84700, 'St. Mary': 70600,
+  'St. Tammany': 98000, 'Tangipahoa': 80400, 'Tensas': 54900, 'Terrebonne': 75700,
+  'Union': 73400, 'Vermilion': 80300, 'Vernon': 71800, 'Washington': 64900,
+  'Webster': 53200, 'West Baton Rouge': 91700, 'West Carroll': 77000,
+  'West Feliciana': 91700, 'Winn': 68000,
+}
+
 function YesNoToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const base = 'rounded-lg px-4 py-1.5 text-sm font-medium transition-colors'
   const active = 'bg-primary text-primary-foreground'
@@ -44,14 +133,26 @@ export function Section12Form({ dealId, initial }: Props) {
     save(fieldKey, value)
   }
 
+  // M-1: Modified handleSelect to auto-populate MSA when parish changes
   function handleSelect(fieldKey: string, value: string) {
-    setValues(v => ({ ...v, [fieldKey]: value }))
+    setValues(v => {
+      const next = { ...v, [fieldKey]: value }
+      if (fieldKey === 'parish' && !v.msa) {
+        next.msa = PARISH_MSA[value] ?? ''
+        if (next.msa) save('msa', next.msa)
+      }
+      return next
+    })
     save(fieldKey, value)
   }
 
   function handleBlur(fieldKey: string, value: string) {
     save(fieldKey, value)
   }
+
+  // M-5: Pool classification guidance
+  const newConstructionPct = parseFloat((values.new_construction_pct ?? '').replace('%', ''))
+  const isRural = values.is_rural === 'Yes'
 
   return (
     <div className="space-y-6">
@@ -101,6 +202,12 @@ export function Section12Form({ dealId, initial }: Props) {
                 'West Feliciana','Winn',
               ].map(p => <option key={p} value={p}>{p}</option>)}
             </select>
+            {/* M-1: AMI/MSA info note after parish selection */}
+            {values.parish && PARISH_AMI[values.parish] && (
+              <p className="text-xs text-sky-700 bg-sky-50 border border-sky-200 rounded-lg px-3 py-2 mt-1">
+                4-person AMI for {values.parish} Parish: ${PARISH_AMI[values.parish].toLocaleString()} | MSA: {PARISH_MSA[values.parish] ?? 'Non-Metro'}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelCls}>Zip Code</label>
@@ -137,6 +244,12 @@ export function Section12Form({ dealId, initial }: Props) {
         <div>
           <label className={labelCls}>Is the entire project located on a single site? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.is_single_site ?? ''} onChange={v => handleToggle('is_single_site', v)} />
+          {/* L-3: Multi-site info note */}
+          {values.is_single_site === 'No' && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+              Multi-site project: Complete the Multi-Site Checklist in the supplemental worksheets of the QAP Application Model.
+            </p>
+          )}
         </div>
       </div>
 
@@ -166,6 +279,18 @@ export function Section12Form({ dealId, initial }: Props) {
             <input className={inputCls} value={values.new_construction_pct ?? ''} placeholder="e.g. 100%"
               onChange={e => setValues(v => ({ ...v, new_construction_pct: e.target.value }))}
               onBlur={e => handleBlur('new_construction_pct', e.target.value)} />
+            {/* M-5: Pool classification guidance */}
+            {isRural && !isNaN(newConstructionPct) && newConstructionPct > 0 && (
+              newConstructionPct > 50 ? (
+                <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+                  Based on &gt;50% new construction, this project qualifies for the Rural Area New Construction Pool.
+                </p>
+              ) : (
+                <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+                  Based on ≤50% new construction, this project qualifies for the Rural Area Rehabilitation Pool.
+                </p>
+              )
+            )}
           </div>
         )}
       </div>
@@ -335,6 +460,12 @@ export function Section12Form({ dealId, initial }: Props) {
         <div>
           <label className={labelCls}>Is this a Rural Area Project, as defined in the QAP? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.is_rural ?? ''} onChange={v => handleToggle('is_rural', v)} />
+          {/* L-4: Rural area info note */}
+          {values.is_rural === 'Yes' && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+              This project qualifies as a Rural Area Project. It may be eligible for the Rural Area Pool. Ensure the project meets QAP rural area eligibility requirements.
+            </p>
+          )}
         </div>
       </div>
 
@@ -383,6 +514,12 @@ export function Section12Form({ dealId, initial }: Props) {
           <div key={key}>
             <label className={labelCls}>{label} <span className="text-rose-500">*</span></label>
             <YesNoToggle value={values[key] ?? ''} onChange={v => handleToggle(key, v)} />
+            {/* L-5: Existing LIHTC reminder */}
+            {key === 'is_existing_lihtc' && values[key] === 'Yes' && (
+              <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
+                Complete the &apos;Existing LHC Property&apos; tab in the QAP Application Model workbook.
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -395,6 +532,12 @@ export function Section12Form({ dealId, initial }: Props) {
             Does the Taxpayer agree to give preference to Veterans, Disabled and Elderly persons on the PHA waiting list if they satisfy the requirements of the Project's Management and/or Operating Plan? <span className="text-rose-500">*</span>
           </label>
           <YesNoToggle value={values.veteran_preference ?? ''} onChange={v => handleToggle('veteran_preference', v)} />
+          {/* H-1: Mandatory condition error when No */}
+          {values.veteran_preference === 'No' && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+              Providing preference to Veterans, Disabled, and Elderly persons on PHA waiting lists is a mandatory condition for receiving an LIHTC allocation. A &apos;No&apos; answer may affect your eligibility.
+            </p>
+          )}
         </div>
       </div>
 
@@ -404,6 +547,12 @@ export function Section12Form({ dealId, initial }: Props) {
         <div>
           <label className={labelCls}>Is this a Preservation Property, as defined in the QAP? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.is_preservation_property ?? ''} onChange={v => handleToggle('is_preservation_property', v)} />
+          {/* H-2: Preservation + New Construction conflict warning */}
+          {values.is_preservation_property === 'Yes' && values.dev_type === 'New Construction' && (
+            <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
+              Warning: A Preservation Property designation is typically inconsistent with New Construction as the primary development type. Verify that both selections are correct.
+            </p>
+          )}
         </div>
       </div>
 
