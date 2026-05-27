@@ -12,15 +12,16 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 
 const YES_NO_MISSING = ['Yes', 'No', 'Missing']
 const YES_NO = ['Yes', 'No']
+// C-6: Project type options for Replacement Reserve purposes
+const PROJECT_TYPE_OPTS = ['Family', 'Seniors', 'Missing']
 
-// PUPA minimums per QAP: Seniors = 300, Family = 350, all other = 500
-// H977 = HUD/RD, H979 = seniors (Yes/No/Missing)
-function minPupaFor(hudRd: string, isSeniors: string): { min: number | null; note: string | null } {
+// C-6: Updated minPupaFor function using projectType string
+function minPupaFor(hudRd: string, projectType: string): { min: number | null; note: string | null } {
   if (hudRd === 'Yes') {
     return { min: null, note: 'Minimum Reserve deposit may be determined in accordance with HUD/RD policies.' }
   }
-  if (isSeniors === 'Yes') return { min: 300, note: null }
-  if (isSeniors === 'No')  return { min: 350, note: null }
+  if (projectType === 'Seniors') return { min: 300, note: null }
+  if (projectType === 'Family') return { min: 350, note: null }
   return { min: null, note: null }
 }
 
@@ -68,15 +69,16 @@ export function Section29Form({ dealId, initial, totalUnits }: Props) {
     )
   }
 
-  const hudRd     = values['s29_hud_rd_mortgage'] ?? ''
-  const isSeniors = values['s29_project_type'] ?? ''
-  const otherReqs = values['s29_other_requirements'] ?? ''
-  const pupaRaw   = parseFloat(values['s29_reserve_pupa'] ?? '')
-  const pupa      = isNaN(pupaRaw) ? 0 : pupaRaw
+  const hudRd      = values['s29_hud_rd_mortgage'] ?? ''
+  // C-6: Renamed isSeniors to projectType
+  const projectType = values['s29_project_type'] ?? ''
+  const otherReqs  = values['s29_other_requirements'] ?? ''
+  const pupaRaw    = parseFloat(values['s29_reserve_pupa'] ?? '')
+  const pupa       = isNaN(pupaRaw) ? 0 : pupaRaw
 
-  const { min: minPupa, note: minPupaNote } = minPupaFor(hudRd, isSeniors)
-  const showMin   = hudRd !== '' && isSeniors !== ''
-  const belowMin  = minPupa !== null && pupa > 0 && pupa < minPupa
+  const { min: minPupa, note: minPupaNote } = minPupaFor(hudRd, projectType)
+  const showMin    = hudRd !== '' && projectType !== ''
+  const belowMin   = minPupa !== null && pupa > 0 && pupa < minPupa
 
   return (
     <div className="space-y-8">
@@ -95,11 +97,11 @@ export function Section29Form({ dealId, initial, totalUnits }: Props) {
         opts={YES_NO}
       />
 
-      {/* Project Type — Seniors */}
+      {/* C-6: Project Type — updated label and options */}
       <Toggle
         fk="s29_project_type"
-        label="Is the project a new construction project for seniors?"
-        opts={YES_NO_MISSING}
+        label="Project type for Replacement Reserve purposes:"
+        opts={PROJECT_TYPE_OPTS}
       />
 
       {/* Other funder requirements — always shown */}
