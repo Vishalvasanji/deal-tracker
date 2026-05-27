@@ -15,6 +15,8 @@ const INCOMPATIBLE_OPTS = ['Adjacent', 'No', 'Missing']
 interface Props {
   dealId: string
   isRural: boolean
+  /** H-7: Whether the project is in a town/city with population ≤ 15,000 */
+  isTown15k?: boolean
   initial: Record<string, string>
 }
 
@@ -50,7 +52,7 @@ const INCOMPATIBLE_USES: { fk: string; label: string }[] = [
   { fk: 's26_02_prison', label: 'Prison' },
 ]
 
-export function Section26Form({ dealId, isRural, initial }: Props) {
+export function Section26Form({ dealId, isRural, isTown15k, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -148,9 +150,15 @@ export function Section26Form({ dealId, isRural, initial }: Props) {
           )}
         </div>
 
-        {anyAdjacent && (
+        {/* H-7: Tiered incompatible use messages based on isTown15k */}
+        {anyAdjacent && !isTown15k && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+            Error: Adjacent incompatible land uses are not permitted for this project type. Each adjacent incompatible use will result in a point deduction and may affect project eligibility.
+          </p>
+        )}
+        {anyAdjacent && isTown15k && (
           <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
-            Each adjacent incompatible use deducts 1 point from your score.
+            Warning: Each adjacent incompatible use deducts 1 point from your score.
           </p>
         )}
 
