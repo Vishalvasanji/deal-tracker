@@ -24,26 +24,17 @@ function neighborhoodScore(val: string, isRural: boolean): number {
 }
 
 const NEIGHBORHOOD_FEATURES: { fk: string; label: string }[] = [
-  { fk: 's26_01_grocery_store', label: 'Grocery Store' },
-  { fk: 's26_01_fresh_produce', label: 'Fresh Produce Market or Fruit Stand' },
-  { fk: 's26_01_public_library', label: 'Public Library' },
+  { fk: 's26_01_grocery_store',  label: 'Grocery Store' },
+  { fk: 's26_01_fresh_produce',  label: 'Fresh Produce Market or Fruit Stand (must be in a fixed structure)' },
   { fk: 's26_01_hospital_clinic', label: 'Hospital / Doctor Office or Clinic' },
-  { fk: 's26_01_bank', label: 'Bank / Credit Union with Live Tellers' },
-  { fk: 's26_01_school', label: 'Elementary, Secondary or Post-Secondary School' },
-  { fk: 's26_01_college', label: '4-Year College / University / Voc-Tech' },
-  { fk: 's26_01_pharmacy', label: 'Pharmacy / Drug Store' },
-  { fk: 's26_01_public_transit', label: 'Public Transportation (shuttles excluded)' },
-  { fk: 's26_01_day_care', label: 'LA Licensed Adult/Child Day Care / After School Care' },
-  { fk: 's26_01_rec_center', label: 'Recreational / Youth Center / Senior Center' },
-  { fk: 's26_01_public_park', label: 'Public Park' },
-  { fk: 's26_01_police_fire', label: 'Police or Fire Station' },
-  { fk: 's26_01_laundry', label: 'Laundry or Dry Cleaner' },
-  { fk: 's26_01_gym', label: 'Gym or Health Club' },
-  { fk: 's26_01_movie_theater', label: 'Movie Theater' },
-  { fk: 's26_01_bowling_alley', label: 'Bowling Alley' },
-  { fk: 's26_01_trampoline_park', label: 'Trampoline Park' },
-  { fk: 's26_01_laser_tag', label: 'Laser Tag' },
-  { fk: 's26_01_other_entertainment', label: 'Other Entertainment Facility' },
+  { fk: 's26_01_bank',           label: 'Bank / Credit Union with Live Tellers' },
+  { fk: 's26_01_school',         label: 'Elementary, Secondary or Post-Secondary School' },
+  { fk: 's26_01_college',        label: '4-Year College; University; or Voc/Tech/Comm College' },
+  { fk: 's26_01_pharmacy',       label: 'Pharmacy / Drug Store (not including pharmacies within hospitals)' },
+  { fk: 's26_01_public_transit', label: 'Public Transportation (shuttle services excluded)' },
+  { fk: 's26_01_day_care',       label: 'LA Licensed (current) Adult/Child Day Care / After School Care' },
+  { fk: 's26_01_public_park',    label: 'Public Park' },
+  { fk: 's26_01_police_fire',    label: 'Police or Fire Station' },
 ]
 
 const INCOMPATIBLE_USES: { fk: string; label: string }[] = [
