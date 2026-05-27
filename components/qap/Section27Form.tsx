@@ -56,21 +56,13 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
     )
   }
 
-  // On-site amenities matching Excel rows 892–904
+  // On-site amenities — visible rows in Excel (hidden rows excluded per LHC)
   const onSiteAmenities: { fk: string; label: string }[] = [
-    { fk: 's27_04_playground',         label: 'Playground' },
-    { fk: 's27_04_basketball_court',   label: 'Basketball Court' },
-    { fk: 's27_04_computer_center',    label: 'Computer Center (at least 5 computers)' },
-    { fk: 's27_04_exercise_room',      label: 'Exercise Room (must have equipment)' },
-    { fk: 's27_04_picnic_area',        label: 'Picnic Area With Permanent Grill' },
-    { fk: 's27_04_paved_walking_trail', label: 'Paved Walking Trail (minimum 1/4 mile)' },
-    { fk: 's27_04_off_street_parking', label: 'Off Street Parking' },
-    { fk: 's27_04_community_garden',   label: 'Community Garden (as defined in QAP VII.V.D)' },
-    { fk: 's27_04_patio_balcony',      label: 'Patio or Balcony' },
-    { fk: 's27_04_tennis_court',       label: 'Tennis Court' },
-    { fk: 's27_04_courtyard_seating',  label: 'Courtyard with Seating' },
-    { fk: 's27_04_dog_park',           label: 'Dog Park or Designated Pet Areas' },
-    { fk: 's27_04_multipurpose_room',  label: 'Open Access Multi-Purpose Tenant Activity Room' },
+    { fk: 's27_04_playground',       label: 'Playground' },
+    { fk: 's27_04_computer_center',  label: 'Computer Center (at least 5 computers)' },
+    { fk: 's27_04_exercise_room',    label: 'Exercise Room (must have equipment)' },
+    { fk: 's27_04_picnic_area',      label: 'Picnic Area With Permanent Grill' },
+    { fk: 's27_04_courtyard_seating', label: 'Courtyard with Seating' },
   ]
 
   // Accessible unit minimums: 5% mobility, 2% hearing/vision (ROUNDUP)
