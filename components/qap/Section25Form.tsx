@@ -22,6 +22,8 @@ const EXTENDED_AFFORD_OPTS = [
 interface Props {
   dealId: string
   initial: Record<string, string>
+  /** H-6: Whether the project is a homeownership project */
+  isHomeownership?: boolean
 }
 
 function extendedAffordPoints(val: string): number {
@@ -31,7 +33,7 @@ function extendedAffordPoints(val: string): number {
   return 0
 }
 
-export function Section25Form({ dealId, initial }: Props) {
+export function Section25Form({ dealId, initial, isHomeownership }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -88,6 +90,13 @@ export function Section25Form({ dealId, initial }: Props) {
           fk="s25_01_extended_afford_points"
           label="Do you intend to claim QAP points in Selection Criterion III.A Extended Affordability Period?"
         />
+
+        {/* H-6: Homeownership conflict error */}
+        {isHomeownership === true && values['s25_01_extended_afford_points'] === 'Yes' && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+            Error: Extended Affordability is not available for Homeownership projects. Homeownership projects are not subject to the extended use affordability agreement.
+          </p>
+        )}
 
         {values['s25_01_extended_afford_points'] === 'Yes' && (
           <div className="space-y-4 pl-4 border-l-2 border-border">
