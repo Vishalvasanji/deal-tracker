@@ -17,12 +17,12 @@ interface Props {
   initial: Record<string, string>
 }
 
-const LHC_RATES: { label: string }[] = [
-  { label: 'Vacancy Rate Years 1–3' },
-  { label: 'Vacancy Rate Years 4+' },
-  { label: 'Rent Inflation Rate Years 1–3' },
-  { label: 'Rent Inflation Rate Years 4+' },
-  { label: 'Expenses Inflation Rate' },
+const LHC_RATES: { label: string; value: string }[] = [
+  { label: 'Vacancy Rate Years 1–3',         value: '7.0%' },
+  { label: 'Vacancy Rate Years 4+',          value: '7.0%' },
+  { label: 'Rent Inflation Rate Years 1–3',  value: '2.0%' },
+  { label: 'Rent Inflation Rate Years 4–15', value: '2.0%  (3% thereafter)' },
+  { label: 'Expenses Inflation Rate',        value: '3.0%' },
 ]
 
 export function Section28Form({ dealId, initial }: Props) {
@@ -103,12 +103,10 @@ export function Section28Form({ dealId, initial }: Props) {
               </tr>
             </thead>
             <tbody>
-              {LHC_RATES.map(({ label }, i) => (
+              {LHC_RATES.map(({ label, value }, i) => (
                 <tr key={i} className="border-b border-border/30 last:border-b-0">
                   <td className="px-4 py-2.5 text-sm text-foreground">{label}</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground italic">
-                    LHC Standard (auto-calculated)
-                  </td>
+                  <td className="px-4 py-2.5 text-sm font-semibold tabular-nums text-foreground">{value}</td>
                 </tr>
               ))}
             </tbody>
