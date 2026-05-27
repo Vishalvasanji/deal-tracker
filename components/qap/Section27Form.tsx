@@ -128,16 +128,6 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
           label="Accessible Units Required Under Section 504 — does the project meet requirements?"
         />
 
-        {/* Required minimums banner */}
-        {totalUnits > 0 ? (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 space-y-0.5">
-            <p className="font-semibold">Required minimums based on {totalUnits} total units:</p>
-            <p>• Mobility impairments: <span className="font-semibold">{mobilityRequired} unit{mobilityRequired === 1 ? '' : 's'}</span> (= ROUNDUP({totalUnits} × 5%, 0))</p>
-            <p>• Hearing or vision impairments: <span className="font-semibold">{hearingVisionRequired} unit{hearingVisionRequired === 1 ? '' : 's'}</span> (= ROUNDUP({totalUnits} × 2%, 0))</p>
-          </div>
-        ) : (
-          <p className={noteCls}>Enter the Unit Mix to see required accessible unit minimums.</p>
-        )}
 
         <div>
           <label className={labelCls}>
