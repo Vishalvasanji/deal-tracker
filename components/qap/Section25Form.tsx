@@ -31,7 +31,7 @@ function extendedAffordPoints(val: string): number {
   return 0
 }
 
-export default function Section25Form({ dealId, initial }: Props) {
+export function Section25Form({ dealId, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
