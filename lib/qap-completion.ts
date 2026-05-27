@@ -72,10 +72,13 @@ const SECTION_23_REQUIRED = [
 const SECTION_24_REQUIRED = ['s24_01_special_needs_points', 's24_03_elderly_100pct']
 const SECTION_25_REQUIRED = ['s25_01_extended_afford_points', 's25_02_additional_financial']
 const SECTION_26_REQUIRED = [
-  's26_01_grocery_store', 's26_01_fresh_produce',
+  's26_01_grocery_store', 's26_01_fresh_produce', 's26_01_public_library',
   's26_01_hospital_clinic', 's26_01_bank', 's26_01_school', 's26_01_college',
   's26_01_pharmacy', 's26_01_public_transit', 's26_01_day_care',
-  's26_01_public_park', 's26_01_police_fire',
+  's26_01_recreational_center', 's26_01_public_park', 's26_01_police_fire',
+  's26_01_laundry', 's26_01_gym',
+  's26_01_movie_theater', 's26_01_bowling_alley', 's26_01_trampoline_park',
+  's26_01_laser_tag', 's26_01_entertainment_other',
   's26_02_junk_yard', 's26_02_processing_plant', 's26_02_high_voltage',
   's26_02_solid_waste', 's26_02_heavy_industrial', 's26_02_pig_chicken_farm',
   's26_02_distribution_facility', 's26_02_airport', 's26_02_salvage_yard', 's26_02_prison',
@@ -84,11 +87,14 @@ const SECTION_27_REQUIRED = [
   's27_01_green_building', 's27_02_community_facilities',
   's27_03_washers_dryers', 's27_03_dishwashers', 's27_03_free_wifi',
   's27_03_universal_design', 's27_03_hud_defensible_space',
-  's27_03_fqhc',          // C-4: FQHC on site or co-located
-  's27_04_playground', 's27_04_computer_center',
-  's27_04_exercise_room', 's27_04_picnic_area', 's27_04_courtyard_seating',
+  's27_03_fqhc',
+  's27_04_playground', 's27_04_basketball_court', 's27_04_computer_center',
+  's27_04_exercise_room', 's27_04_picnic_area', 's27_04_paved_walking_trail',
+  's27_04_off_street_parking', 's27_04_community_garden', 's27_04_patio_balcony',
+  's27_04_tennis_court', 's27_04_courtyard_seating', 's27_04_dog_park',
+  's27_04_multipurpose_room',
   's27_05_accessible_units', 's27_08_onsite_security', 's27_09_resiliency',
-  's27_09_tier1_2_parish', // M-4: Tier 1 or Tier 2 Parish
+  's27_09_tier1_2_parish',
   's27_10_eviction_prevention_plan', 's27_10_low_barrier_screening',
   's27_11_professional_services', 's27_11_sub_1_5pct', 's27_11_sub_over_5pct',
   's27_12_joint_venture',
