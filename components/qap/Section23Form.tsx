@@ -10,12 +10,33 @@ const activeBtn = 'bg-primary text-primary-foreground rounded-lg px-4 py-1.5 tex
 const inactiveBtn = 'bg-muted text-muted-foreground rounded-lg px-4 py-1.5 text-sm'
 const subHeaderCls = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide'
 const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
+const readOnlyCell = 'text-right text-sm tabular-nums px-2 py-1.5 bg-muted/30 rounded text-foreground'
+const pendingCell = 'text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground italic'
 
 const FUEL_OPTS = ['Natural Gas', 'Electric', 'Propane', 'Oil', 'Other', 'Missing']
 const HOT_WATER_FUEL_OPTS = ['Natural Gas', 'Electric', 'Other', 'Missing']
 const HEAT_SYSTEM_OPTS = ['Forced Air', 'Hot Water', 'Other', 'Missing']
 const PAYER_OPTS = ['Owner', 'Tenant', 'Missing']
 const YES_NO_OPTS = ['Yes', 'No', 'Missing']
+
+// HUD person-count multipliers by bedroom size (per AMI Rents sheet rows 10-14)
+const BR_MULT = [0.70, 0.80, 0.90, 1.00, 1.08]
+const BR_LABELS = ['0BR', '1BR', '2BR', '3BR', '4BR']
+
+const AMI_LEVELS = [
+  { label: '120% AMI', pct: 1.20 },
+  { label: '20% AMI',  pct: 0.20 },
+  { label: '30% AMI',  pct: 0.30 },
+  { label: '40% AMI',  pct: 0.40 },
+  { label: '50% AMI',  pct: 0.50 },
+  { label: '60% AMI',  pct: 0.60 },
+  { label: '70% AMI',  pct: 0.70 },
+  { label: '80% AMI',  pct: 0.80 },
+]
+
+function calcGrossRent(ami4: number, pct: number, brIdx: number): number {
+  return Math.floor((ami4 * pct * BR_MULT[brIdx] * 0.30) / 12)
+}
 
 interface Props {
   dealId: string
@@ -60,6 +81,11 @@ export function Section23Form({ dealId, initial }: Props) {
     )
   }
 
+  // Derived values for rent tables
+  const ami4 = parseFloat(values['s23_02_ami_4person'] ?? '') || 0
+  const hasAmi = ami4 > 0
+  const ua = [0, 1, 2, 3, 4].map(i => parseInt(values[`s23_06_ua_${['0','1','2','3','4'][i]}br`] ?? '0') || 0)
+
   const amenities: { fk: string; label: string }[] = [
     { fk: 's23_04_oven_range', label: 'Oven / Range' },
     { fk: 's23_04_refrigerator', label: 'Refrigerator' },
@@ -71,19 +97,69 @@ export function Section23Form({ dealId, initial }: Props) {
   ]
 
   const utilityRows: { label: string; fuelFk?: string; fuelOpts?: string[]; payerFk: string }[] = [
-    { label: 'Cooking', fuelFk: 's23_05_cooking_fuel', fuelOpts: FUEL_OPTS, payerFk: 's23_05_cooking_payer' },
-    { label: 'Other / Lighting', payerFk: 's23_05_lighting_payer' },
-    { label: 'Hot Water', fuelFk: 's23_05_hot_water_fuel', fuelOpts: HOT_WATER_FUEL_OPTS, payerFk: 's23_05_hot_water_payer' },
-    { label: 'Water', payerFk: 's23_05_water_payer' },
-    { label: 'Heating', payerFk: 's23_05_heating_payer' },
-    { label: 'Air Conditioning', payerFk: 's23_05_ac_payer' },
-    { label: 'Sewer', payerFk: 's23_05_sewer_payer' },
-    { label: 'Trash Collection', payerFk: 's23_05_trash_payer' },
+    { label: 'Cooking',          fuelFk: 's23_05_cooking_fuel',   fuelOpts: FUEL_OPTS,           payerFk: 's23_05_cooking_payer' },
+    { label: 'Other / Lighting',                                                                    payerFk: 's23_05_lighting_payer' },
+    { label: 'Hot Water',        fuelFk: 's23_05_hot_water_fuel', fuelOpts: HOT_WATER_FUEL_OPTS,  payerFk: 's23_05_hot_water_payer' },
+    { label: 'Water',                                                                               payerFk: 's23_05_water_payer' },
+    { label: 'Heating',                                                                             payerFk: 's23_05_heating_payer' },
+    { label: 'Air Conditioning',                                                                    payerFk: 's23_05_ac_payer' },
+    { label: 'Sewer',                                                                               payerFk: 's23_05_sewer_payer' },
+    { label: 'Trash Collection',                                                                    payerFk: 's23_05_trash_payer' },
   ]
 
-  const brLabels = ['0 Bedroom ($)', '1 Bedroom ($)', '2 Bedroom ($)', '3 Bedroom ($)', '4 Bedroom ($)']
-  const ua06Keys = ['s23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br']
+  const ua06Keys    = ['s23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br']
   const market09Keys = ['s23_09_market_0br', 's23_09_market_1br', 's23_09_market_2br', 's23_09_market_3br', 's23_09_market_4br']
+  const fmr10Keys   = ['s23_10_fmr_0br', 's23_10_fmr_1br', 's23_10_fmr_2br', 's23_10_fmr_3br', 's23_10_fmr_4br']
+  const brInputLabels = ['0 Bedroom ($)', '1 Bedroom ($)', '2 Bedroom ($)', '3 Bedroom ($)', '4 Bedroom ($)']
+
+  // Shared rent table component
+  function RentTable({ title, getCellValue, note }: {
+    title: string
+    getCellValue: (amiPct: number, brIdx: number) => number | null
+    note?: string
+  }) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground">{title}</p>
+        {note && <p className={noteCls}>{note}</p>}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-1.5 pr-3 text-xs font-semibold text-muted-foreground w-24">AMI Level</th>
+                {BR_LABELS.map(br => (
+                  <th key={br} className="text-right py-1.5 px-2 text-xs font-semibold text-muted-foreground">{br}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {AMI_LEVELS.map(({ label, pct }) => (
+                <tr key={label} className="border-b border-border/30">
+                  <td className="py-1.5 pr-3 text-xs font-medium text-muted-foreground">{label}</td>
+                  {[0, 1, 2, 3, 4].map(brIdx => {
+                    const val = getCellValue(pct, brIdx)
+                    return (
+                      <td key={brIdx} className="py-1.5 px-2">
+                        {val === null
+                          ? <span className={pendingCell}>—</span>
+                          : <span className={readOnlyCell}>${val.toLocaleString()}</span>
+                        }
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!hasAmi && (
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Enter the 4-person AMI in §23.02 above to populate this table.
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -108,17 +184,45 @@ export function Section23Form({ dealId, initial }: Props) {
 
       {/* 23.02 */}
       <div className="space-y-3">
-        <p className={subHeaderCls}>23.02 Comment</p>
+        <p className={subHeaderCls}>23.02 4-Person AMI &amp; Comment</p>
+        <p className={noteCls}>
+          Enter the 4-person Area Median Income for the project parish. This drives the Gross Rent and Contract Rent tables below.
+        </p>
+        <div className="max-w-xs">
+          <label className={labelCls}>4-Person AMI for Parish ($)</label>
+          <input
+            type="number"
+            className={inputCls}
+            placeholder="e.g. 71300"
+            value={values['s23_02_ami_4person'] ?? ''}
+            onChange={e => setValues(prev => ({ ...prev, s23_02_ami_4person: e.target.value }))}
+            onBlur={e => handleBlur('s23_02_ami_4person', e.target.value)}
+            min={0}
+          />
+        </div>
         <div>
           <label className={labelCls}>Comment on AMI information</label>
           <textarea
             className={inputCls}
-            rows={3}
+            rows={2}
             value={values['s23_02_comment'] ?? ''}
             onChange={e => setValues(prev => ({ ...prev, s23_02_comment: e.target.value }))}
             onBlur={e => handleBlur('s23_02_comment', e.target.value)}
           />
         </div>
+      </div>
+
+      {/* 23.03 — Gross Rents Table */}
+      <div className="space-y-3">
+        <p className={subHeaderCls}>23.03 AMI Gross Rent Limits</p>
+        <p className={noteCls}>
+          Gross rents are calculated as: (4-Person AMI × AMI% × bedroom multiplier × 30%) ÷ 12.
+          Bedroom multipliers: 0BR=0.70, 1BR=0.80, 2BR=0.90, 3BR=1.00, 4BR=1.08.
+        </p>
+        <RentTable
+          title='"Gross" Rent Limits for AMI-Restricted Units'
+          getCellValue={(pct, brIdx) => hasAmi ? calcGrossRent(ami4, pct, brIdx) : null}
+        />
       </div>
 
       {/* 23.04 */}
@@ -235,11 +339,11 @@ export function Section23Form({ dealId, initial }: Props) {
       {/* 23.06 */}
       <div className="space-y-3">
         <p className={subHeaderCls}>23.06 Utility Allowances (for LIHTC Units)</p>
-        <p className={noteCls}>The Checklist will include a request for appropriate documentation.</p>
+        <p className={noteCls}>The Checklist will include a request for appropriate documentation. UAs are subtracted from gross rents to produce contract rents in §23.07.</p>
         <div className="grid grid-cols-5 gap-3">
           {ua06Keys.map((fk, i) => (
             <div key={fk}>
-              <label className={labelCls}>{brLabels[i]}</label>
+              <label className={labelCls}>{brInputLabels[i]}</label>
               <input
                 type="number"
                 className={inputCls}
@@ -253,17 +357,25 @@ export function Section23Form({ dealId, initial }: Props) {
         </div>
       </div>
 
-      {/* 23.07 */}
+      {/* 23.07 — Contract Rents Table */}
       <div className="space-y-3">
-        <p className={subHeaderCls}>23.07 Contract Rent Table</p>
+        <p className={subHeaderCls}>23.07 AMI "Contract" Rent Limits</p>
         <p className={noteCls}>
-          AMI Contract Rent limits are calculated by LHC from the parish, utility allowances, and AMI data. They will appear in the completed QAP model.
+          Contract rents = Gross Rent − Utility Allowance. Updated live as you enter the AMI (§23.02) and UAs (§23.06) above.
         </p>
+        <RentTable
+          title='"Contract" Rent Limits for LIHTC Units'
+          getCellValue={(pct, brIdx) => {
+            if (!hasAmi) return null
+            const gross = calcGrossRent(ami4, pct, brIdx)
+            return Math.max(0, gross - ua[brIdx])
+          }}
+        />
         <div>
           <label className={labelCls}>Comment on Contract Rents</label>
           <textarea
             className={inputCls}
-            rows={3}
+            rows={2}
             value={values['s23_07_comment'] ?? ''}
             onChange={e => setValues(prev => ({ ...prev, s23_07_comment: e.target.value }))}
             onBlur={e => handleBlur('s23_07_comment', e.target.value)}
@@ -280,7 +392,7 @@ export function Section23Form({ dealId, initial }: Props) {
         <div className="grid grid-cols-5 gap-3">
           {market09Keys.map((fk, i) => (
             <div key={fk}>
-              <label className={labelCls}>{brLabels[i]}</label>
+              <label className={labelCls}>{brInputLabels[i]}</label>
               <input
                 type="number"
                 className={inputCls}
@@ -304,12 +416,27 @@ export function Section23Form({ dealId, initial }: Props) {
         </div>
       </div>
 
-      {/* 23.11 */}
+      {/* 23.10 — HUD Fair Market Rents (user-entered) */}
       <div className="space-y-3">
-        <p className={subHeaderCls}>23.11 HUD Fair Market Rents</p>
+        <p className={subHeaderCls}>23.10 HUD Fair Market Rents</p>
         <p className={noteCls}>
-          HUD FY2023 FMRs are pre-loaded from the LHC database and are not user-editable.
+          Enter the HUD Fair Market Rents for the project area by bedroom size. These are used by LHC underwriters to validate market rents.
         </p>
+        <div className="grid grid-cols-5 gap-3">
+          {fmr10Keys.map((fk, i) => (
+            <div key={fk}>
+              <label className={labelCls}>{brInputLabels[i]}</label>
+              <input
+                type="number"
+                className={inputCls}
+                value={values[fk] ?? ''}
+                onChange={e => setValues(prev => ({ ...prev, [fk]: e.target.value }))}
+                onBlur={e => handleBlur(fk, e.target.value)}
+                min={0}
+              />
+            </div>
+          ))}
+        </div>
         <div>
           <label className={labelCls}>Comment on FMRs</label>
           <textarea
