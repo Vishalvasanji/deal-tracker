@@ -15,9 +15,10 @@ const YES_NO_OPTS = ['Yes', 'No', 'Missing']
 interface Props {
   dealId: string
   initial: Record<string, string>
+  totalUnits: number
 }
 
-export function Section27Form({ dealId, initial }: Props) {
+export function Section27Form({ dealId, initial, totalUnits }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
@@ -62,6 +63,14 @@ export function Section27Form({ dealId, initial }: Props) {
     { fk: 's27_04_picnic_area',     label: 'Picnic Area With Permanent Grill' },
     { fk: 's27_04_courtyard_seating', label: 'Courtyard with Seating' },
   ]
+
+  // Accessible unit minimums: 5% mobility, 2% hearing/vision (ROUNDUP)
+  const mobilityRequired      = totalUnits > 0 ? Math.ceil(totalUnits * 0.05) : null
+  const hearingVisionRequired = totalUnits > 0 ? Math.ceil(totalUnits * 0.02) : null
+  const mobilityEntered       = parseInt(values['s27_06_mobility_units'] ?? '') || 0
+  const hearingVisionEntered  = parseInt(values['s27_07_hearing_vision_units'] ?? '') || 0
+  const mobilityShort         = mobilityRequired !== null && mobilityEntered > 0 && mobilityEntered < mobilityRequired
+  const hearingVisionShort    = hearingVisionRequired !== null && hearingVisionEntered > 0 && hearingVisionEntered < hearingVisionRequired
 
   const resiliencyActive = values['s27_09_resiliency'] === 'Yes'
   const fortifiedRoofMissing = resiliencyActive && values['s27_09_fortified_roof'] !== 'Yes'
@@ -119,28 +128,59 @@ export function Section27Form({ dealId, initial }: Props) {
           label="Accessible Units Required Under Section 504 — does the project meet requirements?"
         />
 
+        {/* Required minimums banner */}
+        {totalUnits > 0 ? (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 space-y-0.5">
+            <p className="font-semibold">Required minimums based on {totalUnits} total units:</p>
+            <p>• Mobility impairments: <span className="font-semibold">{mobilityRequired} unit{mobilityRequired === 1 ? '' : 's'}</span> (= ROUNDUP({totalUnits} × 5%, 0))</p>
+            <p>• Hearing or vision impairments: <span className="font-semibold">{hearingVisionRequired} unit{hearingVisionRequired === 1 ? '' : 's'}</span> (= ROUNDUP({totalUnits} × 2%, 0))</p>
+          </div>
+        ) : (
+          <p className={noteCls}>Enter the Unit Mix to see required accessible unit minimums.</p>
+        )}
+
         <div>
-          <label className={labelCls}>27.06 — Total units accessible to people with mobility impairments</label>
+          <label className={labelCls}>
+            27.06 — Total units accessible to people with mobility impairments
+            {mobilityRequired !== null && (
+              <span className="ml-2 text-blue-600 font-semibold">minimum: {mobilityRequired}</span>
+            )}
+          </label>
           <input
             type="number"
-            className={inputCls}
+            className={`${inputCls} ${mobilityShort ? 'border-red-400 bg-red-50' : ''}`}
             value={values['s27_06_mobility_units'] ?? ''}
             onChange={e => setValues(prev => ({ ...prev, s27_06_mobility_units: e.target.value }))}
             onBlur={e => handleBlur('s27_06_mobility_units', e.target.value)}
             min={0}
           />
+          {mobilityShort && (
+            <p className="text-xs text-red-600 mt-1">
+              Below minimum — {mobilityRequired} unit{mobilityRequired === 1 ? '' : 's'} required.
+            </p>
+          )}
         </div>
 
         <div>
-          <label className={labelCls}>27.07 — Total units accessible to people with hearing or vision impairments</label>
+          <label className={labelCls}>
+            27.07 — Total units accessible to people with hearing or vision impairments
+            {hearingVisionRequired !== null && (
+              <span className="ml-2 text-blue-600 font-semibold">minimum: {hearingVisionRequired}</span>
+            )}
+          </label>
           <input
             type="number"
-            className={inputCls}
+            className={`${inputCls} ${hearingVisionShort ? 'border-red-400 bg-red-50' : ''}`}
             value={values['s27_07_hearing_vision_units'] ?? ''}
             onChange={e => setValues(prev => ({ ...prev, s27_07_hearing_vision_units: e.target.value }))}
             onBlur={e => handleBlur('s27_07_hearing_vision_units', e.target.value)}
             min={0}
           />
+          {hearingVisionShort && (
+            <p className="text-xs text-red-600 mt-1">
+              Below minimum — {hearingVisionRequired} unit{hearingVisionRequired === 1 ? '' : 's'} required.
+            </p>
+          )}
         </div>
       </div>
 
