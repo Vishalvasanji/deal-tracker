@@ -576,7 +576,12 @@ export function Section12Form({ dealId, initial }: Props) {
           <label className={labelCls}>Does the project currently receive federal funds and/or receive insurance under a federal program? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.receives_federal_funds ?? ''} onChange={v => handleToggle('receives_federal_funds', v)} />
           {values.receives_federal_funds === 'Yes' && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
+              {!values.federal_funds_comment?.trim() && (
+                <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
+                  A comment is required explaining the federal program.
+                </p>
+              )}
               <label className={labelCls}>Comment</label>
               <textarea className={inputCls + ' min-h-[80px] resize-y'}
                 value={values.federal_funds_comment ?? ''}
@@ -589,7 +594,12 @@ export function Section12Form({ dealId, initial }: Props) {
           <label className={labelCls}>Will HUD or RD housing assistance, or other government assistance, be provided to the project? <span className="text-rose-500">*</span></label>
           <YesNoToggle value={values.hud_rd_assistance ?? ''} onChange={v => handleToggle('hud_rd_assistance', v)} />
           {values.hud_rd_assistance === 'Yes' && (
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
+              {!values.hud_rd_comment?.trim() && (
+                <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
+                  A comment is required explaining the HUD/RD assistance.
+                </p>
+              )}
               <label className={labelCls}>Comment</label>
               <textarea className={inputCls + ' min-h-[80px] resize-y'}
                 value={values.hud_rd_comment ?? ''}
