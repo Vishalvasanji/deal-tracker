@@ -14,6 +14,7 @@ import { Section18Form } from './Section18Form'
 import { Section19Form } from './Section19Form'
 import { Section20Form } from './Section20Form'
 import { Section21Form } from './Section21Form'
+import { Section22Form } from './Section22Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -62,18 +63,10 @@ const SECTION_18_REQUIRED = [
 ]
 const SECTION_19_REQUIRED = ['s19_comment']
 const SECTION_20_REQUIRED = [
-  's20_01_equipment',
-  's20_03_constr_mgr_fee',
-  's20_04_related_party_payments',
-  's20_05_extraordinary_site_cost',
-  's20_07_community_svc',
-  's20_08_excess_costs_request',
-  's20_09_total_buildings',
-  's20_09_total_configurations',
-  's20_10_cash_flow_note',
-  's20_11_return_on_capital',
-  's20_12_has_staff_units',
-  's20_14_has_commercial',
+  's20_01_equipment', 's20_03_constr_mgr_fee', 's20_04_related_party_payments',
+  's20_05_extraordinary_site_cost', 's20_07_community_svc', 's20_08_excess_costs_request',
+  's20_09_total_buildings', 's20_09_total_configurations', 's20_10_cash_flow_note',
+  's20_11_return_on_capital', 's20_12_has_staff_units', 's20_14_has_commercial',
 ]
 const SECTION_21_REQUIRED = [
   's21_01_status', 's21_02_status',
@@ -81,6 +74,7 @@ const SECTION_21_REQUIRED = [
   's21_08_status', 's21_09_status', 's21_10_status',
   's21_04_community_fac_sqft', 's21_04_community_svc_sqft', 's21_04_other_sqft',
 ]
+const SECTION_22_REQUIRED = ['s22_comment']
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -138,6 +132,7 @@ export function ProjectDescriptionClient({
   section19Initial,
   section20Initial,
   section21Initial,
+  section22Initial,
 }: {
   dealId: string
   section10Initial: Record<string, string>
@@ -152,6 +147,7 @@ export function ProjectDescriptionClient({
   section19Initial: Record<string, string>
   section20Initial: Record<string, string>
   section21Initial: Record<string, string>
+  section22Initial: Record<string, string>
 }) {
   const isRural = section12Initial.is_rural === 'Yes'
   const isChdo = section11Initial.is_chdo === 'Yes'
@@ -224,6 +220,15 @@ export function ProjectDescriptionClient({
 
       <SectionAccordion number="Section 21" title="Complete Remaining Key Worksheets" fields={section21Initial} required={SECTION_21_REQUIRED}>
         <Section21Form dealId={dealId} initial={section21Initial} />
+      </SectionAccordion>
+
+      <SectionAccordion number="Section 22" title="Allowable LIHTCs" fields={section22Initial} required={SECTION_22_REQUIRED}>
+        <Section22Form
+          dealId={dealId}
+          section14={section14Initial}
+          section18={section18Initial}
+          initial={section22Initial}
+        />
       </SectionAccordion>
     </div>
   )
