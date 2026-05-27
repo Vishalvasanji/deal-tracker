@@ -61,6 +61,12 @@ export function Section10Form({ dealId, initial }: Props) {
   const lihtc4Yes = values.lihtc_4pct === 'Yes'
   const lihtc9Yes = values.lihtc_9pct === 'Yes'
 
+  // L-1: All three answered No — current cycle does not offer HOME/NHTF/CDBG
+  const allThreeNo =
+    values.bond_financing === 'No' &&
+    values.lihtc_9pct === 'No' &&
+    values.other_lhc_funding === 'No'
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -206,10 +212,10 @@ export function Section10Form({ dealId, initial }: Props) {
             value={values.other_lhc_funding ?? ''}
             onChange={v => handleToggle('other_lhc_funding', v)}
           />
-          {/* L-1: Info note when other LHC funding is Yes */}
-          {values.other_lhc_funding === 'Yes' && (
+          {/* L-1: Note when all three funding sources are No */}
+          {allThreeNo && (
             <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
-              If this project also includes tax-exempt bond financing, a separate LHC Bond Financing Application is required.
+              Note: The current cycle does not offer any HOME, NHTF or CDBG funding from LHC or another State Agency.
             </p>
           )}
         </div>
