@@ -107,6 +107,8 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
           <YesNoToggle fk="s27_03_free_wifi" label="Free Development Tenant Wi-Fi" />
           <YesNoToggle fk="s27_03_universal_design" label="Universal Design as defined in the QAP" />
           <YesNoToggle fk="s27_03_hud_defensible_space" label="HUD Defensible Space as defined in the QAP" />
+          {/* C-4: FQHC toggle */}
+          <YesNoToggle fk="s27_03_fqhc" label="Federally Qualified Health Center (FQHC) on site or co-located" />
         </div>
       </div>
 
@@ -207,6 +209,8 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
 
             <YesNoToggle fk="s27_09_fortified_gold" label="FORTIFIED GOLD" />
             <YesNoToggle fk="s27_09_fortified_silver" label="FORTIFIED SILVER" />
+            {/* M-4: Tier 1 or Tier 2 Parish toggle */}
+            <YesNoToggle fk="s27_09_tier1_2_parish" label="Located in a Tier 1 or Tier 2 Parish" />
           </div>
         )}
       </div>
@@ -220,7 +224,7 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
 
       {/* 27.11 Minority / Women's / Veteran's Business Participation */}
       <div className="space-y-4">
-        <p className={subHeaderCls}>27.11 Minority / Women's / Veteran's Business Participation</p>
+        <p className={subHeaderCls}>27.11 Minority / Women&apos;s / Veteran&apos;s Business Participation</p>
         <YesNoToggle fk="s27_11_professional_services" label="Professional Services / General Contractor — MWV participation?" />
         <YesNoToggle fk="s27_11_sub_1_5pct" label="Sub-Contractors/Vendors 1%–4.99% of Total Development Cost — MWV participation?" />
         <YesNoToggle fk="s27_11_sub_over_5pct" label="Sub-Contractors/Vendors >5% of Total Development Cost — MWV participation?" />
