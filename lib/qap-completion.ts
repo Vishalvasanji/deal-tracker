@@ -92,12 +92,16 @@ const SECTION_27_REQUIRED = [
   's27_12_joint_venture',
 ]
 const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation']
+const SECTION_29_REQUIRED = ['s29_hud_rd_mortgage', 's29_project_type', 's29_reserve_pupa']
+// Sections 30, 31, 32, 34 have no user inputs — always complete (1/1)
+const SECTION_33_REQUIRED = ['s33_agree_score']
 
 export async function getQapCompletion(dealId: string) {
   const [
     narrativeFields, unitTypes,
     s10, s11, s12, s13, s14, s15, s16, s17, s18, s19,
     s20, s21, s22, s23, s24, s25, s26, s27, s28,
+    s29, s33,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -120,6 +124,8 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_26'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_27'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_28'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_29'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_33'))),
   ])
 
   function count(rows: { field_key: string; value: string | null }[], req: string[]) {
@@ -152,5 +158,11 @@ export async function getQapCompletion(dealId: string) {
     section26:  { filled: count(s26, SECTION_26_REQUIRED),  total: SECTION_26_REQUIRED.length },
     section27:  { filled: count(s27, SECTION_27_REQUIRED),  total: SECTION_27_REQUIRED.length },
     section28:  { filled: count(s28, SECTION_28_REQUIRED),  total: SECTION_28_REQUIRED.length },
+    section29:  { filled: count(s29, SECTION_29_REQUIRED),  total: SECTION_29_REQUIRED.length },
+    section30:  { filled: 1, total: 1 }, // read-only, always complete
+    section31:  { filled: 1, total: 1 }, // read-only, always complete
+    section32:  { filled: 1, total: 1 }, // computed from unit mix, always complete
+    section33:  { filled: count(s33, SECTION_33_REQUIRED),  total: SECTION_33_REQUIRED.length },
+    section34:  { filled: 1, total: 1 }, // optional free-text, always complete
   }
 }
