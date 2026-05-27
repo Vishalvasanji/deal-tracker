@@ -65,6 +65,21 @@ export function Section28Form({ dealId, initial }: Props) {
 
   const softMarketAnswered = values['s28_soft_market'] && values['s28_soft_market'] !== ''
 
+  // L-7: Vacancy rate validation
+  const proposedVacancy = parseFloat(values['s28_proposed_vacancy'] ?? '')
+  const softMarket = values['s28_soft_market'] === 'Yes'
+  const normalMarket = values['s28_soft_market'] === 'No'
+  let vacancyError = ''
+  let vacancyInfo = ''
+
+  if (!isNaN(proposedVacancy) && values['s28_soft_market']) {
+    if (softMarket && proposedVacancy <= 7.0) {
+      vacancyError = 'Soft market vacancy rate must exceed 7.0%.'
+    } else if (normalMarket && proposedVacancy !== 7.0) {
+      vacancyInfo = 'Standard market vacancy rate must be exactly 7.0%. Adjust to match LHC standard.'
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -85,6 +100,27 @@ export function Section28Form({ dealId, initial }: Props) {
           <p className={noteCls}>
             Vacancy rate must match the LHC Standard for soft or standard markets.
           </p>
+        )}
+      </div>
+
+      {/* L-7: Proposed Vacancy Rate input */}
+      <div className="space-y-2">
+        <div>
+          <label className={labelCls}>Proposed Vacancy Rate (%)</label>
+          <input
+            type="text"
+            className={`${inputCls} ${vacancyError ? 'border-red-400 bg-red-50' : ''}`}
+            value={values['s28_proposed_vacancy'] ?? ''}
+            onChange={e => setValues(prev => ({ ...prev, s28_proposed_vacancy: e.target.value }))}
+            onBlur={e => handleBlur('s28_proposed_vacancy', e.target.value)}
+            placeholder="e.g. 7.0"
+          />
+        </div>
+        {vacancyError && (
+          <p className="text-xs text-red-600 font-medium px-1">{vacancyError}</p>
+        )}
+        {vacancyInfo && (
+          <p className="text-xs text-muted-foreground px-1">{vacancyInfo}</p>
         )}
       </div>
 
