@@ -56,19 +56,11 @@ export function Section27Form({ dealId, initial }: Props) {
   }
 
   const onSiteAmenities: { fk: string; label: string }[] = [
-    { fk: 's27_04_playground', label: 'Playground' },
-    { fk: 's27_04_basketball_court', label: 'Basketball Court' },
+    { fk: 's27_04_playground',      label: 'Playground' },
     { fk: 's27_04_computer_center', label: 'Computer Center (at least 5 computers)' },
-    { fk: 's27_04_exercise_room', label: 'Exercise Room (must have equipment)' },
-    { fk: 's27_04_picnic_area', label: 'Picnic Area With Permanent Grill' },
-    { fk: 's27_04_walking_trail', label: 'Paved Walking Trail (min. 1/4 mile)' },
-    { fk: 's27_04_off_street_parking', label: 'Off Street Parking' },
-    { fk: 's27_04_community_garden', label: 'Community Garden (QAP VII.V.D)' },
-    { fk: 's27_04_patio_balcony', label: 'Patio or Balcony' },
-    { fk: 's27_04_tennis_court', label: 'Tennis Court' },
+    { fk: 's27_04_exercise_room',   label: 'Exercise Room (must have equipment)' },
+    { fk: 's27_04_picnic_area',     label: 'Picnic Area With Permanent Grill' },
     { fk: 's27_04_courtyard_seating', label: 'Courtyard with Seating' },
-    { fk: 's27_04_dog_park', label: 'Dog Park or Designated Pet Areas' },
-    { fk: 's27_04_multipurpose_room', label: 'Open Access Multi-Purpose Tenant Activity Room' },
   ]
 
   const resiliencyActive = values['s27_09_resiliency'] === 'Yes'
@@ -107,16 +99,6 @@ export function Section27Form({ dealId, initial }: Props) {
           <YesNoToggle fk="s27_03_universal_design" label="Universal Design as defined in the QAP" />
           <YesNoToggle fk="s27_03_hud_defensible_space" label="HUD Defensible Space as defined in the QAP" />
         </div>
-      </div>
-
-      {/* 27.031 */}
-      <div className="space-y-3">
-        <YesNoToggle fk="s27_031_ceiling_fans" label="27.031 — Ceiling fans in living room and all bedrooms" />
-      </div>
-
-      {/* 27.032 */}
-      <div className="space-y-3">
-        <YesNoToggle fk="s27_032_smart_thermostat" label="27.032 — Smart thermostat installed in each unit" />
       </div>
 
       {/* 27.04 On-Site Amenities */}
