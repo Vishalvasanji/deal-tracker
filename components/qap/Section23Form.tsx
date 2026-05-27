@@ -22,7 +22,7 @@ interface Props {
   initial: Record<string, string>
 }
 
-export default function Section23Form({ dealId, initial }: Props) {
+export function Section23Form({ dealId, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
