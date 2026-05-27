@@ -50,18 +50,10 @@ const SECTION_18_REQUIRED = [
 ]
 const SECTION_19_REQUIRED = ['s19_comment']
 const SECTION_20_REQUIRED = [
-  's20_01_equipment',
-  's20_03_constr_mgr_fee',
-  's20_04_related_party_payments',
-  's20_05_extraordinary_site_cost',
-  's20_07_community_svc',
-  's20_08_excess_costs_request',
-  's20_09_total_buildings',
-  's20_09_total_configurations',
-  's20_10_cash_flow_note',
-  's20_11_return_on_capital',
-  's20_12_has_staff_units',
-  's20_14_has_commercial',
+  's20_01_equipment', 's20_03_constr_mgr_fee', 's20_04_related_party_payments',
+  's20_05_extraordinary_site_cost', 's20_07_community_svc', 's20_08_excess_costs_request',
+  's20_09_total_buildings', 's20_09_total_configurations', 's20_10_cash_flow_note',
+  's20_11_return_on_capital', 's20_12_has_staff_units', 's20_14_has_commercial',
 ]
 const SECTION_21_REQUIRED = [
   's21_01_status', 's21_02_status',
@@ -69,11 +61,12 @@ const SECTION_21_REQUIRED = [
   's21_08_status', 's21_09_status', 's21_10_status',
   's21_04_community_fac_sqft', 's21_04_community_svc_sqft', 's21_04_other_sqft',
 ]
+const SECTION_22_REQUIRED = ['s22_comment']
 
 export async function getQapCompletion(dealId: string) {
   const [
     narrativeFields, unitTypes,
-    s10, s11, s12, s13, s14, s15, s16, s17, s18, s19, s20, s21,
+    s10, s11, s12, s13, s14, s15, s16, s17, s18, s19, s20, s21, s22,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -89,10 +82,11 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_19'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_20'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_21'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_22'))),
   ])
 
-  const narrativeFilled  = narrativeFields.filter(f => NARRATIVE_REQUIRED.includes(f.field_key) && f.value?.trim()).length
-  const hasCompleteRow   = unitTypes.some(u => u.bedrooms != null && u.baths != null && u.sqft != null && u.num_units != null && u.monthly_rent != null)
+  const narrativeFilled = narrativeFields.filter(f => NARRATIVE_REQUIRED.includes(f.field_key) && f.value?.trim()).length
+  const hasCompleteRow  = unitTypes.some(u => u.bedrooms != null && u.baths != null && u.sqft != null && u.num_units != null && u.monthly_rent != null)
   const s10Filled = s10.filter(f => SECTION_10_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s11Filled = s11.filter(f => SECTION_11_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s12Filled = s12.filter(f => SECTION_12_REQUIRED.includes(f.field_key) && f.value?.trim()).length
@@ -105,21 +99,23 @@ export async function getQapCompletion(dealId: string) {
   const s19Filled = s19.filter(f => SECTION_19_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s20Filled = s20.filter(f => SECTION_20_REQUIRED.includes(f.field_key) && f.value?.trim()).length
   const s21Filled = s21.filter(f => SECTION_21_REQUIRED.includes(f.field_key) && f.value?.trim()).length
+  const s22Filled = s22.filter(f => SECTION_22_REQUIRED.includes(f.field_key) && f.value?.trim()).length
 
   return {
     narrative:  { filled: narrativeFilled,        total: NARRATIVE_REQUIRED.length },
     unitMix:    { filled: hasCompleteRow ? 1 : 0,  total: 1 },
-    section10:  { filled: s10Filled, total: SECTION_10_REQUIRED.length },
-    section11:  { filled: s11Filled, total: SECTION_11_REQUIRED.length },
-    section12:  { filled: s12Filled, total: SECTION_12_REQUIRED.length },
-    section13:  { filled: s13Filled, total: SECTION_13_REQUIRED.length },
-    section14:  { filled: s14Filled, total: SECTION_14_REQUIRED.length },
-    section15:  { filled: s15Filled, total: SECTION_15_REQUIRED.length },
-    section16:  { filled: s16Filled, total: SECTION_16_REQUIRED.length },
-    section17:  { filled: s17Filled, total: SECTION_17_REQUIRED.length },
-    section18:  { filled: s18Filled, total: SECTION_18_REQUIRED.length },
-    section19:  { filled: s19Filled, total: SECTION_19_REQUIRED.length },
-    section20:  { filled: s20Filled, total: SECTION_20_REQUIRED.length },
-    section21:  { filled: s21Filled, total: SECTION_21_REQUIRED.length },
+    section10:  { filled: s10Filled,  total: SECTION_10_REQUIRED.length },
+    section11:  { filled: s11Filled,  total: SECTION_11_REQUIRED.length },
+    section12:  { filled: s12Filled,  total: SECTION_12_REQUIRED.length },
+    section13:  { filled: s13Filled,  total: SECTION_13_REQUIRED.length },
+    section14:  { filled: s14Filled,  total: SECTION_14_REQUIRED.length },
+    section15:  { filled: s15Filled,  total: SECTION_15_REQUIRED.length },
+    section16:  { filled: s16Filled,  total: SECTION_16_REQUIRED.length },
+    section17:  { filled: s17Filled,  total: SECTION_17_REQUIRED.length },
+    section18:  { filled: s18Filled,  total: SECTION_18_REQUIRED.length },
+    section19:  { filled: s19Filled,  total: SECTION_19_REQUIRED.length },
+    section20:  { filled: s20Filled,  total: SECTION_20_REQUIRED.length },
+    section21:  { filled: s21Filled,  total: SECTION_21_REQUIRED.length },
+    section22:  { filled: s22Filled,  total: SECTION_22_REQUIRED.length },
   }
 }
