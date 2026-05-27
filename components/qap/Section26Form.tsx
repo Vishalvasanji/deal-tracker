@@ -59,7 +59,7 @@ const INCOMPATIBLE_USES: { fk: string; label: string }[] = [
   { fk: 's26_02_prison', label: 'Prison' },
 ]
 
-export default function Section26Form({ dealId, isRural, initial }: Props) {
+export function Section26Form({ dealId, isRural, initial }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
