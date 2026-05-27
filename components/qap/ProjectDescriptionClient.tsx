@@ -155,6 +155,7 @@ function SectionAccordion({
 
 export function ProjectDescriptionClient({
   dealId,
+  totalUnits,
   section10Initial, section11Initial, section12Initial,
   section13Initial, section14Initial, section15Initial,
   section16Initial, section17Initial, section18Initial,
@@ -164,6 +165,7 @@ export function ProjectDescriptionClient({
   section28Initial,
 }: {
   dealId: string
+  totalUnits: number
   section10Initial: Record<string, string>
   section11Initial: Record<string, string>
   section12Initial: Record<string, string>
@@ -247,7 +249,7 @@ export function ProjectDescriptionClient({
         <Section26Form dealId={dealId} isRural={isRural} initial={section26Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 27" title="Project Characteristics" fields={section27Initial} required={SECTION_27_REQUIRED}>
-        <Section27Form dealId={dealId} initial={section27Initial} />
+        <Section27Form dealId={dealId} initial={section27Initial} totalUnits={totalUnits} />
       </SectionAccordion>
       <SectionAccordion number="Section 28" title="Trending Rates for Cash Flow Pro Forma" fields={section28Initial} required={SECTION_28_REQUIRED}>
         <Section28Form dealId={dealId} initial={section28Initial} />
