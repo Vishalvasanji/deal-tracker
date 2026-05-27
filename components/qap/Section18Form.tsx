@@ -6,13 +6,16 @@ import { upsertQapField } from '@/lib/qap-actions'
 interface Props {
   dealId: string
   initial: Record<string, string>
+  /** M-2: Reference closing date computed from §16 schedule */
+  initialClosingDate?: string
 }
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
 const LENDER_IS_OPTS    = ['Third Party', 'Identity of Interest', 'Missing']
 const FIXED_FLOAT_OPTS  = ['Fixed Rate', 'Floating Rate', 'Missing']
 const PAYMENT_TYPE_OPTS = ['Interest Only', 'P+I', 'P+I+MIP', 'Missing']
-const PAYMENT_REQ_OPTS  = ['Must Pay', 'All Pmts Deferred', 'Pay if Cash Available', 'Other (Explain)']
+// L-6: Added 'Missing' to PAYMENT_REQ_OPTS
+const PAYMENT_REQ_OPTS  = ['Must Pay', 'All Pmts Deferred', 'Pay if Cash Available', 'Other (Explain)', 'Missing']
 const LOAN_TYPE_OPTS    = ['Amortizing', 'Deferred; due at maturity', 'Forgiven at maturity', 'Missing']
 const FUNDING_TYPE_OPTS = ['Permanent Hard Debt', 'Permanent Soft Debt', 'Grant', 'Permanent Equity', 'Other (Explain)']
 const DONATION_TYPE_OPTS = ['Donated / Volunteer Labor', 'Donated Materials', 'Donated Land Value', 'NPV of Reduced RE Taxes', 'Other (Explain)']
@@ -87,9 +90,6 @@ function TextArea({ fk, values, setValues, onBlur, placeholder = '' }: FieldProp
 
 /**
  * 18.01 — New LHC Risk Sharing First Mortgage
- * Blue inputs: Loan Amount, Interest Rate, Fixed/Float, Amort Term, Maturity Term,
- *              MIP, Payment Type, Payment Req, Comment
- * NOT blue (pre-filled by LHC): Description, Lender, Lender is
  */
 function Loan01Fields({ p, values, setValues, onBlur, onSave }: {
   p: string; values: Record<string, string>
@@ -134,11 +134,6 @@ function Loan01Fields({ p, values, setValues, onBlur, onSave }: {
 
 /**
  * 18.02 / 18.03 — Existing or New First/Second Mortgage
- * Blue inputs: Description, Original Loan Amount, Origination Date, Est'd Balance,
- *              Lender, Loan Type, Loan Servicer, Prepayment Penalty, Lock Out Date,
- *              Lender is, Interest Rate, Fixed/Float, Amort End Date, Amort Term,
- *              Maturity Date, MIP, Payment Type, Payment Req, Comment
- * Formula cells excluded: Annual Payment (=+M###), Amort Remaining, Maturity Remaining
  */
 function ExistingLoanFields({ p, values, setValues, onBlur, onSave }: {
   p: string; values: Record<string, string>
@@ -221,9 +216,6 @@ function ExistingLoanFields({ p, values, setValues, onBlur, onSave }: {
 
 /**
  * 18.04 / 18.05 — HOME Loan from LHC / NHTF Loan from LHC
- * Blue inputs: Loan Type, Description, Interest Rate, Fixed/Float, Amort Term,
- *              Maturity Term, MIP, Payment Type, Payment Req, Comment
- * NOT blue: Loan Amount (formula =+H189/183), Lender, Lender is
  */
 function LhcLoanFields({ p, loanAmountNote, values, setValues, onBlur, onSave }: {
   p: string; loanAmountNote: string
@@ -275,8 +267,6 @@ function LhcLoanFields({ p, loanAmountNote, values, setValues, onBlur, onSave }:
 
 /**
  * 18.06 — CDBG-DR Loan from LHC or OCD
- * Blue inputs ONLY: Interest Rate, Amortization Term, Maturity Term, Comment
- * NOT blue: Description, Loan Type, Fixed/Float, MIP, Payment Type, Payment Req, Lender, Lender is
  */
 function CdbgFields({ p, values, setValues, onBlur, onSave }: {
   p: string; values: Record<string, string>
@@ -346,7 +336,7 @@ function FundingSourceCard({ id, title, subtitle, values, setValues, onToggle, c
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 
-export function Section18Form({ dealId, initial }: Props) {
+export function Section18Form({ dealId, initial, initialClosingDate }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -372,6 +362,18 @@ export function Section18Form({ dealId, initial }: Props) {
 
   const sharedFields = { values, setValues, onBlur, onSave }
 
+  // H-3: Cross-loan conflict detection
+  const riskShareActive = values['s18_01_active'] === 'Yes'
+  const existingFirst = values['s18_02_active'] === 'Yes'
+  const existingSecond = values['s18_03_active'] === 'Yes'
+  const cdbgActive = values['s18_06_active'] === 'Yes'
+  // Count must-pay sources
+  const mustPaySources = [
+    's18_01', 's18_02', 's18_03', 's18_04', 's18_05',
+    's18_06', 's18_07', 's18_14', 's18_15', 's18_16'
+  ].filter(p => values[`${p}_active`] === 'Yes' && values[`${p}_payment_req`] === 'Must Pay')
+  const mustPayCount = mustPaySources.length
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -385,6 +387,25 @@ export function Section18Form({ dealId, initial }: Props) {
         For each funding source, indicate whether it applies to this project. Select <strong>Yes</strong> to
         expand and enter details, or <strong>No</strong> to mark it as not applicable.
       </p>
+
+      {/* M-2: Reference closing date from §16 */}
+      {initialClosingDate && (
+        <p className="text-xs rounded-lg px-3 py-2 bg-muted/50 text-muted-foreground">
+          Reference — Initial Closing target from §16 Project Schedule: <strong>{initialClosingDate}</strong>
+        </p>
+      )}
+
+      {/* H-3: Cross-loan conflict errors */}
+      {riskShareActive && (existingFirst || existingSecond) && (
+        <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+          Error: The LHC Risk Sharing First Mortgage (18.01) cannot be combined with an Existing or New First/Second Mortgage (18.02/18.03). Remove the conflicting source.
+        </p>
+      )}
+      {cdbgActive && mustPayCount > 1 && (
+        <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+          Error: CDBG-DR financing (18.06) cannot be combined with more than one must-pay debt obligation. Reduce the number of must-pay sources.
+        </p>
+      )}
 
       {/* ── 18.01 New LHC Risk Sharing First Mortgage ───────────────────────── */}
       <FundingSourceCard id="s18_01" title="18.01 — New LHC Risk Sharing First Mortgage Loan"
@@ -451,6 +472,12 @@ export function Section18Form({ dealId, initial }: Props) {
             The Checklist will include an information request regarding the Deferred Developer Fee.
           </p>
         )}
+        {/* M-3: Additional DDF note */}
+        {ddfAmount > 0 && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+            The Deferred Developer Fee cannot exceed 50% of the cumulative Surplus Cash generated during the compliance period.
+          </p>
+        )}
       </FundingSourceCard>
 
       {/* ── 18.08 Federal Historic Tax Credits ───────────────────────────────── */}
@@ -504,6 +531,12 @@ export function Section18Form({ dealId, initial }: Props) {
           <Field label="Amount ($)">
             <TextInput fk="s18_10_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 8000000" />
           </Field>
+          {/* H-4: LIHTC equity syndicator certification note */}
+          <div className="col-span-full">
+            <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">
+              LIHTC equity proceeds must be supported by the Syndicator&apos;s certification of the equity amount. Include the syndication agreement or syndicator letter of intent in your application package.
+            </p>
+          </div>
         </div>
       </FundingSourceCard>
 
