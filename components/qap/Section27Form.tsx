@@ -205,7 +205,7 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
               </p>
             )}
 
-            <YesNoToggle fk="s27_09_fortified_gold" label="Located in a Tier 1 or Tier 2 Parish" />
+            <YesNoToggle fk="s27_09_fortified_gold" label="FORTIFIED GOLD" />
             <YesNoToggle fk="s27_09_fortified_silver" label="FORTIFIED SILVER" />
           </div>
         )}
