@@ -25,12 +25,12 @@ type UnitRow = Omit<QapUnitType, 'updated_at'> & { isNew?: boolean }
 interface Props {
   dealId: string
   initialUnits: QapUnitType[]
-  /**
-   * DEFERRED — wire in once Section 23 market data is saved:
-   *   marketRents?: Record<number, number>   // BR count → market rent (s23_09_market_Xbr)
-   *   fmrRents?:    Record<number, number>   // BR count → FMR (s23_10_fmr_Xbr)
-   *   amiRentLimits?: Record<string, Record<number, number>> // ami_key → BR → max rent
-   */
+  /** Market rents by BR count (0–4) from §23.09 — s23_09_market_Xbr */
+  marketRents?: Record<number, number>
+  /** HUD FMR by BR count (0–4) from §23.10 — s23_10_fmr_Xbr */
+  fmrRents?: Record<number, number>
+  /** AMI contract rent limits by ami_key ('20'–'120') and BR count — derived from parish + §23.06 UAs */
+  amiRentLimits?: Record<string, Record<number, number>>
 }
 
 const inputCls =
@@ -88,11 +88,17 @@ function isSkipRow(cols: string[]): boolean {
   return ['# brs', 'brs', 'beds', 'bedrooms', 'unit type', 'type', '#', 'total', 'totals'].includes(first)
 }
 
+interface RentLimits {
+  amiRentLimits?: Record<string, Record<number, number>>
+  marketRents?:   Record<number, number>
+  fmrRents?:      Record<number, number>
+}
+
 /**
  * Returns validation messages for a row.
- * Self-contained checks — no external data (rent limits / market / FMR) needed.
+ * Self-contained checks run always; rent-limit checks run when Section 23 data is provided.
  */
-function getRowFlags(row: UnitRow): string[] {
+function getRowFlags(row: UnitRow, rentLimits?: RentLimits): string[] {
   const flags: string[] = []
   const hasUnits = (row.num_units ?? 0) > 0
   if (!hasUnits) return flags
@@ -105,44 +111,70 @@ function getRowFlags(row: UnitRow): string[] {
     flags.push('Unit is checked both LIHTC and Staff — it will be counted as LIHTC only, not Staff')
   }
 
-  // Flag 3 — Sqft below LHC minimum (Excel AO column: IF(E<AJ,3,""))
+  // Flag 3 — Sqft below LHC minimum (Excel AO: IF(E<AJ,3,""))
   if (inBrRange && row.sqft != null && row.sqft < MIN_SQFT[br!]) {
     flags.push(`Sqft ${row.sqft.toLocaleString()} is below the LHC minimum of ${MIN_SQFT[br!].toLocaleString()} for ${br}BR`)
   }
 
-  // Flag 4 — Baths below LHC minimum (Excel AP column: IF(D<AK,4,""))
+  // Flag 4 — Baths below LHC minimum (Excel AP: IF(D<AK,4,""))
   if (inBrRange && row.baths != null && row.baths < MIN_BATHS[br!]) {
     flags.push(`${row.baths} baths is below the LHC minimum of ${MIN_BATHS[br!]} for ${br}BR`)
   }
 
-  // Flag 5 — PSH rule: must be 0BR or 1BR at 30% AMI (Excel AQ: IF(AND(OR(C=0,C=1),K=30%),"",5))
+  // Flag 5 — PSH rule: must be 0BR or 1BR at 30% AMI (Excel AQ)
   if (row.is_psh === 1) {
-    const validBr  = br === 0 || br === 1
-    const valid30  = row.ami_restriction === '30'
+    const validBr = br === 0 || br === 1
+    const valid30 = row.ami_restriction === '30'
     if (!validBr || !valid30) {
       const issues: string[] = []
       if (!validBr) issues.push('must be 0BR or 1BR')
-      if (!valid30)  issues.push('must be at 30% AMI')
+      if (!valid30) issues.push('must be at 30% AMI')
       flags.push(`PSH rule violation: ${issues.join(' and ')}`)
     }
   }
 
-  // Flag 7 — Staff unit rule: not LIHTC, not PSH, Not AMI Restricted, rent = $0
-  // (Excel AS: IF(AND(G<>"Yes", J<>"Yes", K="Not AMI Restricted", L=0),"",error))
+  // Flag 7 — Staff unit rule: not LIHTC, not PSH, Not AMI Restricted, rent = $0 (Excel AS)
   if (row.is_staff === 1 && row.is_lihtc !== 1) {
     const issues: string[] = []
-    if (row.is_psh === 1)                         issues.push('cannot also be PSH')
-    if (row.ami_restriction !== 'unrestricted')    issues.push('AMI must be Not Restricted')
-    if ((row.monthly_rent ?? 0) !== 0)             issues.push('rent must be $0')
-    if (issues.length > 0) {
-      flags.push(`Staff unit issue: ${issues.join(', ')}`)
+    if (row.is_psh === 1)                       issues.push('cannot also be PSH')
+    if (row.ami_restriction !== 'unrestricted') issues.push('AMI must be Not Restricted')
+    if ((row.monthly_rent ?? 0) !== 0)          issues.push('rent must be $0')
+    if (issues.length > 0) flags.push(`Staff unit issue: ${issues.join(', ')}`)
+  }
+
+  const rent = row.monthly_rent
+  if (rent != null && inBrRange) {
+    // Flag 1 — Rent > AMI contract rent limit (Excel AM: IF(L>AG,1,""))
+    const amiKey = row.ami_restriction
+    if (amiKey && amiKey !== 'unrestricted' && rentLimits?.amiRentLimits) {
+      const limit = rentLimits.amiRentLimits[amiKey]?.[br!]
+      if (limit !== undefined && rent > limit) {
+        flags.push(`Rent $${rent.toLocaleString()} exceeds the ${amiKey}% AMI contract rent limit of $${limit.toLocaleString()} for ${br}BR`)
+      }
+    }
+
+    // Flag 2 — Rent > Market rate (Excel AN: IF(L>AI,2,""))
+    if (rentLimits?.marketRents) {
+      const market = rentLimits.marketRents[br!]
+      if (market !== undefined && rent > market) {
+        flags.push(`Rent $${rent.toLocaleString()} exceeds estimated market rent of $${market.toLocaleString()} for ${br}BR`)
+      }
+    }
+
+    // Flag 6 — Rent > FMR (Excel AR: IF(L>AH,6,""))
+    if (rentLimits?.fmrRents) {
+      const fmr = rentLimits.fmrRents[br!]
+      if (fmr !== undefined && rent > fmr) {
+        flags.push(`Rent $${rent.toLocaleString()} exceeds HUD Fair Market Rent of $${fmr.toLocaleString()} for ${br}BR`)
+      }
     }
   }
 
   return flags
 }
 
-export function UnitMixTable({ dealId, initialUnits }: Props) {
+export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiRentLimits }: Props) {
+  const rentLimits: RentLimits = { amiRentLimits, marketRents, fmrRents }
   const [rows, setRows] = useState<UnitRow[]>(
     initialUnits.length > 0 ? initialUnits : [makeNewRow(dealId, 0)]
   )
@@ -310,7 +342,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
     rows.reduce((s, r) => s + (r.bedrooms === br ? (r.num_units ?? 0) : 0), 0)
   )
 
-  const totalFlags = rows.reduce((s, r) => s + getRowFlags(r).length, 0)
+  const totalFlags = rows.reduce((s, r) => s + getRowFlags(r, rentLimits).length, 0)
 
   // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -389,7 +421,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
           </thead>
           <tbody>
             {rows.map(row => {
-              const flags    = getRowFlags(row)
+              const flags    = getRowFlags(row, rentLimits)
               const hasFlags = flags.length > 0
               const br       = row.bedrooms
               const inBr     = br != null && br >= 0 && br <= 4
@@ -747,10 +779,33 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
                   <span className={statVal}>${avgRent.toLocaleString()}</span>
                 </div>
               )}
-              <p className="text-xs text-muted-foreground/60 pt-1 leading-relaxed">
-                Rent vs. AMI limit, market rate, and FMR checks are pending — will be wired in once
-                Section 23 market data (s23_09 / s23_10) is available.
-              </p>
+              {marketRents && Object.keys(marketRents).length > 0 && (
+                <div className="flex justify-between">
+                  <span className={statLbl}>Market rents</span>
+                  <span className={`text-xs font-medium text-emerald-600`}>✓ Loaded</span>
+                </div>
+              )}
+              {fmrRents && Object.keys(fmrRents).length > 0 && (
+                <div className="flex justify-between">
+                  <span className={statLbl}>HUD FMRs</span>
+                  <span className={`text-xs font-medium text-emerald-600`}>✓ Loaded</span>
+                </div>
+              )}
+              {amiRentLimits && Object.keys(amiRentLimits).length > 0 && (
+                <div className="flex justify-between">
+                  <span className={statLbl}>AMI rent limits</span>
+                  <span className={`text-xs font-medium text-emerald-600`}>✓ Loaded</span>
+                </div>
+              )}
+              {(!marketRents || !fmrRents || !amiRentLimits) && (
+                <p className="text-xs text-muted-foreground/60 pt-1 leading-relaxed">
+                  {[
+                    !amiRentLimits && 'AMI limits (enter parish in §12.01 + UAs in §23.06)',
+                    !marketRents  && 'Market rents (§23.09)',
+                    !fmrRents     && 'FMRs (§23.10)',
+                  ].filter(Boolean).join(' · ')} not yet entered.
+                </p>
+              )}
             </div>
           </div>
 
@@ -760,7 +815,7 @@ export function UnitMixTable({ dealId, initialUnits }: Props) {
               <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Validation Issues</p>
               <ul className="space-y-1.5">
                 {rows.flatMap(row =>
-                  getRowFlags(row).map((msg, i) => (
+                  getRowFlags(row, rentLimits).map((msg, i) => (
                     <li key={`${row.row_index}-${i}`} className="text-xs text-amber-700 flex gap-2 items-start">
                       <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                       <span>
