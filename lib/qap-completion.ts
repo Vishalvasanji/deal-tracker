@@ -59,7 +59,6 @@ const SECTION_21_REQUIRED = [
 const SECTION_22_REQUIRED = ['s22_comment']
 const SECTION_23_REQUIRED = [
   's23_01_nonmetro_income_limit',
-  's23_02_ami_4person',
   's23_04_oven_range', 's23_04_refrigerator', 's23_04_microwave',
   's23_04_dishwasher', 's23_04_garbage_disposal', 's23_04_washer_dryer',
   's23_04_washer_dryer_hookup', 's23_04_heating_fuel', 's23_04_system_type',
