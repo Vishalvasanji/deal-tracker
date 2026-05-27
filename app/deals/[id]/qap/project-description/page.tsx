@@ -20,7 +20,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     section10Fields, section11Fields, section12Fields,
     section13Fields, section14Fields, section15Fields,
     section16Fields, section17Fields, section18Fields,
-    section19Fields,
+    section19Fields, section20Fields, section21Fields,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_10'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
@@ -32,6 +32,8 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_17'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_18'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_19'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_20'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_21'))),
   ])
 
   const section10Initial = Object.fromEntries(section10Fields.map(f => [f.field_key, f.value ?? '']))
@@ -44,6 +46,8 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
   const section17Initial = Object.fromEntries(section17Fields.map(f => [f.field_key, f.value ?? '']))
   const section18Initial = Object.fromEntries(section18Fields.map(f => [f.field_key, f.value ?? '']))
   const section19Initial = Object.fromEntries(section19Fields.map(f => [f.field_key, f.value ?? '']))
+  const section20Initial = Object.fromEntries(section20Fields.map(f => [f.field_key, f.value ?? '']))
+  const section21Initial = Object.fromEntries(section21Fields.map(f => [f.field_key, f.value ?? '']))
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 pb-20">
@@ -72,6 +76,8 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
         section17Initial={section17Initial}
         section18Initial={section18Initial}
         section19Initial={section19Initial}
+        section20Initial={section20Initial}
+        section21Initial={section21Initial}
       />
     </div>
   )
