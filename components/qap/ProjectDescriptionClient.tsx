@@ -120,8 +120,7 @@ const SECTION_27_REQUIRED = [
   's27_11_professional_services', 's27_11_sub_1_5pct', 's27_11_sub_over_5pct',
   's27_12_joint_venture',
 ]
-// L-7: Added s28_proposed_vacancy
-const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation', 's28_proposed_vacancy']
+const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation', 's28_vacancy_y1_3', 's28_vacancy_y4_plus']
 const SECTION_29_REQUIRED = ['s29_hud_rd_mortgage', 's29_project_type', 's29_reserve_pupa']
 const SECTION_33_REQUIRED = ['s33_agree_score']
 
