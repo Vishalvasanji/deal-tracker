@@ -84,14 +84,17 @@ const SECTION_27_REQUIRED = [
   's27_01_green_building', 's27_02_community_facilities',
   's27_03_washers_dryers', 's27_03_dishwashers', 's27_03_free_wifi',
   's27_03_universal_design', 's27_03_hud_defensible_space',
+  's27_03_fqhc',          // C-4: FQHC on site or co-located
   's27_04_playground', 's27_04_computer_center',
   's27_04_exercise_room', 's27_04_picnic_area', 's27_04_courtyard_seating',
   's27_05_accessible_units', 's27_08_onsite_security', 's27_09_resiliency',
+  's27_09_tier1_2_parish', // M-4: Tier 1 or Tier 2 Parish
   's27_10_eviction_prevention_plan', 's27_10_low_barrier_screening',
   's27_11_professional_services', 's27_11_sub_1_5pct', 's27_11_sub_over_5pct',
   's27_12_joint_venture',
 ]
-const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation']
+// L-7: Added s28_proposed_vacancy
+const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation', 's28_proposed_vacancy']
 const SECTION_29_REQUIRED = ['s29_hud_rd_mortgage', 's29_project_type', 's29_reserve_pupa']
 // Sections 30, 31, 32, 34 have no user inputs — always complete (1/1)
 const SECTION_33_REQUIRED = ['s33_agree_score']
