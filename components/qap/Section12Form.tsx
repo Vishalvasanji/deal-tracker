@@ -86,9 +86,21 @@ export function Section12Form({ dealId, initial }: Props) {
           </div>
           <div>
             <label className={labelCls}>Parish <span className="text-rose-500">*</span></label>
-            <input className={inputCls} value={values.parish ?? ''}
-              onChange={e => setValues(v => ({ ...v, parish: e.target.value }))}
-              onBlur={e => handleBlur('parish', e.target.value)} />
+            <select className={selectCls} value={values.parish ?? ''}
+              onChange={e => handleSelect('parish', e.target.value)}>
+              <option value="">Select parish…</option>
+              {['Acadia','Allen','Ascension','Assumption','Avoyelles','Beauregard','Bienville','Bossier',
+                'Caddo','Calcasieu','Caldwell','Cameron','Catahoula','Claiborne','Concordia','Desoto',
+                'East Baton Rouge','East Carroll','East Feliciana','Evangeline','Franklin','Grant',
+                'Iberia','Iberville','Jackson','Jefferson','Jefferson Davis','Lafayette','Lafourche',
+                'Lasalle','Lincoln','Livingston','Madison','Morehouse','Natchitoches','Orleans',
+                'Ouachita','Plaquemines','Pointe Coupee','Rapides','Red River','Richland','Sabine',
+                'St. Bernard','St. Charles','St. Helena','St. James','St. John','St. Landry',
+                'St. Martin','St. Mary','St. Tammany','Tangipahoa','Tensas','Terrebonne','Union',
+                'Vermilion','Vernon','Washington','Webster','West Baton Rouge','West Carroll',
+                'West Feliciana','Winn',
+              ].map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
           <div>
             <label className={labelCls}>Zip Code</label>
@@ -96,6 +108,12 @@ export function Section12Form({ dealId, initial }: Props) {
               onChange={e => setValues(v => ({ ...v, zip_code: e.target.value }))}
               onBlur={e => handleBlur('zip_code', e.target.value)} />
           </div>
+        </div>
+        <div>
+          <label className={labelCls}>MSA</label>
+          <input className={inputCls} value={values.msa ?? ''} placeholder="e.g. Baton Rouge MSA"
+            onChange={e => setValues(v => ({ ...v, msa: e.target.value }))}
+            onBlur={e => handleBlur('msa', e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
