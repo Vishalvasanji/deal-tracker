@@ -21,6 +21,12 @@ import { Section25Form } from './Section25Form'
 import { Section26Form } from './Section26Form'
 import { Section27Form } from './Section27Form'
 import { Section28Form } from './Section28Form'
+import { Section29Form } from './Section29Form'
+import { Section30Form } from './Section30Form'
+import { Section31Form } from './Section31Form'
+import { Section32Form } from './Section32Form'
+import { Section33Form } from './Section33Form'
+import { Section34Form } from './Section34Form'
 
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
 const SECTION_11_REQUIRED = [
@@ -113,6 +119,8 @@ const SECTION_27_REQUIRED = [
   's27_12_joint_venture',
 ]
 const SECTION_28_REQUIRED = ['s28_soft_market', 's28_adrr_escalation']
+const SECTION_29_REQUIRED = ['s29_hud_rd_mortgage', 's29_project_type', 's29_reserve_pupa']
+const SECTION_33_REQUIRED = ['s33_agree_score']
 
 function SectionAccordion({
   number, title, fields, required, children,
@@ -124,7 +132,7 @@ function SectionAccordion({
   const [open, setOpen] = useState(false)
   const filled = required.filter(k => fields[k]?.trim()).length
   const total = required.length
-  const pct = Math.round((filled / total) * 100)
+  const pct = total === 0 ? 100 : Math.round((filled / total) * 100)
   const barColor = pct === 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-rose-400'
   const textColor = pct === 100 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-600' : 'text-rose-500'
   return (
@@ -156,16 +164,20 @@ function SectionAccordion({
 export function ProjectDescriptionClient({
   dealId,
   totalUnits,
+  lihtcUnits,
   section10Initial, section11Initial, section12Initial,
   section13Initial, section14Initial, section15Initial,
   section16Initial, section17Initial, section18Initial,
   section19Initial, section20Initial, section21Initial,
   section22Initial, section23Initial, section24Initial,
   section25Initial, section26Initial, section27Initial,
-  section28Initial,
+  section28Initial, section29Initial, section30Initial,
+  section31Initial, section32Initial, section33Initial,
+  section34Initial,
 }: {
   dealId: string
   totalUnits: number
+  lihtcUnits: number
   section10Initial: Record<string, string>
   section11Initial: Record<string, string>
   section12Initial: Record<string, string>
@@ -185,6 +197,12 @@ export function ProjectDescriptionClient({
   section26Initial: Record<string, string>
   section27Initial: Record<string, string>
   section28Initial: Record<string, string>
+  section29Initial: Record<string, string>
+  section30Initial: Record<string, string>
+  section31Initial: Record<string, string>
+  section32Initial: Record<string, string>
+  section33Initial: Record<string, string>
+  section34Initial: Record<string, string>
 }) {
   const isRural         = section12Initial.is_rural === 'Yes'
   const isChdo          = section11Initial.is_chdo === 'Yes'
@@ -253,6 +271,24 @@ export function ProjectDescriptionClient({
       </SectionAccordion>
       <SectionAccordion number="Section 28" title="Trending Rates for Cash Flow Pro Forma" fields={section28Initial} required={SECTION_28_REQUIRED}>
         <Section28Form dealId={dealId} initial={section28Initial} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 29" title="Replacement Reserve Funding" fields={section29Initial} required={SECTION_29_REQUIRED}>
+        <Section29Form dealId={dealId} initial={section29Initial} totalUnits={totalUnits} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 30" title="DSCR for First Stabilized Year" fields={section30Initial} required={[]}>
+        <Section30Form dealId={dealId} initial={section30Initial} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 31" title="Future Year DSCRs" fields={section31Initial} required={[]}>
+        <Section31Form dealId={dealId} initial={section31Initial} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 32" title="LHC Fees" fields={section32Initial} required={[]}>
+        <Section32Form dealId={dealId} initial={section32Initial} totalUnits={totalUnits} lihtcUnits={lihtcUnits} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 33" title="Selection Criteria" fields={section33Initial} required={SECTION_33_REQUIRED}>
+        <Section33Form dealId={dealId} initial={section33Initial} />
+      </SectionAccordion>
+      <SectionAccordion number="Section 34" title="Applicant's Additional Explanation" fields={section34Initial} required={[]}>
+        <Section34Form dealId={dealId} initial={section34Initial} />
       </SectionAccordion>
     </div>
   )
