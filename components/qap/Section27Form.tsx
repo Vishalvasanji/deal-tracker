@@ -56,12 +56,21 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
     )
   }
 
+  // On-site amenities matching Excel rows 892–904
   const onSiteAmenities: { fk: string; label: string }[] = [
-    { fk: 's27_04_playground',      label: 'Playground' },
-    { fk: 's27_04_computer_center', label: 'Computer Center (at least 5 computers)' },
-    { fk: 's27_04_exercise_room',   label: 'Exercise Room (must have equipment)' },
-    { fk: 's27_04_picnic_area',     label: 'Picnic Area With Permanent Grill' },
-    { fk: 's27_04_courtyard_seating', label: 'Courtyard with Seating' },
+    { fk: 's27_04_playground',         label: 'Playground' },
+    { fk: 's27_04_basketball_court',   label: 'Basketball Court' },
+    { fk: 's27_04_computer_center',    label: 'Computer Center (at least 5 computers)' },
+    { fk: 's27_04_exercise_room',      label: 'Exercise Room (must have equipment)' },
+    { fk: 's27_04_picnic_area',        label: 'Picnic Area With Permanent Grill' },
+    { fk: 's27_04_paved_walking_trail', label: 'Paved Walking Trail (minimum 1/4 mile)' },
+    { fk: 's27_04_off_street_parking', label: 'Off Street Parking' },
+    { fk: 's27_04_community_garden',   label: 'Community Garden (as defined in QAP VII.V.D)' },
+    { fk: 's27_04_patio_balcony',      label: 'Patio or Balcony' },
+    { fk: 's27_04_tennis_court',       label: 'Tennis Court' },
+    { fk: 's27_04_courtyard_seating',  label: 'Courtyard with Seating' },
+    { fk: 's27_04_dog_park',           label: 'Dog Park or Designated Pet Areas' },
+    { fk: 's27_04_multipurpose_room',  label: 'Open Access Multi-Purpose Tenant Activity Room' },
   ]
 
   // Accessible unit minimums: 5% mobility, 2% hearing/vision (ROUNDUP)
@@ -107,7 +116,7 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
           <YesNoToggle fk="s27_03_free_wifi" label="Free Development Tenant Wi-Fi" />
           <YesNoToggle fk="s27_03_universal_design" label="Universal Design as defined in the QAP" />
           <YesNoToggle fk="s27_03_hud_defensible_space" label="HUD Defensible Space as defined in the QAP" />
-          {/* C-4: FQHC toggle */}
+          {/* C-4: FQHC toggle (27.031) */}
           <YesNoToggle fk="s27_03_fqhc" label="Federally Qualified Health Center (FQHC) on site or co-located" />
         </div>
       </div>
@@ -129,7 +138,6 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
           fk="s27_05_accessible_units"
           label="Accessible Units Required Under Section 504 — does the project meet requirements?"
         />
-
 
         <div>
           <label className={labelCls}>
@@ -199,7 +207,7 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
 
         {resiliencyActive && (
           <div className="space-y-4 pl-4 border-l-2 border-border">
-            <YesNoToggle fk="s27_09_fortified_roof" label="FORTIFIED Roof (REQUIRED)" />
+            <YesNoToggle fk="s27_09_fortified_roof" label="FORTIFIED Roof, windows and doors (REQUIRED)" />
 
             {fortifiedRoofMissing && (
               <p className="text-xs rounded-lg px-3 py-2 bg-red-50 border border-red-200 text-red-700">
@@ -207,10 +215,10 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
               </p>
             )}
 
-            <YesNoToggle fk="s27_09_fortified_gold" label="FORTIFIED GOLD" />
-            <YesNoToggle fk="s27_09_fortified_silver" label="FORTIFIED SILVER" />
-            {/* M-4: Tier 1 or Tier 2 Parish toggle */}
+            {/* Row 928: Located in a Tier 1 or Tier 2 Parish */}
             <YesNoToggle fk="s27_09_tier1_2_parish" label="Located in a Tier 1 or Tier 2 Parish" />
+            {/* Row 929: FORTIFIED SILVER */}
+            <YesNoToggle fk="s27_09_fortified_silver" label="FORTIFIED SILVER" />
           </div>
         )}
       </div>
