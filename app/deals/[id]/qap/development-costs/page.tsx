@@ -4,6 +4,7 @@ import { deals, qapUnitTypes, qapFields, qapCostItems } from '@/lib/db/schema'
 import { eq, or, and, asc } from 'drizzle-orm'
 import { DevelopmentCostsClient } from '@/components/qap/DevelopmentCostsClient'
 import { seedQapCostItems } from '@/lib/qap-actions'
+import type { BasisAdjustment } from '@/lib/qap-dev-costs-calc'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
@@ -57,6 +58,24 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     s41_comment: dc['s41_comment'] ?? '',
   }
 
+  // §38 basis adjustments (stored as a JSON array)
+  let initialAdjustments: BasisAdjustment[] = []
+  try {
+    const parsed = JSON.parse(dc['s38_adjustments_json'] || '[]')
+    if (Array.isArray(parsed)) {
+      initialAdjustments = parsed
+        .filter((a) => a && (a.basis_type === 'acq' || a.basis_type === 'constr') && typeof a.amount === 'number')
+        .map((a) => ({
+          id: String(a.id ?? `${Date.now()}-${Math.random()}`),
+          basis_type: a.basis_type,
+          explanation: String(a.explanation ?? ''),
+          amount: a.amount,
+        }))
+    }
+  } catch {
+    initialAdjustments = []
+  }
+
   // Unit counts by bedroom (0–4) for the §40 HUD TDC limit.
   const unitsByBr = [0, 0, 0, 0, 0]
   let totalUnits = 0
@@ -95,8 +114,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
           dealId={deal.id}
           initialAmounts={initialAmounts}
           model={model}
-          initialAcqAdj={num(dc['s38_acq_adj'])}
-          initialConstrAdj={num(dc['s38_constr_adj'])}
+          initialAdjustments={initialAdjustments}
           initialComments={initialComments}
           deps={deps}
         />
