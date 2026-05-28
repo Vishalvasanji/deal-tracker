@@ -13,6 +13,8 @@ interface Props {
   model: { tdc: number | null; sources: number | null; filename: string; sourceRef: string; uploadedAt: string }
   initialAdjustments: BasisAdjustment[]
   initialComments: Record<string, string>
+  /** read-only line amounts pulled from §20 (keyed by line_key) */
+  pulledAmounts: Record<string, number>
   deps: {
     parish?: string
     buildingType?: string
@@ -20,6 +22,10 @@ interface Props {
     totalUnits?: number
     bondFinanced?: boolean
     is4pct?: boolean
+    outOfBasisCommunityFacilities?: number
+    outOfBasisCommunityService?: number
+    commercialDevCost?: number
+    relatedPartyPayments?: number
   }
 }
 
@@ -34,7 +40,7 @@ const cardCls = 'rounded-xl border border-border bg-card px-4 py-3 space-y-2'
 type AdjForm = { editingId: string | null; type: 'acq' | 'constr'; explanation: string; amount: string }
 
 export function DevelopmentCostsClient({
-  dealId, initialAmounts, model, initialAdjustments, initialComments, deps,
+  dealId, initialAmounts, model, initialAdjustments, initialComments, pulledAmounts, deps,
 }: Props) {
   const [amounts, setAmounts] = useState<Record<string, number | null>>(initialAmounts)
   const [modelTdc, setModelTdc] = useState<number | null>(model.tdc)
@@ -52,13 +58,14 @@ export function DevelopmentCostsClient({
   const result = useMemo(() => {
     const numericAmounts: Record<string, number> = {}
     for (const [k, v] of Object.entries(amounts)) numericAmounts[k] = v ?? 0
+    for (const [k, v] of Object.entries(pulledAmounts)) numericAmounts[k] = v // §20 read-only pulls override
     const d: DevCostDeps = {
       ...deps,
       totalSources: modelSources,
       basisAdjustments: adjustments,
     }
     return computeDevCosts(numericAmounts, d)
-  }, [amounts, modelSources, adjustments, deps])
+  }, [amounts, pulledAmounts, modelSources, adjustments, deps])
 
   const allocated = result.total
   const remaining = modelTdc == null ? null : modelTdc - allocated
@@ -220,8 +227,8 @@ export function DevelopmentCostsClient({
                       <label className="flex-1 text-sm">
                         {line.label}
                         {line.autoPull && (
-                          <span className="ml-2 text-xs text-sky-600" title={`Maps to ${line.autoPull} in the Excel`}>
-                            ({line.autoPull})
+                          <span className="ml-2 text-xs text-sky-600" title={line.pullKey ? `Read-only — pulled from ${line.autoPull}` : `Maps to ${line.autoPull} in the Excel`}>
+                            ({line.autoPull}{line.pullKey ? ', read-only' : ''})
                           </span>
                         )}
                         {line.feeLimit && (
@@ -229,14 +236,21 @@ export function DevelopmentCostsClient({
                         )}
                       </label>
                       <div className="w-40">
-                        <input
-                          type="number"
-                          className={inputCls}
-                          value={amounts[line.key] ?? ''}
-                          onChange={e => setLine(line.key, e.target.value)}
-                          onBlur={() => saveLine(line.key)}
-                          placeholder="$0"
-                        />
+                        {line.pullKey ? (
+                          <div className="text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground bg-muted/40 rounded-lg"
+                            title={`Pulled from ${line.autoPull}`}>
+                            {money(pulledAmounts[line.key] ?? 0)}
+                          </div>
+                        ) : (
+                          <input
+                            type="number"
+                            className={inputCls}
+                            value={amounts[line.key] ?? ''}
+                            onChange={e => setLine(line.key, e.target.value)}
+                            onBlur={() => saveLine(line.key)}
+                            placeholder="$0"
+                          />
+                        )}
                       </div>
                     </div>
                   ))}
