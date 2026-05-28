@@ -4,6 +4,7 @@ import { deals, qapUnitTypes, qapFields, qapCostItems } from '@/lib/db/schema'
 import { eq, or, and, asc } from 'drizzle-orm'
 import { DevelopmentCostsClient } from '@/components/qap/DevelopmentCostsClient'
 import { seedQapCostItems } from '@/lib/qap-actions'
+import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
 import type { BasisAdjustment } from '@/lib/qap-dev-costs-calc'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -27,11 +28,12 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
   // Ensure the faithful line list exists for this deal.
   await seedQapCostItems(deal.id)
 
-  const [costItems, devFields, s12Fields, s10Fields, units] = await Promise.all([
+  const [costItems, devFields, s12Fields, s10Fields, s20Fields, units] = await Promise.all([
     db.select().from(qapCostItems).where(eq(qapCostItems.deal_id, deal.id)),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'development_costs'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_10'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_20'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)).orderBy(asc(qapUnitTypes.row_index)),
   ])
 
@@ -41,6 +43,16 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
   const dc = Object.fromEntries(devFields.map(f => [f.field_key, f.value ?? '']))
   const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
   const s10 = Object.fromEntries(s10Fields.map(f => [f.field_key, f.value ?? '']))
+  const s20 = Object.fromEntries(s20Fields.map(f => [f.field_key, f.value ?? '']))
+  const s20n = (k: string) => num(s20[k]) ?? 0
+
+  // §20 read-only pulls into the §36 line items (Excel formula cells).
+  const pulledAmounts: Record<string, number> = {}
+  for (const cat of DEV_COST_CATEGORIES) {
+    for (const line of cat.lines) {
+      if (line.pullKey) pulledAmounts[line.key] = s20n(line.pullKey)
+    }
+  }
 
   const model = {
     tdc: num(dc['model_tdc']),
@@ -92,6 +104,12 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     totalUnits,
     bondFinanced: s10['bond_financing'] === 'Yes',
     is4pct: s10['bond_financing'] === 'Yes',
+    // §38 out-of-basis = total cost − amount includable in LIHTC basis (floored at 0)
+    outOfBasisCommunityFacilities: Math.max(0, s20n('s20_06_community_fac_cost') - s20n('s20_06_in_basis')),
+    outOfBasisCommunityService: Math.max(0, s20n('s20_07_cost') - s20n('s20_07_in_basis')),
+    commercialDevCost: s20n('s20_14_commercial_cost'),
+    // §41 developer fee base subtracts related-party payments (sum of §20.04 list)
+    relatedPartyPayments: [1, 2, 3, 4, 5, 6].reduce((sum, i) => sum + s20n(`s20_04_payment_${i}_amount`), 0),
   }
 
   return (
@@ -116,6 +134,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
           model={model}
           initialAdjustments={initialAdjustments}
           initialComments={initialComments}
+          pulledAmounts={pulledAmounts}
           deps={deps}
         />
       </div>
