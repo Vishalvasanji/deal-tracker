@@ -106,7 +106,7 @@ export async function getQapCompletion(dealId: string) {
     narrativeFields, unitTypes,
     s10, s11, s12, s13, s14, s15, s16, s17, s18, s19,
     s20, s21, s22, s23, s24, s25, s26, s27, s28,
-    s29, s33, costItems, basisConfigs, revExp, selectionFields, devTeamFields,
+    s29, s33, costItems, basisConfigs, revExp, selectionFields, devTeamFields, syndicationFields,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -136,6 +136,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'rev_exp'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'selection'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'dev_team'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'syndication'))),
   ])
 
   function count(rows: { field_key: string; value: string | null }[], req: string[]) {
@@ -191,6 +192,10 @@ export async function getQapCompletion(dealId: string) {
   const devTeamMap = Object.fromEntries(devTeamFields.map(f => [f.field_key, f.value ?? '']))
   const devTeamFilled = MANUAL_TEAM_ROLES.filter(r => (devTeamMap[teamKey(r.key, 'name')] ?? '').trim()).length
 
+  // Syndication: complete once a syndicator name, proceeds, or gross equity is entered.
+  const syndMap = Object.fromEntries(syndicationFields.map(f => [f.field_key, f.value ?? '']))
+  const syndicationStarted = (syndMap['synd_name'] ?? '').trim() !== '' || numOf(syndMap['proceeds']) > 0 || numOf(syndMap['gross_equity']) > 0
+
   return {
     narrative:  { filled: count(narrativeFields, NARRATIVE_REQUIRED),  total: NARRATIVE_REQUIRED.length },
     unitMix:    { filled: hasCompleteRow ? 1 : 0,                       total: 1 },
@@ -224,5 +229,6 @@ export async function getQapCompletion(dealId: string) {
     revenuesExpenses: { filled: revExpFilled, total: EXPENSE_GROUPS.length },
     selectionCriteria: { filled: selectionScored ? 1 : 0, total: 1 },
     developmentTeam: { filled: devTeamFilled, total: MANUAL_TEAM_ROLES.length },
+    syndication: { filled: syndicationStarted ? 1 : 0, total: 1 },
   }
 }
