@@ -54,3 +54,22 @@ client.execute(`
     updated_at TEXT DEFAULT (datetime('now'))
   )
 `).catch(() => {})
+
+client.execute(`
+  CREATE TABLE IF NOT EXISTS qap_basis_configs (
+    id TEXT PRIMARY KEY,
+    deal_id TEXT NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+    config_index INTEGER NOT NULL,
+    label TEXT,
+    num_buildings INTEGER,
+    resid_staff_sqft INTEGER,
+    common_sqft INTEGER,
+    lihtc_units INTEGER,
+    resid_units INTEGER,
+    lihtc_sqft INTEGER,
+    resid_sqft INTEGER,
+    homeless_constr_adj INTEGER,
+    homeless_acq_adj INTEGER,
+    updated_at TEXT DEFAULT (datetime('now'))
+  )
+`).catch(() => {})
