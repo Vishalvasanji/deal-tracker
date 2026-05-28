@@ -119,8 +119,8 @@ export function DevelopmentCostsClient({
         </span>
       </div>
 
-      {/* Allocation tracker (sticky — pinned just below the 48px-tall Nav) */}
-      <div className="sticky top-12 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur px-5 py-4 shadow-sm">
+      {/* Allocation tracker (sticky — 8px gap below the 48px-tall Nav) */}
+      <div className="sticky top-14 z-10 rounded-2xl border border-border bg-card/95 backdrop-blur px-5 py-4 shadow-sm">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-xs text-muted-foreground">Target TDC (model)</p>
