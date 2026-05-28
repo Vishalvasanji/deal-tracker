@@ -18,7 +18,7 @@ interface Props {
 }
 
 const money = (v: number | null | undefined) => (v == null ? '—' : `$${Math.round(v).toLocaleString()}`)
-const money2 = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+const signedMoney = (v: number) => `${v < 0 ? '−' : '+'}$${Math.abs(Math.round(v)).toLocaleString()}`
 
 const inputCls =
   'w-36 text-right rounded-lg border border-input bg-background px-2 py-1.5 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring'
@@ -159,20 +159,12 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
 
   // an expense category card (Administrative / Op-Maint / Utilities / Tax & Ins)
   function expenseCategory(group: RevExpGroup) {
-    const cat = result.expenseCategories.find(c => c.key === group.key)
     const subtotal = result.groupSubtotals[group.key] ?? 0
     return (
       <div key={group.key} className="rounded-xl border border-border bg-card px-4 py-3 space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">{group.label}</h3>
-          <div className="text-right">
-            <span className="text-sm font-semibold tabular-nums">{money(subtotal)}</span>
-            {cat && (
-              <span className="ml-2 text-[11px] text-muted-foreground tabular-nums">
-                {money(cat.pupa)} PUPA
-              </span>
-            )}
-          </div>
+          <span className="text-sm font-semibold tabular-nums">{money(subtotal)}</span>
         </div>
         <div className="divide-y divide-border/40">
           {group.lines.map(line =>
@@ -208,13 +200,33 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
           result.belowMinimum ? 'border-rose-300 bg-rose-50/60' : 'border-border bg-card'
         }`}
       >
-        <p className="text-xs text-muted-foreground">Total Operating Expenses (first stabilized year)</p>
-        <p className="text-3xl font-bold tabular-nums">{money(result.totalOperatingExpenses)}</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {money(result.opexPupa)} PUPA
-          {' · '}LHC minimum {money(result.lhcMinPupa)} PUPA
-          {deps.totalUnits > 0 && <> = {money(result.lhcMinTotal)} for {deps.totalUnits} units</>}
-        </p>
+        <p className="text-xs text-muted-foreground mb-3">Total Operating Expenses (first stabilized year)</p>
+
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-8 gap-y-2 items-baseline">
+          {/* column headers */}
+          <span />
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground text-right">Total Annual</span>
+          <span className="text-[11px] uppercase tracking-wide text-muted-foreground text-right">PUPA</span>
+
+          {/* Proposed — total and PUPA carry equal weight */}
+          <span className="text-sm font-medium">Total Operating Expenses</span>
+          <span className="text-2xl font-bold tabular-nums text-right leading-none">{money(result.totalOperatingExpenses)}</span>
+          <span className="text-2xl font-bold tabular-nums text-right leading-none">{deps.totalUnits > 0 ? money(result.opexPupa) : '—'}</span>
+
+          {deps.totalUnits > 0 && (
+            <>
+              {/* LHC minimum */}
+              <span className="text-sm text-muted-foreground">LHC minimum (QAP IV.D.9)</span>
+              <span className="text-sm tabular-nums text-right text-muted-foreground">{money(result.lhcMinTotal)}</span>
+              <span className="text-sm tabular-nums text-right text-muted-foreground">{money(result.lhcMinPupa)}</span>
+
+              {/* Variance vs minimum */}
+              <span className={`text-sm font-semibold ${result.belowMinimum ? 'text-rose-700' : 'text-emerald-600'}`}>Variance</span>
+              <span className={`text-sm font-semibold tabular-nums text-right ${result.belowMinimum ? 'text-rose-700' : 'text-emerald-600'}`}>{signedMoney(result.totalOperatingExpenses - result.lhcMinTotal)}</span>
+              <span className={`text-sm font-semibold tabular-nums text-right ${result.belowMinimum ? 'text-rose-700' : 'text-emerald-600'}`}>{signedMoney(result.opexPupa - result.lhcMinPupa)}</span>
+            </>
+          )}
+        </div>
 
         {deps.totalUnits === 0 ? (
           <p className="mt-3 text-xs text-amber-600 flex items-start gap-1.5">
@@ -222,7 +234,7 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
             Enter the Unit Mix to evaluate the per-unit-per-annum minimum.
           </p>
         ) : result.belowMinimum ? (
-          <p className="mt-3 text-sm text-rose-700 flex items-start gap-1.5">
+          <p className="mt-3 text-sm text-rose-700 flex items-start gap-1.5 border-t border-rose-200 pt-3">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               <span className="font-semibold">Below the LHC minimum by {money(result.shortfall)}.</span>{' '}
@@ -231,8 +243,8 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
             </span>
           </p>
         ) : result.totalOperatingExpenses > 0 ? (
-          <p className="mt-3 text-xs text-emerald-600 flex items-center gap-1.5">
-            <CheckCircle2 className="h-3.5 w-3.5" /> At or above the LHC minimum of {money(result.lhcMinPupa)} PUPA.
+          <p className="mt-3 text-xs text-emerald-600 flex items-center gap-1.5 border-t border-border/60 pt-3">
+            <CheckCircle2 className="h-3.5 w-3.5" /> At or above the LHC minimum.
           </p>
         ) : null}
       </div>
