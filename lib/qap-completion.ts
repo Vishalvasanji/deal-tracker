@@ -105,7 +105,7 @@ export async function getQapCompletion(dealId: string) {
     narrativeFields, unitTypes,
     s10, s11, s12, s13, s14, s15, s16, s17, s18, s19,
     s20, s21, s22, s23, s24, s25, s26, s27, s28,
-    s29, s33, costItems, basisConfigs, revExp,
+    s29, s33, costItems, basisConfigs, revExp, selectionFields,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -133,6 +133,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapCostItems).where(eq(qapCostItems.deal_id, dealId)),
     db.select().from(qapBasisConfigs).where(eq(qapBasisConfigs.deal_id, dealId)),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'rev_exp'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'selection'))),
   ])
 
   function count(rows: { field_key: string; value: string | null }[], req: string[]) {
@@ -181,6 +182,9 @@ export async function getQapCompletion(dealId: string) {
   }
   const revExpFilled = EXPENSE_GROUPS.filter(g => (revCatSums[g.key] ?? 0) > 0).length
 
+  // Selection criteria: complete once the applicant has entered any non-zero self-score.
+  const selectionScored = selectionFields.some(f => numOf(f.value) > 0)
+
   return {
     narrative:  { filled: count(narrativeFields, NARRATIVE_REQUIRED),  total: NARRATIVE_REQUIRED.length },
     unitMix:    { filled: hasCompleteRow ? 1 : 0,                       total: 1 },
@@ -212,5 +216,6 @@ export async function getQapCompletion(dealId: string) {
     developmentCosts: { filled: devCostFilled, total: DEV_COST_CATEGORIES.length },
     basisCalculation: { filled: basisConfigured ? 1 : 0, total: 1 },
     revenuesExpenses: { filled: revExpFilled, total: EXPENSE_GROUPS.length },
+    selectionCriteria: { filled: selectionScored ? 1 : 0, total: 1 },
   }
 }
