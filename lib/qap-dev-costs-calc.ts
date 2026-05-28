@@ -21,6 +21,11 @@ export interface DevCostDeps {
   is4pct?: boolean
   /** §38 user adjustment rows (acquisition + construction basis) — list form */
   basisAdjustments?: BasisAdjustment[]
+  /** §20-derived figures pulled read-only (out-of-basis portions, commercial, related-party) */
+  outOfBasisCommunityFacilities?: number
+  outOfBasisCommunityService?: number
+  commercialDevCost?: number
+  relatedPartyPayments?: number
 }
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) ? v : 0)
@@ -137,14 +142,16 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   const lhcFees =
     n(amounts['lhc_nontc_app_fee']) + n(amounts['lhc_tc_app_fee']) +
     n(amounts['lhc_tc_reservation_fee']) + n(amounts['lhc_fees_other'])
+  const outOfBasisCF  = n(deps.outOfBasisCommunityFacilities)
+  const outOfBasisCSF = n(deps.outOfBasisCommunityService)
+  const commercial    = n(deps.commercialDevCost)
   const basisPending: string[] = [
-    'Out-of-basis Community Facilities / Service portions (§20.06/20.07)',
-    'Commercial development cost (§12)',
     'Federal grants & HOME (§19)',
     'Tax-exempt bond issuance costs (§10.01)',
   ]
   const adjustedConstructionBasis =
     total - adjustedAcquisitionBasis - land -
+    outOfBasisCF - outOfBasisCSF - commercial -
     subtotals['permanent_financing'] - subtotals['reserves'] -
     subtotals['syndication'] - lhcFees + constrAdjTotal
 
@@ -166,9 +173,9 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
       value: -adjustedAcquisitionBasis,
     },
     { label: 'Less: Land Cost', value: -land },
-    { label: 'Less: Out-of-basis Community Facilities', value: 0, pending: true },
-    { label: 'Less: Out-of-basis Community Service Facilities', value: 0, pending: true },
-    { label: 'Less: Commercial Development Cost', value: 0, pending: true },
+    { label: 'Less: Out-of-basis Community Facilities', value: -outOfBasisCF },
+    { label: 'Less: Out-of-basis Community Service Facilities', value: -outOfBasisCSF },
+    { label: 'Less: Commercial Development Cost', value: -commercial },
     { label: 'Less: Permanent Financing Costs', value: -subtotals['permanent_financing'] },
     { label: 'Less: Reserves', value: -subtotals['reserves'] },
     { label: 'Less: Syndication Costs', value: -subtotals['syndication'] },
@@ -258,6 +265,7 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     total -
     subtotals['acquisition'] -
     n(amounts['lease_self_owned_equip']) -
+    n(deps.relatedPartyPayments) -
     subtotals['developer_fee'] -
     reservesExclEscrows -
     subtotals['syndication'] -
@@ -271,7 +279,6 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   const contingencyPct = constructionContract > 0 ? contingencyAmt / constructionContract : 0
 
   const feePending: string[] = [
-    'Payments to related parties (§20.04)',
     'Acquisition-based developer fee % (existing LIHTC, §12)',
     'Excess syndication costs (Syndication worksheet — not yet built)',
     'Subcontractor limits (§20.02)',
