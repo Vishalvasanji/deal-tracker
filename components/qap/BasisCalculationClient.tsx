@@ -19,17 +19,17 @@ const inputCls =
 const subHdr = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide'
 const cardCls = 'rounded-xl border border-border bg-card px-4 py-3 space-y-2'
 
-// numeric input columns (key, header, width)
-const COLS: { key: keyof BasisConfigInput; label: string; w: string }[] = [
-  { key: 'num_buildings', label: '# Bldgs', w: 'w-20' },
-  { key: 'resid_staff_sqft', label: 'Resid+Staff SqFt', w: 'w-28' },
-  { key: 'common_sqft', label: 'Common SqFt', w: 'w-24' },
-  { key: 'lihtc_units', label: 'LIHTC Units', w: 'w-24' },
-  { key: 'resid_units', label: 'Resid Units', w: 'w-24' },
-  { key: 'lihtc_sqft', label: 'LIHTC SqFt', w: 'w-24' },
-  { key: 'resid_sqft', label: 'Resid SqFt', w: 'w-24' },
-  { key: 'homeless_constr_adj', label: 'Homeless Adj (C)', w: 'w-28' },
-  { key: 'homeless_acq_adj', label: 'Homeless Adj (A)', w: 'w-28' },
+// metric rows (configurations run across the columns, matching the Excel layout)
+const ROWS: { key: keyof BasisConfigInput; label: string }[] = [
+  { key: 'num_buildings', label: 'Number of Buildings with Configuration' },
+  { key: 'resid_staff_sqft', label: 'Floor Area: Residential + Staff Units (per building)' },
+  { key: 'common_sqft', label: 'Floor Area: Other / Common Areas (per building)' },
+  { key: 'lihtc_units', label: 'Number of LIHTC Units (per building)' },
+  { key: 'resid_units', label: 'Number of Residential Units (per building)' },
+  { key: 'lihtc_sqft', label: 'Sqft of LIHTC Units (per building)' },
+  { key: 'resid_sqft', label: 'Total Sqft of Residential Units (per building)' },
+  { key: 'homeless_constr_adj', label: 'Homeless Basis Adjustment — Construction' },
+  { key: 'homeless_acq_adj', label: 'Homeless Basis Adjustment — Acquisition' },
 ]
 
 function emptyConfig(idx: number): BasisConfigInput {
@@ -148,56 +148,65 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
         </p>
       )}
 
-      {/* Configuration input table */}
+      {/* Configuration input — configurations across the columns (matches the Excel) */}
       <div className="space-y-2">
         <p className={subHdr}>Building Configurations</p>
         <div className="overflow-x-auto rounded-lg border border-border/50">
-          <table className="w-full text-sm border-collapse">
+          <table className="text-sm border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left text-xs font-semibold text-muted-foreground px-3 py-2.5 w-36">Configuration</th>
-                {COLS.map(c => (
-                  <th key={c.key} className={`text-right text-xs font-semibold text-muted-foreground px-2 py-2.5 ${c.w}`}>{c.label}</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground px-3 py-2 sticky left-0 bg-muted/30 z-10 w-64 min-w-64">
+                  Configuration →
+                </th>
+                {configs.map((cfg, idx) => (
+                  <th key={cfg.config_index} className="px-2 py-2 w-36 min-w-36 align-top">
+                    <div className="flex items-center gap-1">
+                      <input
+                        className="w-full bg-transparent text-sm font-medium px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring rounded"
+                        placeholder={`Config ${idx + 1}`}
+                        value={cfg.label ?? ''}
+                        onChange={e => setField(idx, 'label', e.target.value)}
+                        onBlur={() => saveConfig(idx)}
+                      />
+                      <button onClick={() => deleteConfig(idx)} className="text-muted-foreground hover:text-rose-500 p-0.5 shrink-0" title="Delete configuration">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </th>
                 ))}
-                <th className="w-10" />
+                <th className="px-2 py-2 w-24 min-w-24 align-top">
+                  <button onClick={addConfig} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
+                    <Plus className="h-3.5 w-3.5" /> Add
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {configs.map((cfg, idx) => (
-                <tr key={cfg.config_index} className="border-b border-border/40 hover:bg-muted/20">
-                  <td className="px-2 py-1.5">
-                    <input
-                      className="w-full bg-transparent text-sm px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring rounded"
-                      placeholder={`Configuration ${idx + 1}`}
-                      value={cfg.label ?? ''}
-                      onChange={e => setField(idx, 'label', e.target.value)}
-                      onBlur={() => saveConfig(idx)}
-                    />
+              {ROWS.map(row => (
+                <tr key={row.key} className="border-b border-border/40 hover:bg-muted/10">
+                  <td className="text-left text-sm px-3 py-1.5 sticky left-0 bg-card z-10 text-muted-foreground w-64 min-w-64">
+                    {row.label}
                   </td>
-                  {COLS.map(c => (
-                    <td key={c.key} className="px-2 py-1.5">
+                  {configs.map((cfg, idx) => (
+                    <td key={cfg.config_index} className="px-2 py-1.5">
                       <input
                         type="number"
                         className={inputCls}
-                        value={(cfg[c.key] as number) || ''}
-                        onChange={e => setField(idx, c.key, e.target.value)}
+                        value={(cfg[row.key] as number) || ''}
+                        onChange={e => setField(idx, row.key, e.target.value)}
                         onBlur={() => saveConfig(idx)}
                       />
                     </td>
                   ))}
-                  <td className="px-2 py-1.5 text-center">
-                    <button onClick={() => deleteConfig(idx)} className="text-muted-foreground hover:text-rose-500 p-1">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
+                  <td />
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <button onClick={addConfig} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <Plus className="h-4 w-4" /> Add configuration
-        </button>
+        <p className="text-xs text-muted-foreground">
+          Each column is one building configuration (a unique building or set of identical buildings). Values are per building; the model multiplies by the number of buildings.
+        </p>
       </div>
 
       {/* Per-configuration results */}
