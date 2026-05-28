@@ -124,6 +124,26 @@ export const qapCostItems = sqliteTable('qap_cost_items', {
   updated_at: text('updated_at').default(sql`(datetime('now'))`),
 })
 
+// QAP Basis Calculation building configurations (one row per configuration)
+export const qapBasisConfigs = sqliteTable('qap_basis_configs', {
+  id: text('id').primaryKey(),
+  deal_id: text('deal_id')
+    .notNull()
+    .references(() => deals.id, { onDelete: 'cascade' }),
+  config_index: integer('config_index').notNull(),
+  label: text('label'),
+  num_buildings: integer('num_buildings'),
+  resid_staff_sqft: integer('resid_staff_sqft'),
+  common_sqft: integer('common_sqft'),
+  lihtc_units: integer('lihtc_units'),
+  resid_units: integer('resid_units'),
+  lihtc_sqft: integer('lihtc_sqft'),
+  resid_sqft: integer('resid_sqft'),
+  homeless_constr_adj: integer('homeless_constr_adj'),
+  homeless_acq_adj: integer('homeless_acq_adj'),
+  updated_at: text('updated_at').default(sql`(datetime('now'))`),
+})
+
 export type Deal = typeof deals.$inferSelect
 export type NewDeal = typeof deals.$inferInsert
 export type Task = typeof tasks.$inferSelect
@@ -131,3 +151,4 @@ export type NewTask = typeof tasks.$inferInsert
 export type QapField = typeof qapFields.$inferSelect
 export type QapUnitType = typeof qapUnitTypes.$inferSelect
 export type QapCostItem = typeof qapCostItems.$inferSelect
+export type QapBasisConfig = typeof qapBasisConfigs.$inferSelect
