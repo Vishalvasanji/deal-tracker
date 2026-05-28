@@ -85,9 +85,18 @@ export function SelectionCriteriaClient({ dealId, deps, initialSelfScores }: Pro
                 <span className="text-right">Calc / Max</span>
                 <span className="text-right">Self-Score</span>
               </div>
-              {sec.criteria.map(c => (
-                <div key={c.key} className="grid grid-cols-[1fr_5rem_6rem] gap-x-3 px-4 py-2 items-center">
+              {sec.criteria.map(c => c.level === 'group' ? (
+                <div key={c.key} className="grid grid-cols-[1fr_5rem_6rem] gap-x-3 px-4 py-2 items-center bg-muted/40">
                   <div className="min-w-0">
+                    <p className="text-sm font-semibold">{c.label}</p>
+                    {c.detail && <p className="text-[11px] font-normal text-muted-foreground">{c.detail}</p>}
+                  </div>
+                  <span className="text-sm tabular-nums text-right font-semibold">{pts(c.calc)} / {c.max}</span>
+                  <span />
+                </div>
+              ) : (
+                <div key={c.key} className="grid grid-cols-[1fr_5rem_6rem] gap-x-3 px-4 py-2 items-center">
+                  <div className="min-w-0 pl-3">
                     <p className="text-sm">{c.label}</p>
                     {c.detail && <p className="text-[11px] text-muted-foreground">{c.detail}</p>}
                   </div>
