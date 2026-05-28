@@ -141,6 +141,21 @@ export function SyndicationClient({ dealId, taxCredits, initialScalars, initialE
       </div>
     )
   }
+  function inputLine(label: string, key: string, suffix?: string) {
+    return (
+      <div className="flex items-center justify-between gap-3 py-1">
+        <label className="text-sm text-muted-foreground">{label}</label>
+        <div className="flex items-center gap-1">
+          <input
+            className="w-32 text-right rounded-lg border border-input bg-background px-2 py-1 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring"
+            inputMode="decimal" placeholder="0" value={s[key] ?? ''}
+            onChange={e => setScalar(key, e.target.value)} onBlur={() => saveScalar(key)}
+          />
+          <span className="text-xs text-muted-foreground w-3">{suffix ?? ''}</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -151,55 +166,50 @@ export function SyndicationClient({ dealId, taxCredits, initialScalars, initialE
 
       {/* ── I. Syndication Commitment ── */}
       <div className="space-y-3">
-        <p className={subHdr}>I. Syndication Commitment</p>
+        <div className="flex items-center justify-between">
+          <p className={subHdr}>I. Syndication Commitment</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">Type (cost cap):</span>
+            <select className="rounded-lg border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              value={s['is_public'] ?? 'Public'} onChange={e => { setScalar('is_public', e.target.value); persist('is_public', e.target.value) }}>
+              <option>Public</option>
+              <option>Private</option>
+            </select>
+          </div>
+        </div>
         <div className={card}>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">A. Syndicator Information</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {([['synd_name', 'Name'], ['synd_address', 'Address'], ['synd_address2', 'City, State & Zip'], ['synd_phone', 'Telephone'], ['synd_contact', 'Contact']] as const).map(([k, lbl]) => (
-              <div key={k} className={k === 'synd_name' ? 'sm:col-span-2' : ''}>
-                <label className={labelCls}>{lbl}</label>
-                <input className={inCls} value={s[k] ?? ''} onChange={e => setScalar(k, e.target.value)} onBlur={() => saveScalar(k)} />
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <div>
-              <label className={labelCls}>B. % Interest acquired by Syndicator</label>
-              <input className={numCls} inputMode="decimal" placeholder="0" value={s['pct_acquired'] ?? ''} onChange={e => setScalar('pct_acquired', e.target.value)} onBlur={() => saveScalar('pct_acquired')} />
-            </div>
-            <div>
-              <label className={labelCls}>Syndication type (cost cap)</label>
-              <select className={inCls} value={s['is_public'] ?? 'Public'} onChange={e => { setScalar('is_public', e.target.value); persist('is_public', e.target.value) }}>
-                <option>Public</option>
-                <option>Private</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>E. Syndication Proceeds Generated</label>
-              <input className={numCls} inputMode="decimal" placeholder="0" value={s['proceeds'] ?? ''} onChange={e => setScalar('proceeds', e.target.value)} onBlur={() => saveScalar('proceeds')} />
-            </div>
-            <div>
-              <label className={labelCls}>F. Gross Equity invested by Syndicator</label>
-              <input className={numCls} inputMode="decimal" placeholder="0" value={s['gross_equity'] ?? ''} onChange={e => setScalar('gross_equity', e.target.value)} onBlur={() => saveScalar('gross_equity')} />
+          {/* A. Syndicator Information */}
+          <div>
+            <p className="text-sm font-medium">A. Syndicator Information</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
+              {([['synd_name', 'Name'], ['synd_address', 'Address'], ['synd_address2', 'City, State & Zip'], ['synd_phone', 'Telephone'], ['synd_contact', 'Contact']] as const).map(([k, lbl]) => (
+                <div key={k} className={k === 'synd_name' ? 'sm:col-span-2' : ''}>
+                  <label className={labelCls}>{lbl}</label>
+                  <input className={inCls} value={s[k] ?? ''} onChange={e => setScalar(k, e.target.value)} onBlur={() => saveScalar(k)} />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="border-t border-border/60 pt-2">
+          {/* B–K, in order */}
+          <div className="border-t border-border/60 pt-2 divide-y divide-border/30">
+            {inputLine('B. % Interest acquired by Syndicator', 'pct_acquired', '%')}
             {line('C. % Interest retained by Sponsor / Developer', pctStr(r.pctRetained))}
             {line('D. Amount of Tax Credits in Commitment', money(taxCredits), '· from §14')}
+            {inputLine('E. Syndication Proceeds Generated', 'proceeds')}
+            {inputLine('F. Gross Equity invested by Syndicator', 'gross_equity')}
             {line('G. Syndication Costs Paid by Syndicator (E − F)', money(r.costsBySyndicator))}
             {line('H. Syndication Costs Paid by Developer (Part VI)', money(r.costsByDeveloper))}
             {line('I. Total Syndication Costs (G + H)', money(r.totalCosts))}
             {line('J. Total Syndication Costs as % of Proceeds (I / E)', pctStr(r.costsPctOfProceeds))}
             {line('K. Total Syndication Proceeds Available (F − H)', money(r.proceedsAvailable))}
-            {r.costPctExceeds && (
-              <p className="mt-1 text-xs text-amber-600 flex items-start gap-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                Costs are {pctStr(r.costsPctOfProceeds)} of proceeds — above the {pctStr(r.costCap)} cap for a {(s['is_public'] ?? 'Public').toLowerCase()} syndication.
-              </p>
-            )}
           </div>
+          {r.costPctExceeds && (
+            <p className="text-xs text-amber-600 flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              Costs are {pctStr(r.costsPctOfProceeds)} of proceeds — above the {pctStr(r.costCap)} cap for a {(s['is_public'] ?? 'Public').toLowerCase()} syndication.
+            </p>
+          )}
         </div>
       </div>
 
@@ -254,13 +264,6 @@ export function SyndicationClient({ dealId, taxCredits, initialScalars, initialE
           </div>
         ))}
         <button onClick={addLender} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"><Plus className="h-4 w-4" /> Add commercial lender</button>
-      </div>
-
-      {/* ── IV. Identity of Interest ── */}
-      <div className="space-y-2">
-        <p className={subHdr}>IV. Identity of Interest — Commercial Loans</p>
-        <textarea className={inCls + ' min-h-[72px] resize-y'} placeholder="Describe any identity of interest with respect to the interim financing in Section III."
-          value={s['ioi_text'] ?? ''} onChange={e => setScalar('ioi_text', e.target.value)} onBlur={() => saveScalar('ioi_text')} />
       </div>
 
       {/* ── V. Interim Funds from Syndicator and Syndication Costs ── */}
