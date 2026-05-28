@@ -1,5 +1,5 @@
 import { db } from './db'
-import { qapFields, qapUnitTypes, qapCostItems } from './db/schema'
+import { qapFields, qapUnitTypes, qapCostItems, qapBasisConfigs } from './db/schema'
 import { eq, and } from 'drizzle-orm'
 import { DEV_COST_CATEGORIES } from './qap-dev-costs'
 
@@ -104,7 +104,7 @@ export async function getQapCompletion(dealId: string) {
     narrativeFields, unitTypes,
     s10, s11, s12, s13, s14, s15, s16, s17, s18, s19,
     s20, s21, s22, s23, s24, s25, s26, s27, s28,
-    s29, s33, costItems,
+    s29, s33, costItems, basisConfigs,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -130,6 +130,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_29'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_33'))),
     db.select().from(qapCostItems).where(eq(qapCostItems.deal_id, dealId)),
+    db.select().from(qapBasisConfigs).where(eq(qapBasisConfigs.deal_id, dealId)),
   ])
 
   function count(rows: { field_key: string; value: string | null }[], req: string[]) {
@@ -146,6 +147,9 @@ export async function getQapCompletion(dealId: string) {
     if (ci.amount && ci.amount !== 0) catSums[ci.category] = (catSums[ci.category] ?? 0) + ci.amount
   }
   const devCostFilled = DEV_COST_CATEGORIES.filter(c => (catSums[c.key] ?? 0) > 0).length
+
+  // Basis calculation: complete once at least one configuration has buildings entered.
+  const basisConfigured = basisConfigs.some(c => (c.num_buildings ?? 0) > 0)
 
   return {
     narrative:  { filled: count(narrativeFields, NARRATIVE_REQUIRED),  total: NARRATIVE_REQUIRED.length },
@@ -176,5 +180,6 @@ export async function getQapCompletion(dealId: string) {
     section33:  { filled: count(s33, SECTION_33_REQUIRED),  total: SECTION_33_REQUIRED.length },
     section34:  { filled: 1, total: 1 }, // optional free-text, always complete
     developmentCosts: { filled: devCostFilled, total: DEV_COST_CATEGORIES.length },
+    basisCalculation: { filled: basisConfigured ? 1 : 0, total: 1 },
   }
 }
