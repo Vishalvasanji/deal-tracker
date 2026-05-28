@@ -26,6 +26,8 @@ interface Props {
     outOfBasisCommunityService?: number
     commercialDevCost?: number
     relatedPartyPayments?: number
+    isSro?: boolean
+    isAntiDiscrimination?: boolean
   }
 }
 
@@ -71,6 +73,22 @@ export function DevelopmentCostsClient({
   const allocated = result.total
   const remaining = modelTdc == null ? null : modelTdc - allocated
   const pctAllocated = modelTdc && modelTdc > 0 ? Math.min(100, Math.round((allocated / modelTdc) * 100)) : 0
+
+  // Inline §36 over-limit alerts (mirror Excel E40 / E42 / E43 / E94 / E60)
+  const lineAlerts: Record<string, string> = {}
+  const feeLineMap: Record<string, string> = {
+    gr: 'general_requirements', oh: 'builders_overhead', bp: 'builders_profit', arch: 'architect_fees',
+  }
+  for (const it of result.feeLimits.items) {
+    const lk = feeLineMap[it.key]
+    if (lk && it.allowable != null && it.over > 0) {
+      lineAlerts[lk] = `${it.label} is ${money(it.over)} above the limit`
+    }
+  }
+  if (result.feeLimits.contingency.over) {
+    lineAlerts['construction_contingency'] =
+      `Contingency is ${Math.round(result.feeLimits.contingency.pct * 100)}% — above the 10% limit`
+  }
 
   function setLine(key: string, raw: string) {
     const v = raw === '' ? null : parseInt(raw.replace(/[$,\s]/g, ''), 10)
@@ -224,35 +242,42 @@ export function DevelopmentCostsClient({
               {!isCollapsed && (
                 <div className="divide-y divide-border/40">
                   {cat.lines.map(line => (
-                    <div key={line.key} className="flex items-center gap-3 px-4 py-1.5">
-                      <label className="flex-1 text-sm">
-                        {line.label}
-                        {line.autoPull && (
-                          <span className="ml-2 text-xs text-sky-600" title={line.pullKey ? `Read-only — pulled from ${line.autoPull}` : `Maps to ${line.autoPull} in the Excel`}>
-                            ({line.autoPull}{line.pullKey ? ', read-only' : ''})
-                          </span>
-                        )}
-                        {line.feeLimit && (
-                          <span className="ml-2 text-xs text-amber-600" title="Fee-limit checked in Section 41">†</span>
-                        )}
-                      </label>
-                      <div className="w-40">
-                        {line.pullKey ? (
-                          <div className="text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground bg-muted/40 rounded-lg"
-                            title={`Pulled from ${line.autoPull}`}>
-                            {money(pulledAmounts[line.key] ?? 0)}
-                          </div>
-                        ) : (
-                          <input
-                            type="number"
-                            className={inputCls}
-                            value={amounts[line.key] ?? ''}
-                            onChange={e => setLine(line.key, e.target.value)}
-                            onBlur={() => saveLine(line.key)}
-                            placeholder="$0"
-                          />
-                        )}
+                    <div key={line.key} className="px-4 py-1.5">
+                      <div className="flex items-center gap-3">
+                        <label className="flex-1 text-sm">
+                          {line.label}
+                          {line.autoPull && (
+                            <span className="ml-2 text-xs text-sky-600" title={line.pullKey ? `Read-only — pulled from ${line.autoPull}` : `Maps to ${line.autoPull} in the Excel`}>
+                              ({line.autoPull}{line.pullKey ? ', read-only' : ''})
+                            </span>
+                          )}
+                          {line.feeLimit && (
+                            <span className="ml-2 text-xs text-amber-600" title="Fee-limit checked in Section 41">†</span>
+                          )}
+                        </label>
+                        <div className="w-40">
+                          {line.pullKey ? (
+                            <div className="text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground bg-muted/40 rounded-lg"
+                              title={`Pulled from ${line.autoPull}`}>
+                              {money(pulledAmounts[line.key] ?? 0)}
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              className={inputCls}
+                              value={amounts[line.key] ?? ''}
+                              onChange={e => setLine(line.key, e.target.value)}
+                              onBlur={() => saveLine(line.key)}
+                              placeholder="$0"
+                            />
+                          )}
+                        </div>
                       </div>
+                      {lineAlerts[line.key] && (
+                        <p className="text-xs text-rose-600 mt-1 flex items-center justify-end gap-1">
+                          <AlertTriangle className="h-3 w-3 shrink-0" /> {lineAlerts[line.key]}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -394,7 +419,9 @@ export function DevelopmentCostsClient({
                   <div><p className="text-xs text-muted-foreground">% of Limit</p><p className={`font-semibold tabular-nums ${result.hudTdc.exceeds ? 'text-rose-600' : 'text-emerald-600'}`}>{result.hudTdc.pctOfLimit == null ? '—' : `${Math.round(result.hudTdc.pctOfLimit * 100)}%`}</p></div>
                 </div>
                 {result.hudTdc.exceeds && (
-                  <p className="text-xs text-rose-600 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> Adjusted TDC exceeds the Maximum TDC Limit.</p>
+                  <p className={`text-xs flex items-start gap-1 ${result.hudTdc.hardError ? 'text-rose-600' : 'text-amber-600'}`}>
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> <span>{result.hudTdc.message}</span>
+                  </p>
                 )}
               </>
             ) : (
