@@ -135,14 +135,14 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
       <div className="space-y-2">
         <p className={subHdr}>Building Configurations</p>
         <div className="overflow-x-auto rounded-lg border border-border/50">
-          <table className="text-sm border-collapse">
+          <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left text-xs font-semibold text-muted-foreground px-3 py-2 sticky left-0 bg-muted/30 z-10 w-64 min-w-64">
-                  Configuration →
+                <th className="text-left text-xs font-semibold text-muted-foreground px-3 py-2">
+                  Configuration
                 </th>
                 {configs.map((cfg, idx) => (
-                  <th key={cfg.config_index} className="px-2 py-2 w-36 min-w-36 align-top">
+                  <th key={cfg.config_index} className="px-2 py-2 w-40 align-top">
                     <div className="flex items-center gap-1">
                       <input
                         className="w-full bg-transparent text-sm font-medium px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring rounded"
@@ -162,11 +162,11 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
             <tbody>
               {ROWS.map(row => (
                 <tr key={row.key} className="border-b border-border/40 hover:bg-muted/10">
-                  <td className="text-left text-sm px-3 py-1.5 sticky left-0 bg-card z-10 text-muted-foreground w-64 min-w-64">
+                  <td className="text-left text-sm px-3 py-1.5 text-muted-foreground">
                     {row.label}
                   </td>
                   {configs.map((cfg, idx) => (
-                    <td key={cfg.config_index} className="px-2 py-1.5">
+                    <td key={cfg.config_index} className="px-2 py-1.5 w-40">
                       <input
                         type="number"
                         className={inputCls}
