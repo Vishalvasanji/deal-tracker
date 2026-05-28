@@ -110,6 +110,9 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     commercialDevCost: s20n('s20_14_commercial_cost'),
     // §41 developer fee base subtracts related-party payments (sum of §20.04 list)
     relatedPartyPayments: [1, 2, 3, 4, 5, 6].reduce((sum, i) => sum + s20n(`s20_04_payment_${i}_amount`), 0),
+    // §40 TDC-limit exception flags (§12)
+    isSro: s12['is_sro'] === 'Yes',
+    isAntiDiscrimination: s12['is_reallocated_credits'] === 'Yes',
   }
 
   return (
