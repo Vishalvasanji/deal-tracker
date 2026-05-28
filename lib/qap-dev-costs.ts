@@ -8,8 +8,10 @@
 export interface DevCostLine {
   key: string            // stable line_key stored in qap_cost_items
   label: string
-  /** auto-pulls from a Project Description section in the Excel (manual input here for now) */
+  /** label of the §20 source (shown as a tag) when this line is auto-pulled */
   autoPull?: string
+  /** §20 qap_fields field_key this line's amount is read-only-pulled from */
+  pullKey?: string
   /** fee-limit checked in Section 41 */
   feeLimit?: boolean
 }
@@ -36,13 +38,13 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
     label: 'Construction Contract: Building Costs',
     lines: [
       { key: 'appliances', label: 'Appliances' },
-      { key: 'community_facilities', label: 'Community Facilities', autoPull: '§20.06' },
-      { key: 'community_service_facilities', label: 'Community Service Facilities', autoPull: '§20.07' },
-      { key: 'excess_costs', label: 'Excess Costs', autoPull: '§20.08' },
+      { key: 'community_facilities', label: 'Community Facilities', autoPull: '§20.06', pullKey: 's20_06_community_fac_cost' },
+      { key: 'community_service_facilities', label: 'Community Service Facilities', autoPull: '§20.07', pullKey: 's20_07_cost' },
+      { key: 'excess_costs', label: 'Excess Costs', autoPull: '§20.08', pullKey: 's20_08_excess_costs' },
       { key: 'residential_new', label: 'Residential Buildings - New Construction' },
       { key: 'residential_rehab', label: 'Residential Buildings - Rehabilitation' },
       { key: 'lead_paint', label: 'Lead-based paint controls or abatement' },
-      { key: 'operate_self_owned_equip', label: 'Costs to Operate Self-Owned Equipment', autoPull: '§20.01' },
+      { key: 'operate_self_owned_equip', label: 'Costs to Operate Self-Owned Equipment', autoPull: '§20.01', pullKey: 's20_01_operate_cost' },
     ],
   },
   {
@@ -56,7 +58,7 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
       { key: 'roads_walks', label: 'Roads/Walks' },
       { key: 'site_utilities', label: 'Site Utilities' },
       { key: 'unusual_site', label: 'Unusual Site Conditions' },
-      { key: 'extraordinary_site', label: 'Extraordinary Site Costs', autoPull: '§20.05' },
+      { key: 'extraordinary_site', label: 'Extraordinary Site Costs', autoPull: '§20.05', pullKey: 's20_05_extraordinary_site_cost' },
     ],
   },
   {
@@ -65,10 +67,10 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
     lines: [
       { key: 'bond_premium_contractor', label: 'Bond Premium Paid by Contractor' },
       { key: 'general_requirements', label: 'General Requirements', feeLimit: true },
-      { key: 'lease_self_owned_equip', label: 'Costs to Lease Self-Owned Equipment', autoPull: '§20.01' },
+      { key: 'lease_self_owned_equip', label: 'Costs to Lease Self-Owned Equipment', autoPull: '§20.01', pullKey: 's20_01_lease_cost' },
       { key: 'builders_overhead', label: "Builder's Overhead", feeLimit: true },
       { key: 'builders_profit', label: "Builder's Profit", feeLimit: true },
-      { key: 'construction_manager_fee', label: "Construction Manager's Fee", autoPull: '§20.03' },
+      { key: 'construction_manager_fee', label: "Construction Manager's Fee", autoPull: '§20.03', pullKey: 's20_03_constr_mgr_fee' },
       { key: 'builders_risk_insurance', label: "Builder's Risk Insurance" },
       { key: 'builders_liability_insurance', label: "Builder's Liability Insurance" },
       { key: 'workers_comp_insurance', label: "Worker's Compensation Insurance" },
