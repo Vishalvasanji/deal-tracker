@@ -43,6 +43,8 @@ export interface DevCostResult {
   basis: {
     adjustedAcquisitionBasis: number
     adjustedConstructionBasis: number
+    acqBreakdown: BasisLine[]
+    constrBreakdown: BasisLine[]
     pending: string[]
   }
   // §39
@@ -77,6 +79,12 @@ export interface FeeLimitItem {
   allowable: number
   proposed: number
   over: number          // proposed − allowable (positive = over the limit)
+}
+
+export interface BasisLine {
+  label: string
+  value: number
+  pending?: boolean     // input not yet captured in the web app (treated as 0)
 }
 
 export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCostResult {
@@ -126,6 +134,27 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     total - adjustedAcquisitionBasis - land -
     subtotals['permanent_financing'] - subtotals['reserves'] -
     subtotals['syndication'] - lhcFees + n(deps.constrBasisAdjustments)
+
+  const acqBreakdown: BasisLine[] = [
+    { label: 'Building Acquisition', value: n(amounts['building_acquisition']) },
+    { label: 'Adjustment (explain)', value: n(deps.acqBasisAdjustments) },
+  ]
+  const constrBreakdown: BasisLine[] = [
+    { label: 'Total Development Cost', value: total },
+    { label: 'Less: Adjusted Acquisition Basis', value: -adjustedAcquisitionBasis },
+    { label: 'Less: Land Cost', value: -land },
+    { label: 'Less: Out-of-basis Community Facilities', value: 0, pending: true },
+    { label: 'Less: Out-of-basis Community Service Facilities', value: 0, pending: true },
+    { label: 'Less: Commercial Development Cost', value: 0, pending: true },
+    { label: 'Less: Permanent Financing Costs', value: -subtotals['permanent_financing'] },
+    { label: 'Less: Reserves', value: -subtotals['reserves'] },
+    { label: 'Less: Syndication Costs', value: -subtotals['syndication'] },
+    { label: 'Less: LHC Fees', value: -lhcFees },
+    { label: 'Less: Federal Grants', value: 0, pending: true },
+    { label: 'Less: HOME', value: 0, pending: true },
+    { label: 'Less: Tax-exempt Bond Issuance Costs', value: 0, pending: true },
+    { label: 'Adjustment (explain)', value: n(deps.constrBasisAdjustments) },
+  ]
 
   // ── §39 Per-unit summary ──
   const u = deps.totalUnits && deps.totalUnits > 0 ? deps.totalUnits : 0
@@ -237,7 +266,7 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     total,
     constructionContract,
     sourcesUses,
-    basis: { adjustedAcquisitionBasis, adjustedConstructionBasis, pending: basisPending },
+    basis: { adjustedAcquisitionBasis, adjustedConstructionBasis, acqBreakdown, constrBreakdown, pending: basisPending },
     perUnitSummary,
     hudTdc,
     feeLimits: {
