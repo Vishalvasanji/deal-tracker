@@ -48,6 +48,7 @@ export async function upsertQapField(
   revalidatePath(`/deals/${dealId}/qap/project-description`)
   revalidatePath(`/deals/${dealId}/qap/project-description/section-10`)
   revalidatePath(`/deals/${dealId}/qap/development-costs`)
+  revalidatePath(`/deals/${dealId}/qap/revenues-expenses`)
 }
 
 export async function upsertQapUnitType(

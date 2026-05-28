@@ -4,7 +4,7 @@ import { deals } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import { getQapCompletion } from '@/lib/qap-completion'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 
 function ProgressCard({
@@ -110,6 +110,13 @@ export default async function QapHubPage({ params }: { params: Promise<{ id: str
           filled={completion.basisCalculation.filled}
           total={completion.basisCalculation.total}
           href={`/deals/${deal.id}/qap/basis-calculation`}
+        />
+        <ProgressCard
+          title="Revenues & Expenses"
+          icon={Receipt}
+          filled={completion.revenuesExpenses.filled}
+          total={completion.revenuesExpenses.total}
+          href={`/deals/${deal.id}/qap/revenues-expenses`}
         />
       </div>
     </div>

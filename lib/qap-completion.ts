@@ -2,6 +2,7 @@ import { db } from './db'
 import { qapFields, qapUnitTypes, qapCostItems, qapBasisConfigs } from './db/schema'
 import { eq, and } from 'drizzle-orm'
 import { DEV_COST_CATEGORIES } from './qap-dev-costs'
+import { EXPENSE_GROUPS } from './qap-rev-exp'
 
 const NARRATIVE_REQUIRED  = ['narrative']
 const SECTION_10_REQUIRED = ['bond_financing', 'lihtc_9pct', 'other_lhc_funding']
@@ -104,7 +105,7 @@ export async function getQapCompletion(dealId: string) {
     narrativeFields, unitTypes,
     s10, s11, s12, s13, s14, s15, s16, s17, s18, s19,
     s20, s21, s22, s23, s24, s25, s26, s27, s28,
-    s29, s33, costItems, basisConfigs,
+    s29, s33, costItems, basisConfigs, revExp,
   ] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'narrative'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, dealId)),
@@ -131,6 +132,7 @@ export async function getQapCompletion(dealId: string) {
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'section_33'))),
     db.select().from(qapCostItems).where(eq(qapCostItems.deal_id, dealId)),
     db.select().from(qapBasisConfigs).where(eq(qapBasisConfigs.deal_id, dealId)),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, dealId), eq(qapFields.section, 'rev_exp'))),
   ])
 
   function count(rows: { field_key: string; value: string | null }[], req: string[]) {
@@ -150,6 +152,34 @@ export async function getQapCompletion(dealId: string) {
 
   // Basis calculation: complete once at least one configuration has buildings entered.
   const basisConfigured = basisConfigs.some(c => (c.num_buildings ?? 0) > 0)
+
+  // Revenues & Expenses: count §44 expense categories that have at least one non-zero entry.
+  const numOf = (v: string | null | undefined) => {
+    const x = parseFloat(String(v ?? '').replace(/[$,\s]/g, ''))
+    return isNaN(x) ? 0 : x
+  }
+  const expLineGroup: Record<string, string> = {}
+  for (const g of EXPENSE_GROUPS) for (const l of g.lines) expLineGroup[l.key] = g.key
+  const expGroupKeys = new Set(EXPENSE_GROUPS.map(g => g.key))
+  const revCatSums: Record<string, number> = {}
+  for (const f of revExp) {
+    const key = f.field_key
+    if (key.endsWith('__others')) {
+      const gk = key.slice(0, -'__others'.length)
+      if (!expGroupKeys.has(gk)) continue
+      try {
+        const arr = JSON.parse(f.value || '[]')
+        if (Array.isArray(arr)) for (const o of arr) {
+          const a = numOf(String(o?.amount))
+          if (a !== 0) revCatSums[gk] = (revCatSums[gk] ?? 0) + a
+        }
+      } catch { /* ignore */ }
+    } else if (expLineGroup[key]) {
+      const a = numOf(f.value)
+      if (a !== 0) revCatSums[expLineGroup[key]] = (revCatSums[expLineGroup[key]] ?? 0) + a
+    }
+  }
+  const revExpFilled = EXPENSE_GROUPS.filter(g => (revCatSums[g.key] ?? 0) > 0).length
 
   return {
     narrative:  { filled: count(narrativeFields, NARRATIVE_REQUIRED),  total: NARRATIVE_REQUIRED.length },
@@ -181,5 +211,6 @@ export async function getQapCompletion(dealId: string) {
     section34:  { filled: 1, total: 1 }, // optional free-text, always complete
     developmentCosts: { filled: devCostFilled, total: DEV_COST_CATEGORIES.length },
     basisCalculation: { filled: basisConfigured ? 1 : 0, total: 1 },
+    revenuesExpenses: { filled: revExpFilled, total: EXPENSE_GROUPS.length },
   }
 }
