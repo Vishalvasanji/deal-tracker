@@ -66,11 +66,9 @@ export interface DevCostResult {
   // §41
   feeLimits: {
     builderProfitFeeBase: number
-    items: FeeLimitItem[]
     developerFeeBase: number
-    developerFeeLimit: number | null
-    developerFeeProposed: number
     developerFeeException: boolean
+    items: FeeLimitItem[]      // all five fees (GR, GO, Builder Profit, Developer, Architect)
     contingency: { amount: number; pct: number; over: boolean }
     pending: string[]
   }
@@ -79,10 +77,14 @@ export interface DevCostResult {
 }
 
 export interface FeeLimitItem {
+  key: string
   label: string
-  allowable: number
+  allowableLabel: string       // e.g. "6% of Builder Profit Fee Base"
+  allowable: number | null     // null = no limit applies (e.g. bond-financed 4% developer fee)
   proposed: number
-  over: number          // proposed − allowable (positive = over the limit)
+  over: number                 // proposed − allowable (0 when allowable is null)
+  note?: string
+  breakdown: BasisLine[]       // line-by-line derivation shown in the fee's modal
 }
 
 export interface BasisLine {
@@ -91,6 +93,7 @@ export interface BasisLine {
   pending?: boolean     // input not yet captured in the web app (treated as 0)
   header?: boolean      // render as a sub-group heading (no amount)
   indent?: boolean      // render indented under a heading
+  strong?: boolean      // emphasize (subtotal / base line)
 }
 
 export interface BasisAdjustment {
@@ -250,30 +253,65 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   const gr = n(amounts['general_requirements'])
   const oh = n(amounts['builders_overhead'])
   const bp = n(amounts['builders_profit'])
+
+  // §41.01 Builder Profit Fee Base = Construction Contract − GR − OH − Builder Profit
   const builderProfitFeeBase = constructionContract - gr - oh - bp
+  const builderBaseLines: BasisLine[] = [
+    { label: 'Construction Contract: Building Costs', value: subtotals['cc_building'] },
+    { label: 'Construction Contract: Site Work', value: subtotals['cc_sitework'] },
+    { label: 'Construction Contract: Other Costs', value: subtotals['cc_other'] },
+    { label: 'Subtotal: Construction Contract', value: constructionContract, strong: true },
+    { label: 'Less: Proposed General Requirements', value: -gr },
+    { label: 'Less: Proposed General Overhead', value: -oh },
+    { label: 'Less: Proposed Builder Fee / Profit', value: -bp },
+    { label: 'Builder Profit Fee Base', value: builderProfitFeeBase, strong: true },
+  ]
+
+  // §41.05 Developer Fee Base
+  const reservesExclEscrows = subtotals['reserves'] - n(amounts['escrows'])
+  const relatedParty = n(deps.relatedPartyPayments)
+  const developerFeeBase =
+    total - subtotals['acquisition'] - n(amounts['lease_self_owned_equip']) - relatedParty -
+    subtotals['developer_fee'] - reservesExclEscrows - subtotals['syndication'] -
+    n(amounts['marketing']) - lhcFees
+  const devFeeBaseLines: BasisLine[] = [
+    { label: 'Proposed Total Development Cost', value: total },
+    { label: 'Less: Total Acquisition Cost', value: -subtotals['acquisition'] },
+    { label: 'Less: Lease Payments (Self-Owned Equip.)', value: -n(amounts['lease_self_owned_equip']) },
+    { label: 'Less: Payments to Related Parties', value: -relatedParty },
+    { label: "Less: Total Developer's Fee", value: -subtotals['developer_fee'] },
+    { label: 'Less: Reserves (excl. Escrows)', value: -reservesExclEscrows },
+    { label: 'Less: Syndication Costs', value: -subtotals['syndication'] },
+    { label: 'Less: Marketing', value: -n(amounts['marketing']) },
+    { label: 'Less: LHC Fees', value: -lhcFees },
+    { label: 'Developer Fee Base', value: developerFeeBase, strong: true },
+  ]
+
+  const developerFeeException = !!(deps.bondFinanced && deps.is4pct)
+  const devAllow = developerFeeException ? null : Math.round(developerFeeBase * FEE_LIMITS.developerFeeStandard)
+  const grAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.generalRequirements)
+  const ohAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.generalOverhead)
+  const bpAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.builderProfit)
+  const archAllow = Math.round(constructionContract * FEE_LIMITS.architect)
+  const archProposed = n(amounts['architect_fees'])
+  const devProposed = subtotals['developer_fee']
 
   const items: FeeLimitItem[] = [
-    { label: 'General Requirements (6%)', allowable: Math.round(builderProfitFeeBase * FEE_LIMITS.generalRequirements), proposed: gr, over: 0 },
-    { label: 'General Overhead (2%)', allowable: Math.round(builderProfitFeeBase * FEE_LIMITS.generalOverhead), proposed: oh, over: 0 },
-    { label: 'Builder Fee / Profit (6%)', allowable: Math.round(builderProfitFeeBase * FEE_LIMITS.builderProfit), proposed: bp, over: 0 },
-    { label: 'Architect Fee (7% of construction contract)', allowable: Math.round(constructionContract * FEE_LIMITS.architect), proposed: n(amounts['architect_fees']), over: 0 },
-  ].map(it => ({ ...it, over: Math.round(it.proposed - it.allowable) }))
-
-  // Developer Fee Base (C312)
-  const reservesExclEscrows = subtotals['reserves'] - n(amounts['escrows'])
-  const developerFeeBase =
-    total -
-    subtotals['acquisition'] -
-    n(amounts['lease_self_owned_equip']) -
-    n(deps.relatedPartyPayments) -
-    subtotals['developer_fee'] -
-    reservesExclEscrows -
-    subtotals['syndication'] -
-    n(amounts['marketing']) -
-    lhcFees
-  const developerFeeException = !!(deps.bondFinanced && deps.is4pct)
-  const developerFeeLimit = developerFeeException ? null : Math.round(developerFeeBase * FEE_LIMITS.developerFeeStandard)
-  const developerFeeProposed = subtotals['developer_fee']
+    { key: 'gr', label: 'General Requirements', allowableLabel: '6% of Builder Profit Fee Base',
+      allowable: grAllow, proposed: gr, over: Math.round(gr - grAllow), breakdown: builderBaseLines },
+    { key: 'oh', label: 'General Overhead', allowableLabel: '2% of Builder Profit Fee Base',
+      allowable: ohAllow, proposed: oh, over: Math.round(oh - ohAllow), breakdown: builderBaseLines },
+    { key: 'bp', label: 'Builder Fee / Profit', allowableLabel: '6% of Builder Profit Fee Base',
+      allowable: bpAllow, proposed: bp, over: Math.round(bp - bpAllow), breakdown: builderBaseLines },
+    { key: 'dev', label: 'Developer Fee',
+      allowableLabel: developerFeeException ? 'no limit (bond-financed 4%)' : '15% of Developer Fee Base',
+      allowable: devAllow, proposed: devProposed, over: devAllow === null ? 0 : Math.round(devProposed - devAllow),
+      note: developerFeeException ? 'Bond-financed 4% transaction — the developer fee limit does not apply.' : undefined,
+      breakdown: devFeeBaseLines },
+    { key: 'arch', label: 'Architect Fee', allowableLabel: '7% of Construction Contract',
+      allowable: archAllow, proposed: archProposed, over: Math.round(archProposed - archAllow),
+      breakdown: [{ label: 'Subtotal: Construction Contract', value: constructionContract, strong: true }] },
+  ]
 
   const contingencyAmt = subtotals['contingency']
   const contingencyPct = constructionContract > 0 ? contingencyAmt / constructionContract : 0
@@ -287,10 +325,9 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   // ── §42 Fee Limit Violations ──
   const violations: string[] = []
   for (const it of items) {
-    if (it.over > 0) violations.push(`${it.label}: proposed is $${it.over.toLocaleString()} above the limit.`)
-  }
-  if (!developerFeeException && developerFeeLimit !== null && developerFeeProposed - developerFeeLimit > 0) {
-    violations.push(`Developer Fee: proposed is $${(developerFeeProposed - developerFeeLimit).toLocaleString()} above the 15% limit.`)
+    if (it.allowable !== null && it.over > 0) {
+      violations.push(`${it.label}: proposed is $${it.over.toLocaleString()} above the limit.`)
+    }
   }
   if (contingencyPct > FEE_LIMITS.contingencyCap) {
     violations.push(`Construction Contingency is above the ${Math.round(FEE_LIMITS.contingencyCap * 100)}% limit.`)
@@ -306,11 +343,9 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     hudTdc,
     feeLimits: {
       builderProfitFeeBase,
-      items,
       developerFeeBase,
-      developerFeeLimit,
-      developerFeeProposed,
       developerFeeException,
+      items,
       contingency: { amount: contingencyAmt, pct: contingencyPct, over: contingencyPct > FEE_LIMITS.contingencyCap },
       pending: feePending,
     },
