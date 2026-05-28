@@ -157,11 +157,6 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
                     </div>
                   </th>
                 ))}
-                <th className="px-2 py-2 w-24 min-w-24 align-top">
-                  <button onClick={addConfig} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
-                    <Plus className="h-3.5 w-3.5" /> Add
-                  </button>
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -181,12 +176,14 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
                       />
                     </td>
                   ))}
-                  <td />
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <button onClick={addConfig} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Plus className="h-4 w-4" /> Add configuration
+        </button>
         <p className="text-xs text-muted-foreground">
           Each column is one building configuration (a unique building or set of identical buildings). Values are per building; the model multiplies by the number of buildings.
         </p>
