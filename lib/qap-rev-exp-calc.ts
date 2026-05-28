@@ -5,6 +5,7 @@
 
 import {
   REVENUE_GROUPS, EXPENSE_GROUPS, CONTINGENT_GROUPS, LHC_MIN_PUPA, ASSET_MGMT_MAX,
+  LHC_COMPLIANCE_FEE_PER_UNIT,
   type RevExpGroup,
 } from './qap-rev-exp'
 
@@ -45,6 +46,7 @@ export interface RevExpResult {
   }
   useForUnderwriting: number            // = Total Operating Expenses (C89)
   operatingDeficitReserveMin: number    // C89 / 2 (feeds §36 Operating Deficit Reserve minimum)
+  lhcComplianceMonitoringFee: number    // §44.06 auto-pulled value ($40 × units)
 }
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) ? v : 0)
@@ -59,6 +61,8 @@ function groupSubtotal(
   for (const line of group.lines) {
     // Gross Potential Rents is read-only, pulled from the Unit Mix annual rent.
     if (line.key === 'gross_potential_rents') s += n(deps.annualGrossRent)
+    // LHC Annual Compliance/Monitoring Fee is read-only ($40 × total units; PD H1043).
+    else if (line.key === 'lhc_compliance_monitoring') s += LHC_COMPLIANCE_FEE_PER_UNIT * n(deps.totalUnits)
     else s += n(amounts[line.key])
   }
   for (const o of others[group.key] ?? []) s += n(o.amount)
@@ -125,5 +129,6 @@ export function computeRevExp(
     assetMgmt,
     useForUnderwriting: totalOperatingExpenses,
     operatingDeficitReserveMin: totalOperatingExpenses / 2,
+    lhcComplianceMonitoringFee: LHC_COMPLIANCE_FEE_PER_UNIT * units,
   }
 }

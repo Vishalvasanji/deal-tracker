@@ -177,7 +177,7 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
         <div className="divide-y divide-border/40">
           {group.lines.map(line =>
             line.key === 'lhc_compliance_monitoring'
-              ? fixedLineRow(line.key, line.label, { tag: 'from §44.06' })
+              ? fixedLineRow(line.key, line.label, { readOnly: true, readOnlyValue: result.lhcComplianceMonitoringFee, tag: 'Project Description · $40/unit' })
               : fixedLineRow(line.key, line.label),
           )}
         </div>

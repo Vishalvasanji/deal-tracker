@@ -28,6 +28,7 @@ interface Props {
     relatedPartyPayments?: number
     isSro?: boolean
     isAntiDiscrimination?: boolean
+    operatingDeficitReserveMin?: number
   }
 }
 
@@ -88,6 +89,12 @@ export function DevelopmentCostsClient({
   if (result.feeLimits.contingency.over) {
     lineAlerts['construction_contingency'] =
       `Contingency is ${Math.round(result.feeLimits.contingency.pct * 100)}% — above the 10% limit`
+  }
+  // §36 Operating Deficit Reserve minimum (Excel E99 = IF(C99 < J99, …); J99 = ½ of operating expenses)
+  const odrMin = deps.operatingDeficitReserveMin ?? 0
+  if (odrMin > 0 && (amounts['operating_deficit_reserve'] ?? 0) < odrMin) {
+    lineAlerts['operating_deficit_reserve'] =
+      `Operating Deficit Reserve must be at least ${money(odrMin)} (LHC minimum = ½ of operating expenses)`
   }
 
   function setLine(key: string, raw: string) {
