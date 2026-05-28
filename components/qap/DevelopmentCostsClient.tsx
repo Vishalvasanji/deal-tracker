@@ -3,16 +3,15 @@
 import { useMemo, useState, useTransition } from 'react'
 import { upsertQapCostItem, upsertQapField } from '@/lib/qap-actions'
 import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
-import { computeDevCosts, type DevCostDeps } from '@/lib/qap-dev-costs-calc'
+import { computeDevCosts, type DevCostDeps, type BasisAdjustment } from '@/lib/qap-dev-costs-calc'
 import { ModelUpload } from './ModelUpload'
-import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Info, X, Plus, Pencil, Trash2 } from 'lucide-react'
 
 interface Props {
   dealId: string
   initialAmounts: Record<string, number | null>
   model: { tdc: number | null; sources: number | null; filename: string; sourceRef: string; uploadedAt: string }
-  initialAcqAdj: number | null
-  initialConstrAdj: number | null
+  initialAdjustments: BasisAdjustment[]
   initialComments: Record<string, string>
   deps: {
     parish?: string
@@ -32,14 +31,16 @@ const inputCls =
 const subHdr = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide'
 const cardCls = 'rounded-xl border border-border bg-card px-4 py-3 space-y-2'
 
+type AdjForm = { editingId: string | null; type: 'acq' | 'constr'; explanation: string; amount: string }
+
 export function DevelopmentCostsClient({
-  dealId, initialAmounts, model, initialAcqAdj, initialConstrAdj, initialComments, deps,
+  dealId, initialAmounts, model, initialAdjustments, initialComments, deps,
 }: Props) {
   const [amounts, setAmounts] = useState<Record<string, number | null>>(initialAmounts)
   const [modelTdc, setModelTdc] = useState<number | null>(model.tdc)
   const [modelSources, setModelSources] = useState<number | null>(model.sources)
-  const [acqAdj, setAcqAdj] = useState<number | null>(initialAcqAdj)
-  const [constrAdj, setConstrAdj] = useState<number | null>(initialConstrAdj)
+  const [adjustments, setAdjustments] = useState<BasisAdjustment[]>(initialAdjustments)
+  const [adjForm, setAdjForm] = useState<AdjForm | null>(null)
   const [comments, setComments] = useState<Record<string, string>>(initialComments)
   const [basisModal, setBasisModal] = useState<null | 'acq' | 'constr'>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -54,11 +55,10 @@ export function DevelopmentCostsClient({
     const d: DevCostDeps = {
       ...deps,
       totalSources: modelSources,
-      acqBasisAdjustments: acqAdj ?? 0,
-      constrBasisAdjustments: constrAdj ?? 0,
+      basisAdjustments: adjustments,
     }
     return computeDevCosts(numericAmounts, d)
-  }, [amounts, modelSources, acqAdj, constrAdj, deps])
+  }, [amounts, modelSources, adjustments, deps])
 
   const allocated = result.total
   const remaining = modelTdc == null ? null : modelTdc - allocated
@@ -74,11 +74,34 @@ export function DevelopmentCostsClient({
       setSavedAt(new Date().toLocaleTimeString())
     })
   }
-  function saveAdj(fieldKey: string, val: number | null) {
+  function persistAdjustments(next: BasisAdjustment[]) {
+    setAdjustments(next)
     startTransition(async () => {
-      await upsertQapField(dealId, 'development_costs', fieldKey, val == null ? '' : String(val))
+      await upsertQapField(dealId, 'development_costs', 's38_adjustments_json', JSON.stringify(next))
       setSavedAt(new Date().toLocaleTimeString())
     })
+  }
+  function openAddAdj() {
+    setAdjForm({ editingId: null, type: 'acq', explanation: '', amount: '' })
+  }
+  function openEditAdj(a: BasisAdjustment) {
+    setAdjForm({ editingId: a.id, type: a.basis_type, explanation: a.explanation, amount: String(a.amount) })
+  }
+  function saveAdjustment() {
+    if (!adjForm) return
+    const amount = parseInt(adjForm.amount.replace(/[$,\s]/g, ''), 10)
+    if (isNaN(amount) || amount === 0) return // require a non-zero amount
+    const id = adjForm.editingId ??
+      (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`)
+    const adj: BasisAdjustment = { id, basis_type: adjForm.type, explanation: adjForm.explanation.trim(), amount }
+    const next = adjForm.editingId
+      ? adjustments.map(a => (a.id === adjForm.editingId ? adj : a))
+      : [...adjustments, adj]
+    persistAdjustments(next)
+    setAdjForm(null)
+  }
+  function deleteAdjustment(id: string) {
+    persistAdjustments(adjustments.filter(a => a.id !== id))
   }
   function saveComment(fieldKey: string) {
     startTransition(async () => {
@@ -258,23 +281,44 @@ export function DevelopmentCostsClient({
 
           {/* §38 Basis */}
           <div className={cardCls}>
-            <p className={subHdr}>§38 — Acquisition &amp; Construction Basis</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Acquisition basis adjustment</label>
-                <input type="number" className={inputCls}
-                  value={acqAdj ?? ''}
-                  onChange={e => setAcqAdj(e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                  onBlur={() => saveAdj('s38_acq_adj', acqAdj)} placeholder="$0" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Construction basis adjustment</label>
-                <input type="number" className={inputCls}
-                  value={constrAdj ?? ''}
-                  onChange={e => setConstrAdj(e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                  onBlur={() => saveAdj('s38_constr_adj', constrAdj)} placeholder="$0" />
-              </div>
+            <div className="flex items-center justify-between">
+              <p className={subHdr}>§38 — Acquisition &amp; Construction Basis</p>
+              <button type="button" onClick={openAddAdj}
+                className="text-xs rounded-lg border border-border px-2.5 py-1 hover:bg-muted transition-colors inline-flex items-center gap-1">
+                <Plus className="h-3.5 w-3.5" /> Adjustment
+              </button>
             </div>
+
+            {adjustments.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No adjustments yet. Click <span className="font-medium">+ Adjustment</span> to add one.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">Adjustments ({adjustments.length})</p>
+                <div className="rounded-lg border border-border divide-y divide-border/40">
+                  {adjustments.map(a => (
+                    <div key={a.id} className="flex items-center gap-3 px-3 py-2">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wide rounded px-2 py-0.5 ${a.basis_type === 'acq' ? 'bg-sky-100 text-sky-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {a.basis_type === 'acq' ? 'Acq' : 'Constr'}
+                      </span>
+                      <span className="flex-1 text-sm truncate" title={a.explanation}>
+                        {a.explanation || <span className="text-muted-foreground italic">(no explanation)</span>}
+                      </span>
+                      <span className={`text-sm tabular-nums font-medium ${a.amount < 0 ? 'text-rose-600' : ''}`}>
+                        {a.amount < 0 ? `(${money(Math.abs(a.amount))})` : money(a.amount)}
+                      </span>
+                      <button type="button" onClick={() => openEditAdj(a)} className="text-muted-foreground hover:text-foreground" title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => deleteAdjustment(a.id)} className="text-muted-foreground hover:text-rose-600" title="Delete">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3 text-sm pt-1">
               <div>
                 <p className="text-xs text-muted-foreground">Adjusted Acquisition Basis</p>
@@ -439,6 +483,66 @@ export function DevelopmentCostsClient({
               <p className="text-xs text-muted-foreground/60 mt-3">
                 Lines marked (pending) need inputs not yet captured in the web app and are treated as $0 for now.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / edit basis adjustment modal */}
+      {adjForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setAdjForm(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-xl">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h3 className="font-semibold text-sm">{adjForm.editingId ? 'Edit basis adjustment' : 'Add basis adjustment'}</h3>
+              <button type="button" onClick={() => setAdjForm(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1.5">Type</label>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setAdjForm({ ...adjForm, type: 'acq' })}
+                    className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${adjForm.type === 'acq' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}>
+                    Acquisition Basis
+                  </button>
+                  <button type="button" onClick={() => setAdjForm({ ...adjForm, type: 'constr' })}
+                    className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${adjForm.type === 'constr' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}>
+                    Construction Basis
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1.5">Explanation</label>
+                <textarea
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  rows={3}
+                  value={adjForm.explanation}
+                  onChange={e => setAdjForm({ ...adjForm, explanation: e.target.value })}
+                  placeholder="Why is this adjustment needed?"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1.5">Amount ($)</label>
+                <input
+                  type="number"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={adjForm.amount}
+                  onChange={e => setAdjForm({ ...adjForm, amount: e.target.value })}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground/70 mt-1">Positive adds to the basis; negative subtracts.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
+              <button type="button" onClick={() => setAdjForm(null)} className="text-sm rounded-lg border border-border px-3 py-1.5 hover:bg-muted transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={saveAdjustment} className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-1.5 font-medium">
+                Save
+              </button>
             </div>
           </div>
         </div>
