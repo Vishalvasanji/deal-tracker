@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from './db'
-import { qapFields, qapUnitTypes, qapCostItems } from './db/schema'
+import { qapFields, qapUnitTypes, qapCostItems, qapBasisConfigs } from './db/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuid } from 'uuid'
@@ -228,4 +228,90 @@ export async function seedQapCostItems(dealId: string) {
       updated_at: now,
     }))
   )
+}
+
+// ─── Basis Calculation building configurations (qap_basis_configs) ─────────────
+
+type BasisConfigData = {
+  config_index: number
+  label?: string | null
+  num_buildings?: number | null
+  resid_staff_sqft?: number | null
+  common_sqft?: number | null
+  lihtc_units?: number | null
+  resid_units?: number | null
+  lihtc_sqft?: number | null
+  resid_sqft?: number | null
+  homeless_constr_adj?: number | null
+  homeless_acq_adj?: number | null
+}
+
+export async function upsertQapBasisConfig(dealId: string, configIndex: number, data: BasisConfigData) {
+  const existing = await db
+    .select({ id: qapBasisConfigs.id })
+    .from(qapBasisConfigs)
+    .where(and(eq(qapBasisConfigs.deal_id, dealId), eq(qapBasisConfigs.config_index, configIndex)))
+    .limit(1)
+
+  const now = new Date().toISOString()
+  const row = {
+    label: data.label ?? null,
+    num_buildings: data.num_buildings ?? null,
+    resid_staff_sqft: data.resid_staff_sqft ?? null,
+    common_sqft: data.common_sqft ?? null,
+    lihtc_units: data.lihtc_units ?? null,
+    resid_units: data.resid_units ?? null,
+    lihtc_sqft: data.lihtc_sqft ?? null,
+    resid_sqft: data.resid_sqft ?? null,
+    homeless_constr_adj: data.homeless_constr_adj ?? null,
+    homeless_acq_adj: data.homeless_acq_adj ?? null,
+    updated_at: now,
+  }
+
+  if (existing.length > 0) {
+    await db.update(qapBasisConfigs).set(row).where(eq(qapBasisConfigs.id, existing[0].id))
+  } else {
+    await db.insert(qapBasisConfigs).values({
+      id: uuid(),
+      deal_id: dealId,
+      config_index: configIndex,
+      ...row,
+    })
+  }
+
+  revalidatePath(`/deals/${dealId}/qap`)
+  revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
+}
+
+export async function deleteQapBasisConfig(id: string, dealId: string) {
+  await db.delete(qapBasisConfigs).where(eq(qapBasisConfigs.id, id))
+  revalidatePath(`/deals/${dealId}/qap`)
+  revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
+}
+
+export async function replaceQapBasisConfigs(dealId: string, rows: BasisConfigData[]) {
+  const now = new Date().toISOString()
+  await db.delete(qapBasisConfigs).where(eq(qapBasisConfigs.deal_id, dealId))
+  if (rows.length > 0) {
+    await db.insert(qapBasisConfigs).values(
+      rows.map(r => ({
+        id: uuid(),
+        deal_id: dealId,
+        config_index: r.config_index,
+        label: r.label ?? null,
+        num_buildings: r.num_buildings ?? null,
+        resid_staff_sqft: r.resid_staff_sqft ?? null,
+        common_sqft: r.common_sqft ?? null,
+        lihtc_units: r.lihtc_units ?? null,
+        resid_units: r.resid_units ?? null,
+        lihtc_sqft: r.lihtc_sqft ?? null,
+        resid_sqft: r.resid_sqft ?? null,
+        homeless_constr_adj: r.homeless_constr_adj ?? null,
+        homeless_acq_adj: r.homeless_acq_adj ?? null,
+        updated_at: now,
+      }))
+    )
+  }
+  revalidatePath(`/deals/${dealId}/qap`)
+  revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
 }
