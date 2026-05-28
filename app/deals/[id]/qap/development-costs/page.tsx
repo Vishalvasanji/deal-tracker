@@ -49,6 +49,14 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     uploadedAt: dc['model_uploaded_at'] ?? '',
   }
 
+  const initialComments: Record<string, string> = {
+    s36_comment: dc['s36_comment'] ?? '',
+    s38_acq_comment: dc['s38_acq_comment'] ?? '',
+    s38_constr_comment: dc['s38_constr_comment'] ?? '',
+    s40_comment: dc['s40_comment'] ?? '',
+    s41_comment: dc['s41_comment'] ?? '',
+  }
+
   // Unit counts by bedroom (0–4) for the §40 HUD TDC limit.
   const unitsByBr = [0, 0, 0, 0, 0]
   let totalUnits = 0
@@ -89,6 +97,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
           model={model}
           initialAcqAdj={num(dc['s38_acq_adj'])}
           initialConstrAdj={num(dc['s38_constr_adj'])}
+          initialComments={initialComments}
           deps={deps}
         />
       </div>
