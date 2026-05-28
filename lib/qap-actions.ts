@@ -1,10 +1,11 @@
 'use server'
 
 import { db } from './db'
-import { qapFields, qapUnitTypes } from './db/schema'
+import { qapFields, qapUnitTypes, qapCostItems } from './db/schema'
 import { eq, and } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuid } from 'uuid'
+import { DEV_COST_LINES } from './qap-dev-costs'
 
 export async function upsertQapField(
   dealId: string,
@@ -46,6 +47,7 @@ export async function upsertQapField(
   revalidatePath(`/deals/${dealId}/qap/narrative`)
   revalidatePath(`/deals/${dealId}/qap/project-description`)
   revalidatePath(`/deals/${dealId}/qap/project-description/section-10`)
+  revalidatePath(`/deals/${dealId}/qap/development-costs`)
 }
 
 export async function upsertQapUnitType(
@@ -165,4 +167,65 @@ export async function replaceQapUnitTypes(dealId: string, rows: UnitRowData[]) {
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+}
+
+// ─── Development Costs (qap_cost_items) ────────────────────────────────────────
+
+/** Upsert a single development-cost line amount (keyed by deal_id + line_key). */
+export async function upsertQapCostItem(dealId: string, lineKey: string, amount: number | null) {
+  const cfg = DEV_COST_LINES.find(l => l.line_key === lineKey)
+  if (!cfg) return
+
+  const existing = await db
+    .select({ id: qapCostItems.id })
+    .from(qapCostItems)
+    .where(and(eq(qapCostItems.deal_id, dealId), eq(qapCostItems.line_key, lineKey)))
+    .limit(1)
+
+  const now = new Date().toISOString()
+
+  if (existing.length > 0) {
+    await db
+      .update(qapCostItems)
+      .set({ amount, updated_at: now })
+      .where(eq(qapCostItems.id, existing[0].id))
+  } else {
+    await db.insert(qapCostItems).values({
+      id: uuid(),
+      deal_id: dealId,
+      category: cfg.category,
+      line_key: cfg.line_key,
+      label: cfg.label,
+      amount,
+      updated_at: now,
+    })
+  }
+
+  revalidatePath(`/deals/${dealId}/qap`)
+  revalidatePath(`/deals/${dealId}/qap/development-costs`)
+}
+
+/** Idempotently insert any missing development-cost line rows for a deal. */
+export async function seedQapCostItems(dealId: string) {
+  const existing = await db
+    .select({ line_key: qapCostItems.line_key })
+    .from(qapCostItems)
+    .where(eq(qapCostItems.deal_id, dealId))
+
+  const have = new Set(existing.map(e => e.line_key))
+  const missing = DEV_COST_LINES.filter(l => !have.has(l.line_key))
+  if (missing.length === 0) return
+
+  const now = new Date().toISOString()
+  await db.insert(qapCostItems).values(
+    missing.map(l => ({
+      id: uuid(),
+      deal_id: dealId,
+      category: l.category,
+      line_key: l.line_key,
+      label: l.label,
+      amount: null,
+      updated_at: now,
+    }))
+  )
 }
