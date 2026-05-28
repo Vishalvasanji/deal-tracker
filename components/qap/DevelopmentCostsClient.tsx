@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { upsertQapCostItem, upsertQapField } from '@/lib/qap-actions'
 import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
-import { computeDevCosts, type DevCostDeps, type BasisAdjustment } from '@/lib/qap-dev-costs-calc'
+import { computeDevCosts, type DevCostDeps, type BasisAdjustment, type FeeLimitItem } from '@/lib/qap-dev-costs-calc'
 import { ModelUpload } from './ModelUpload'
 import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Info, X, Plus, Pencil, Trash2 } from 'lucide-react'
 
@@ -49,6 +49,7 @@ export function DevelopmentCostsClient({
   const [adjForm, setAdjForm] = useState<AdjForm | null>(null)
   const [comments, setComments] = useState<Record<string, string>>(initialComments)
   const [basisModal, setBasisModal] = useState<null | 'acq' | 'constr'>(null)
+  const [feeModal, setFeeModal] = useState<FeeLimitItem | null>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [showCalcs, setShowCalcs] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -405,7 +406,7 @@ export function DevelopmentCostsClient({
           {/* §41 Fee limits */}
           <div className={cardCls}>
             <p className={subHdr}>§41 — Fee Limit Computations</p>
-            <p className="text-xs text-muted-foreground">Builder Profit Fee Base: <span className="font-semibold tabular-nums">{money(result.feeLimits.builderProfitFeeBase)}</span></p>
+            <p className="text-xs text-muted-foreground">Click any fee to see how its limit is calculated.</p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -417,28 +418,23 @@ export function DevelopmentCostsClient({
                   </tr>
                 </thead>
                 <tbody>
-                  {result.feeLimits.items.map((it, i) => (
-                    <tr key={i} className="border-b border-border/30">
-                      <td className="py-1.5">{it.label}</td>
-                      <td className="py-1.5 text-right tabular-nums">{money(it.allowable)}</td>
+                  {result.feeLimits.items.map(it => (
+                    <tr key={it.key} className="border-b border-border/30 hover:bg-muted/30 cursor-pointer" onClick={() => setFeeModal(it)}>
+                      <td className="py-1.5">
+                        <span className="text-primary hover:underline inline-flex items-center gap-1">{it.label} <Info className="h-3 w-3" /></span>
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums">{it.allowable == null ? 'n/a' : money(it.allowable)}</td>
                       <td className="py-1.5 text-right tabular-nums">{money(it.proposed)}</td>
-                      <td className={`py-1.5 text-right tabular-nums ${it.over > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>{money(it.over)}</td>
+                      <td className={`py-1.5 text-right tabular-nums ${it.allowable != null && it.over > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
+                        {it.allowable == null ? '—' : (it.over < 0 ? `(${money(Math.abs(it.over))})` : money(it.over))}
+                      </td>
                     </tr>
                   ))}
-                  <tr className="border-b border-border/30">
-                    <td className="py-1.5">Developer Fee {result.feeLimits.developerFeeException ? '(bond 4% — limit n/a)' : '(15%)'}</td>
-                    <td className="py-1.5 text-right tabular-nums">{result.feeLimits.developerFeeLimit == null ? 'n/a' : money(result.feeLimits.developerFeeLimit)}</td>
-                    <td className="py-1.5 text-right tabular-nums">{money(result.feeLimits.developerFeeProposed)}</td>
-                    <td className={`py-1.5 text-right tabular-nums ${result.feeLimits.developerFeeLimit != null && result.feeLimits.developerFeeProposed - result.feeLimits.developerFeeLimit > 0 ? 'text-rose-600' : 'text-muted-foreground'}`}>
-                      {result.feeLimits.developerFeeLimit == null ? '—' : money(result.feeLimits.developerFeeProposed - result.feeLimits.developerFeeLimit)}
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </div>
             <p className="text-xs text-muted-foreground">
-              Developer Fee Base: <span className="font-semibold tabular-nums">{money(result.feeLimits.developerFeeBase)}</span> ·
-              Contingency: <span className={result.feeLimits.contingency.over ? 'text-rose-600 font-semibold' : 'font-semibold'}>{Math.round(result.feeLimits.contingency.pct * 100)}%</span> of construction contract
+              Construction Contingency: <span className={result.feeLimits.contingency.over ? 'text-rose-600 font-semibold' : 'font-semibold'}>{Math.round(result.feeLimits.contingency.pct * 100)}%</span> of construction contract (10% cap)
             </p>
             <p className="text-xs text-muted-foreground/70">Pending: {result.feeLimits.pending.join('; ')}.</p>
             {commentBox('s41_comment', 'Comment on Fee Limits')}
@@ -565,6 +561,54 @@ export function DevelopmentCostsClient({
               <button type="button" onClick={saveAdjustment} className="text-sm rounded-lg bg-primary text-primary-foreground px-3 py-1.5 font-medium">
                 Save
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fee limit calculation modal */}
+      {feeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setFeeModal(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border sticky top-0 bg-card">
+              <h3 className="font-semibold text-sm">{feeModal.label} — Limit Calculation</h3>
+              <button type="button" onClick={() => setFeeModal(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-3 space-y-3">
+              <table className="w-full text-sm">
+                <tbody>
+                  {feeModal.breakdown.map((row, i) => (
+                    <tr key={i} className={`border-b border-border/30 ${row.strong ? 'font-semibold border-t border-border' : ''}`}>
+                      <td className="py-1.5 pr-3">{row.label}</td>
+                      <td className={`py-1.5 text-right tabular-nums whitespace-nowrap ${row.value < 0 ? 'text-rose-600' : ''}`}>
+                        {row.value < 0 ? `(${money(Math.abs(row.value))})` : money(row.value)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="rounded-lg bg-muted/40 px-3 py-2 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Allowable ({feeModal.allowableLabel})</span>
+                  <span className="font-semibold tabular-nums">{feeModal.allowable == null ? 'n/a' : money(feeModal.allowable)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Proposed</span>
+                  <span className="font-semibold tabular-nums">{money(feeModal.proposed)}</span>
+                </div>
+                {feeModal.allowable != null && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Over / (Under)</span>
+                    <span className={`font-semibold tabular-nums ${feeModal.over > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {feeModal.over < 0 ? `(${money(Math.abs(feeModal.over))})` : money(feeModal.over)}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {feeModal.note && <p className="text-xs text-amber-600">{feeModal.note}</p>}
             </div>
           </div>
         </div>
