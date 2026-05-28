@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { upsertQapBasisConfig, replaceQapBasisConfigs } from '@/lib/qap-actions'
 import { computeBasis, type BasisConfigInput, type BasisDeps, type BasisConfigResult } from '@/lib/qap-basis-calc'
-import { Plus, Trash2, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, CheckCircle2, Info, X, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface Props {
   dealId: string
@@ -45,15 +45,11 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
     initialConfigs.length > 0 ? initialConfigs : [emptyConfig(0)]
   )
   const [detail, setDetail] = useState<BasisConfigResult | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [savedAt, setSavedAt] = useState<string | null>(null)
 
   const result = useMemo(() => computeBasis(configs, deps), [configs, deps])
-  const byIndex = useMemo(() => {
-    const m: Record<number, BasisConfigResult> = {}
-    for (const r of result.configs) m[r.config_index] = r
-    return m
-  }, [result])
 
   function setField(idx: number, key: keyof BasisConfigInput, raw: string) {
     setConfigs(prev => prev.map((c, i) => {
@@ -96,7 +92,7 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
         </span>
       </div>
 
-      {/* Headline */}
+      {/* Headline — the answer */}
       <div className="rounded-2xl border border-border bg-card px-5 py-4">
         <p className="text-xs text-muted-foreground">Maximum Permitted Annual Credit</p>
         <p className="text-3xl font-bold tabular-nums">{money(result.totals.maximumPermittedCredit)}</p>
@@ -106,15 +102,7 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
         </p>
       </div>
 
-      {/* Inputs context (read-only, from other sections) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className={cardCls}><p className={subHdr}>Adj. Constr. Basis</p><p className="text-sm font-semibold tabular-nums">{money(deps.adjustedConstructionBasis)}</p><p className="text-[11px] text-muted-foreground">§38</p></div>
-        <div className={cardCls}><p className={subHdr}>Adj. Acq. Basis</p><p className="text-sm font-semibold tabular-nums">{money(deps.adjustedAcquisitionBasis)}</p><p className="text-[11px] text-muted-foreground">§38</p></div>
-        <div className={cardCls}><p className={subHdr}>Constr. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
-        <div className={cardCls}><p className={subHdr}>Acq. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
-        <div className={cardCls}><p className={subHdr}>Constr. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
-        <div className={cardCls}><p className={subHdr}>Acq. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
-      </div>
+      {/* Missing-input guidance — explains a $0 result (signal, always shown) */}
       {(!basisReady || !ratesReady) && (
         <p className="text-xs text-amber-600 flex items-start gap-1">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -125,7 +113,7 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
         </p>
       )}
 
-      {/* Reconciliation errors */}
+      {/* Reconciliation issues — always shown when present */}
       {result.errors.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1.5">
           <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Reconciliation Issues</p>
@@ -141,11 +129,6 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
             ))}
           </ul>
         </div>
-      )}
-      {result.errors.length === 0 && configs.length > 0 && (
-        <p className="text-xs text-emerald-600 flex items-center gap-1">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Configurations reconcile to the project totals.
-        </p>
       )}
 
       {/* Configuration input — configurations across the columns (matches the Excel) */}
@@ -209,49 +192,78 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
         </p>
       </div>
 
-      {/* Per-configuration results */}
-      <div className="space-y-2">
-        <p className={subHdr}>Qualified Basis &amp; Credit by Configuration</p>
-        <p className="text-xs text-muted-foreground">Click a configuration to see its full derivation.</p>
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground">
-                <th className="text-left px-3 py-2">Configuration</th>
-                <th className="text-right px-3 py-2">Applic. Fraction</th>
-                <th className="text-right px-3 py-2">Qual. Constr. Basis</th>
-                <th className="text-right px-3 py-2">Qual. Acq. Basis</th>
-                <th className="text-right px-3 py-2">Constr. Credit</th>
-                <th className="text-right px-3 py-2">Acq. Credit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.configs.map(r => (
-                <tr key={r.config_index} className="border-b border-border/30 hover:bg-muted/20 cursor-pointer" onClick={() => setDetail(r)}>
-                  <td className="px-3 py-2">
-                    <span className="text-primary hover:underline inline-flex items-center gap-1">{r.label} <Info className="h-3 w-3" /></span>
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums">{pctStr(r.applicableFraction)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{money(r.qualConstr)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{money(r.qualAcq)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{money(r.permittedConstrCredit)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{money(r.permittedAcqCredit)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-border bg-muted/20 font-semibold">
-                <td className="px-3 py-2">Project Total (× buildings)</td>
-                <td className="px-3 py-2" />
-                <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.qualifiedConstructionBasis)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.qualifiedAcquisitionBasis)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.permittedConstructionCredit)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.permittedAcquisitionCredit)}</td>
-              </tr>
-            </tfoot>
-          </table>
+      {/* Details toggle */}
+      <button
+        onClick={() => setShowDetails(s => !s)}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {showDetails ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {showDetails ? 'Hide calculation details' : 'Show calculation details'}
+      </button>
+
+      {showDetails && (
+        <div className="space-y-6">
+          {/* Inputs context (read-only, from other sections) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className={cardCls}><p className={subHdr}>Adj. Constr. Basis</p><p className="text-sm font-semibold tabular-nums">{money(deps.adjustedConstructionBasis)}</p><p className="text-[11px] text-muted-foreground">§38</p></div>
+            <div className={cardCls}><p className={subHdr}>Adj. Acq. Basis</p><p className="text-sm font-semibold tabular-nums">{money(deps.adjustedAcquisitionBasis)}</p><p className="text-[11px] text-muted-foreground">§38</p></div>
+            <div className={cardCls}><p className={subHdr}>Constr. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
+            <div className={cardCls}><p className={subHdr}>Acq. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
+            <div className={cardCls}><p className={subHdr}>Constr. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
+            <div className={cardCls}><p className={subHdr}>Acq. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
+          </div>
+
+          {result.errors.length === 0 && configs.length > 0 && (
+            <p className="text-xs text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Configurations reconcile to the project totals.
+            </p>
+          )}
+
+          {/* Per-configuration results */}
+          <div className="space-y-2">
+            <p className={subHdr}>Qualified Basis &amp; Credit by Configuration</p>
+            <p className="text-xs text-muted-foreground">Click a configuration to see its full derivation.</p>
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30 text-xs font-semibold text-muted-foreground">
+                    <th className="text-left px-3 py-2">Configuration</th>
+                    <th className="text-right px-3 py-2">Applic. Fraction</th>
+                    <th className="text-right px-3 py-2">Qual. Constr. Basis</th>
+                    <th className="text-right px-3 py-2">Qual. Acq. Basis</th>
+                    <th className="text-right px-3 py-2">Constr. Credit</th>
+                    <th className="text-right px-3 py-2">Acq. Credit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.configs.map(r => (
+                    <tr key={r.config_index} className="border-b border-border/30 hover:bg-muted/20 cursor-pointer" onClick={() => setDetail(r)}>
+                      <td className="px-3 py-2">
+                        <span className="text-primary hover:underline inline-flex items-center gap-1">{r.label} <Info className="h-3 w-3" /></span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{pctStr(r.applicableFraction)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(r.qualConstr)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(r.qualAcq)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(r.permittedConstrCredit)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{money(r.permittedAcqCredit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-border bg-muted/20 font-semibold">
+                    <td className="px-3 py-2">Project Total (× buildings)</td>
+                    <td className="px-3 py-2" />
+                    <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.qualifiedConstructionBasis)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.qualifiedAcquisitionBasis)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.permittedConstructionCredit)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{money(result.totals.permittedAcquisitionCredit)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Per-config detail modal */}
       {detail && (
