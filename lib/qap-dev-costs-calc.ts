@@ -84,6 +84,8 @@ export interface BasisLine {
   label: string
   value: number
   pending?: boolean     // input not yet captured in the web app (treated as 0)
+  header?: boolean      // render as a sub-group heading (no amount)
+  indent?: boolean      // render indented under a heading
 }
 
 export interface BasisAdjustment {
@@ -148,14 +150,21 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
 
   const acqBreakdown: BasisLine[] = [
     { label: 'Building Acquisition', value: n(amounts['building_acquisition']) },
+    ...(acqAdjs.length > 0 ? [{ label: 'Adjustments', value: 0, header: true } as BasisLine] : []),
     ...acqAdjs.map(a => ({
-      label: `Adjustment: ${a.explanation?.trim() || '(no explanation)'}`,
+      label: a.explanation?.trim() || '(no explanation)',
       value: n(a.amount),
+      indent: true,
     })),
   ]
   const constrBreakdown: BasisLine[] = [
     { label: 'Total Development Cost', value: total },
-    { label: 'Less: Adjusted Acquisition Basis', value: -adjustedAcquisitionBasis },
+    {
+      label: acqAdjs.length > 0
+        ? 'Less: Adjusted Acquisition Basis (incl. acquisition adjustments)'
+        : 'Less: Adjusted Acquisition Basis',
+      value: -adjustedAcquisitionBasis,
+    },
     { label: 'Less: Land Cost', value: -land },
     { label: 'Less: Out-of-basis Community Facilities', value: 0, pending: true },
     { label: 'Less: Out-of-basis Community Service Facilities', value: 0, pending: true },
@@ -167,9 +176,11 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     { label: 'Less: Federal Grants', value: 0, pending: true },
     { label: 'Less: HOME', value: 0, pending: true },
     { label: 'Less: Tax-exempt Bond Issuance Costs', value: 0, pending: true },
+    ...(constrAdjs.length > 0 ? [{ label: 'Construction Adjustments', value: 0, header: true } as BasisLine] : []),
     ...constrAdjs.map(a => ({
-      label: `Adjustment: ${a.explanation?.trim() || '(no explanation)'}`,
+      label: a.explanation?.trim() || '(no explanation)',
       value: n(a.amount),
+      indent: true,
     })),
   ]
 
