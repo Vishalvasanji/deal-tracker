@@ -463,14 +463,22 @@ export function DevelopmentCostsClient({
               <table className="w-full text-sm">
                 <tbody>
                   {(basisModal === 'acq' ? result.basis.acqBreakdown : result.basis.constrBreakdown).map((row, i) => (
-                    <tr key={i} className="border-b border-border/30">
-                      <td className={`py-1.5 pr-3 ${row.pending ? 'text-muted-foreground/60' : ''}`}>
-                        {row.label}{row.pending && <span className="ml-1 text-xs">(pending)</span>}
-                      </td>
-                      <td className={`py-1.5 text-right tabular-nums whitespace-nowrap ${row.value < 0 ? 'text-rose-600' : row.pending ? 'text-muted-foreground/60' : ''}`}>
-                        {row.value < 0 ? `(${money(Math.abs(row.value))})` : money(row.value)}
-                      </td>
-                    </tr>
+                    row.header ? (
+                      <tr key={i}>
+                        <td colSpan={2} className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {row.label}
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={i} className="border-b border-border/30">
+                        <td className={`py-1.5 pr-3 ${row.indent ? 'pl-4' : ''} ${row.pending ? 'text-muted-foreground/60' : ''}`}>
+                          {row.label}{row.pending && <span className="ml-1 text-xs">(pending)</span>}
+                        </td>
+                        <td className={`py-1.5 text-right tabular-nums whitespace-nowrap ${row.value < 0 ? 'text-rose-600' : row.pending ? 'text-muted-foreground/60' : ''}`}>
+                          {row.value < 0 ? `(${money(Math.abs(row.value))})` : money(row.value)}
+                        </td>
+                      </tr>
+                    )
                   ))}
                   <tr className="border-t-2 border-border font-bold">
                     <td className="py-2">{basisModal === 'acq' ? 'Adjusted Acquisition Basis' : 'Adjusted Construction Basis'}</td>
