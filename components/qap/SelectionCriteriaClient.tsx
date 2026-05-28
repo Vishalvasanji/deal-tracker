@@ -90,9 +90,14 @@ export function SelectionCriteriaClient({ dealId, deps, initialSelfScores }: Pro
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">{c.label}</p>
                     {c.detail && <p className="text-[11px] font-normal text-muted-foreground">{c.detail}</p>}
+                    {c.warn && (
+                      <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3 shrink-0" /> {c.warn}
+                      </p>
+                    )}
                   </div>
                   <span className="text-sm tabular-nums text-right font-semibold">{pts(c.calc)} / {c.max}</span>
-                  <span />
+                  <span className="text-sm tabular-nums text-right font-semibold text-muted-foreground pr-2">{pts(c.selfScore)}</span>
                 </div>
               ) : (
                 <div key={c.key} className="grid grid-cols-[1fr_5rem_6rem] gap-x-3 px-4 py-2 items-center">

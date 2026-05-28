@@ -28,8 +28,9 @@ export interface CriterionResult {
   calc: number
   max: number
   detail: string
-  selfScore: number
-  level: 'group' | 'line'   // 'group' = header with rolled-up calc (no self-score input)
+  selfScore: number         // for groups: the rolled-up (capped) self-score subtotal
+  level: 'group' | 'line'   // 'group' = header with rolled-up calc/self (no input)
+  warn?: string             // e.g. "only one selection allowed" on a select-one group
 }
 
 export interface SectionResult {
@@ -61,11 +62,15 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   const { s12, s24, s25, s26, s27, totalUnits, pctUnitsAt30Ami, tdc, selfScores } = deps
   const q = (m: Record<string, string>, k: string) => (m[k] ?? '') === 'Yes'
   const ss = (k: string) => num(String(selfScores[k] ?? 0))
+  // A line's self-score contribution is capped at that line's own maximum.
+  const lself = (key: string, max: number) => Math.min(ss(key), max)
+  // "Select one" groups warn when the applicant has self-scored more than one line.
+  const selOneWarn = (keys: string[]) =>
+    keys.filter(k => ss(k) > 0).length > 1 ? 'Only one selection allowed — the highest self-score counts' : ''
   const line = (key: string, label: string, calc: number, max: number, detail = ''): CriterionResult =>
     ({ key, label, calc, max, detail, selfScore: ss(key), level: 'line' })
-  const group = (key: string, label: string, calc: number, max: number, detail = ''): CriterionResult =>
-    ({ key, label, calc, max, detail, selfScore: 0, level: 'group' })
-  const selfSum = (crits: CriterionResult[]) => crits.reduce((s, c) => s + (c.level === 'line' ? c.selfScore : 0), 0)
+  const group = (key: string, label: string, calc: number, max: number, detail = '', selfRollup = 0, warn = ''): CriterionResult =>
+    ({ key, label, calc, max, detail, selfScore: selfRollup, level: 'group', warn })
 
   // ── §I. TARGETED PROJECT TYPE ───────────────────────────────────────────────
   const qct = q(s12, 'is_qct')
@@ -100,15 +105,23 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   const homeownershipPts = newConst && q(s12, 'is_homeownership') ? 1 : 0
 
   const sectionI_calc = Math.min(SECTION_MAX.I, Math.max(newConstBlock, rehabPts) + redevPts + homeownershipPts)
+  // Self-score mirrors the calc aggregation (MAX for select-one, caps applied) on the entries.
+  const redevSelf = Math.min(Math.max(lself('I_A_distressed', 3), lself('I_A_redev', 3), lself('I_A_owner', 3), lself('I_A_ccrp', 3), lself('I_A_pha', 3)), 3)
+  const rehabSelf = Math.min(Math.max(lself('I_B_lihtc', 8), lself('I_B_usda', 8), lself('I_B_nonhistoric', 7), lself('I_B_blighted', 7), lself('I_B_rehab_infill', 7), lself('I_B_historic', 3)), 8)
+  const newConstBlockSelf = Math.min(Math.max(lself('I_C_newconst', 7), lself('I_C_ncinfill', 7)), 7)
+  const homeownershipSelf = lself('I_C_homeownership', 1)
+  const sectionI_self = Math.min(SECTION_MAX.I, Math.max(newConstBlockSelf, rehabSelf) + redevSelf + homeownershipSelf)
   const sectionI_crit = [
     group('grp_I_A', 'A. Community Redevelopment — select one (max 3)', redevPts, 3,
-      redevPts === 0 && !phaPts ? qualNote : ''),
+      redevPts === 0 && !phaPts ? qualNote : '', redevSelf,
+      selOneWarn(['I_A_distressed', 'I_A_redev', 'I_A_owner', 'I_A_ccrp', 'I_A_pha'])),
     line('I_A_distressed', 'a. Distressed Property', distressedPts, 3, distressedPts ? '' : q(s12, 'is_distressed') ? qualNote : ''),
     line('I_A_redev', 'b. Redevelopment Property', redevPropPts, 3, redevPropPts ? '' : q(s12, 'is_redevelopment') ? qualNote : ''),
     line('I_A_owner', 'c. Owner Occupied / Plan of Action', ownerPts, 3, ownerPts ? '' : q(s12, 'is_owner_occupied_dev') ? qualNote : ''),
     line('I_A_ccrp', 'ii. New Construction in a Concerted Community Revitalization Plan', ccrpNewPts, 3),
     line('I_A_pha', 'iii. PHA sponsored project', phaPts, 3),
-    group('grp_I_B', 'B. Rehabilitation & Preservation — select one (max 8)', rehabPts, 8),
+    group('grp_I_B', 'B. Rehabilitation & Preservation — select one (max 8)', rehabPts, 8, '', rehabSelf,
+      selOneWarn(['I_B_lihtc', 'I_B_usda', 'I_B_nonhistoric', 'I_B_blighted', 'I_B_rehab_infill', 'I_B_historic'])),
     line('I_B_lihtc', 'i.a Existing LIHTC project', h22, 8),
     line('I_B_usda', 'i.b Existing USDA / LHC / Federally Funded', h23, 8),
     line('I_B_nonhistoric', 'i.c Existing non-historic residential building', h24, 7),
@@ -116,14 +129,15 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
     line('I_B_rehab_infill', 'i.e Rehab Infill / Scattered Site', h26, 7),
     line('I_B_historic', 'i.f Preservation of Residential Historic Property', h27, 3),
     group('grp_I_C', 'C. New Construction (max 8)', newConstBlock + homeownershipPts, 8,
-      newConstBlock && rehabPts ? 'New construction and rehab are mutually exclusive — the higher counts' : ''),
+      newConstBlock && rehabPts ? 'New construction and rehab are mutually exclusive — the higher counts' : '',
+      newConstBlockSelf + homeownershipSelf, selOneWarn(['I_C_newconst', 'I_C_ncinfill'])),
     line('I_C_newconst', 'i.a New Construction', h31, 7, h31 ? '' : (newConst && isInfill ? 'Infill project — see NC Infill' : '')),
     line('I_C_ncinfill', 'i.b New Construction Infill / Scattered Site', h32, 7),
     line('I_C_homeownership', 'i.c Homeownership Project', homeownershipPts, 1),
   ]
   const sectionI: SectionResult = {
     roman: 'I', title: 'Targeted Project Type', max: SECTION_MAX.I,
-    criteria: sectionI_crit, calcSubtotal: sectionI_calc, selfSubtotal: selfSum(sectionI_crit),
+    criteria: sectionI_crit, calcSubtotal: sectionI_calc, selfSubtotal: sectionI_self,
   }
 
   // ── §II. TARGETED POPULATION TYPE (max 6, special needs OR elderly) ──────────
@@ -135,13 +149,14 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   if (snClaim) snPts = snPct >= 0.30 ? 6 : snPct >= 0.20 ? 5 : snPct >= 0.10 ? 4 : 0
   const elderly100 = q(s24, 's24_03_elderly_100pct')
   const elderlyPts = snPts === 0 && elderly100 ? 6 : 0
+  const sectionII_self = Math.min(SECTION_MAX.II, Math.max(lself('II_A_special_needs', 6), lself('II_A_elderly', 6)))
   const sectionII_crit = [
     line('II_A_special_needs', 'A.i Special Needs Households', snPts, 6, snClaim ? `${pct(snPct)} of units for special needs` : 'Not claimed'),
     line('II_A_elderly', 'A.ii Elderly Households (100%)', elderlyPts, 6, elderly100 ? (snPts > 0 ? 'Cannot combine with special needs' : '100% elderly') : 'Not 100% elderly'),
   ]
   const sectionII: SectionResult = {
     roman: 'II', title: 'Targeted Population Type', max: SECTION_MAX.II,
-    criteria: sectionII_crit, calcSubtotal: Math.max(snPts, elderlyPts), selfSubtotal: selfSum(sectionII_crit),
+    criteria: sectionII_crit, calcSubtotal: Math.max(snPts, elderlyPts), selfSubtotal: sectionII_self,
   }
 
   // ── §III. PRIORITY DEVELOPMENT AREAS AND OTHER PREFERENCES (max 13) ──────────
@@ -159,9 +174,13 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   const afRatio = afClaim && tdc > 0 ? afAmount / tdc : 0
   const afPts = afRatio >= 0.07 ? 4 : afRatio >= 0.04 ? 3 : afRatio >= 0.02 ? 2 : 0
   const sectionIII_calc = Math.min(SECTION_MAX.III, extAffordPts + govPts + parishPts + afPts)
+  const govSelf = Math.max(lself('III_B_dda', 2), lself('III_B_qct', 2), lself('III_B_rto', 2))
+  const sectionIII_self = Math.min(SECTION_MAX.III,
+    lself('III_A_ext_afford', 7) + govSelf + lself('III_B_parish', 2) + lself('III_C_addl_financial', 4))
   const sectionIII_crit = [
     line('III_A_ext_afford', 'A. Extended Affordability Agreement', extAffordPts, 7, extAffordPts > 0 ? (s25['s25_01_waiver_length'] ?? '') : (extClaim ? 'Requires written agreement + length' : 'Not claimed')),
-    group('grp_III_B', 'B.i Governmental Priorities — located in DDA / QCT / RTO (max 2)', govPts, 2),
+    group('grp_III_B', 'B.i Governmental Priorities — located in DDA / QCT / RTO (max 2)', govPts, 2, '', govSelf,
+      selOneWarn(['III_B_dda', 'III_B_qct', 'III_B_rto'])),
     line('III_B_dda', 'Difficult Development Area (DDA)', ddaPts, 2, dda ? 'Located in a DDA' : 'Not in a DDA'),
     line('III_B_qct', 'Qualified Census Tract (QCT)', qctPts, 2, qct ? 'Located in a QCT' : 'Not in a QCT'),
     line('III_B_rto', 'Federally / State recognized Tribal Organization (RTO)', rtoPts, 2, tribal ? 'Located in an RTO' : 'Not in an RTO'),
@@ -170,7 +189,7 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   ]
   const sectionIII: SectionResult = {
     roman: 'III', title: 'Priority Development Areas & Other Preferences', max: SECTION_MAX.III,
-    criteria: sectionIII_crit, calcSubtotal: sectionIII_calc, selfSubtotal: selfSum(sectionIII_crit),
+    criteria: sectionIII_crit, calcSubtotal: sectionIII_calc, selfSubtotal: sectionIII_self,
   }
 
   // ── §IV. LOCATION CHARACTERISTICS (max 5) ────────────────────────────────────
@@ -178,12 +197,13 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   let nhScore = 0
   for (const k of NEIGHBORHOOD_FEATURE_KEYS) nhScore += neighborhoodFeatureScore(s26[k] ?? '', isRural)
   const sectionIV_calc = Math.min(SECTION_MAX.IV, nhScore)
+  const sectionIV_self = Math.min(SECTION_MAX.IV, lself('IV_A_neighborhood', 5))
   const sectionIV_crit = [
     line('IV_A_neighborhood', 'A.i Neighborhood Features', sectionIV_calc, 5, `${nhScore.toFixed(1)} feature points (${isRural ? 'rural' : 'urban'} thresholds)`),
   ]
   const sectionIV: SectionResult = {
     roman: 'IV', title: 'Location Characteristics', max: SECTION_MAX.IV,
-    criteria: sectionIV_crit, calcSubtotal: sectionIV_calc, selfSubtotal: selfSum(sectionIV_crit),
+    criteria: sectionIV_crit, calcSubtotal: sectionIV_calc, selfSubtotal: sectionIV_self,
   }
 
   // ── §V. PROJECT CHARACTERISTICS (max 16) ──────────────────────────────────────
@@ -215,17 +235,24 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   const hudPts = q(s27, 's27_03_hud_defensible_space') ? 2 : 0
   const fqhcPts = q(s27, 's27_03_fqhc') ? 1 : 0
   const sectionV_calc = Math.min(SECTION_MAX.V, cfPts + dishPts + amenityPts + accPts + secI + secII + hudPts + fqhcPts)
+  const amenSelf = Math.min(lself('V_C_playground', 1) + lself('V_C_computer', 1) + lself('V_C_exercise', 1) + lself('V_C_picnic', 1) + lself('V_C_courtyard', 1), 2)
+  const secISelf = Math.max(lself('V_E_cameras', 2), lself('V_E_gate', 2), lself('V_E_guard', 2))
+  const secIISelf = lself('V_E_surveillance', 1)
+  const sectionV_self = Math.min(SECTION_MAX.V,
+    lself('V_A_community_fac', 2) + lself('V_B_dishwashers', 1) + amenSelf + lself('V_D_accessible', 3) +
+    secISelf + secIISelf + lself('V_F_hud_defensible', 2) + lself('V_G_fqhc', 1))
   const sectionV_crit = [
     line('V_A_community_fac', 'A. Community Facilities', cfPts, 2, cfDetail),
     line('V_B_dishwashers', 'B. Dishwashers in each unit (required)', dishPts, 1, dishPts ? 'Provided' : 'Not provided'),
-    group('grp_V_C', 'C. Project Amenities (max 2)', amenityPts, 2, `${amenityCount} claimed`),
+    group('grp_V_C', 'C. Project Amenities (max 2)', amenityPts, 2, `${amenityCount} claimed`, amenSelf),
     line('V_C_playground', 'Playground', amen[0], 1),
     line('V_C_computer', 'Computer Center (min 5 computers)', amen[1], 1),
     line('V_C_exercise', 'Exercise Room (with equipment)', amen[2], 1),
     line('V_C_picnic', 'Picnic Area with Permanent Grill', amen[3], 1),
     line('V_C_courtyard', 'Courtyard with Seating', amen[4], 1),
     line('V_D_accessible', 'D. Additional Accessible Units', accPts, 3, totalUnits > 0 ? `${pct(accPct)} of units above the §504 minimum` : 'Enter unit mix'),
-    group('grp_V_E', 'E. On-Site Security — i. highest of the three counts (max 2) + ii (max 3 total)', secI + secII, 3),
+    group('grp_V_E', 'E. On-Site Security — i. highest of the three counts (max 2) + ii (max 3 total)', secI + secII, 3, '', secISelf + secIISelf,
+      selOneWarn(['V_E_cameras', 'V_E_gate', 'V_E_guard'])),
     line('V_E_cameras', 'i. Security Cameras', camPts, 2),
     line('V_E_gate', 'i. Security Gate', gatePts, 2),
     line('V_E_guard', 'i. On-Site Security Guard', guardPts, 2),
@@ -235,7 +262,7 @@ export function computeSelection(deps: SelectionDeps): SelectionResult {
   ]
   const sectionV: SectionResult = {
     roman: 'V', title: 'Project Characteristics', max: SECTION_MAX.V,
-    criteria: sectionV_crit, calcSubtotal: sectionV_calc, selfSubtotal: selfSum(sectionV_crit),
+    criteria: sectionV_crit, calcSubtotal: sectionV_calc, selfSubtotal: sectionV_self,
   }
 
   const sections = [sectionI, sectionII, sectionIII, sectionIV, sectionV]
