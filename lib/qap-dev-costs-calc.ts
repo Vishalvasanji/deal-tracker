@@ -19,9 +19,8 @@ export interface DevCostDeps {
   bondFinanced?: boolean
   /** PD §11 — transaction includes 4% LIHTCs */
   is4pct?: boolean
-  /** §38 user adjustment rows (acquisition + construction basis) */
-  acqBasisAdjustments?: number
-  constrBasisAdjustments?: number
+  /** §38 user adjustment rows (acquisition + construction basis) — list form */
+  basisAdjustments?: BasisAdjustment[]
 }
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) ? v : 0)
@@ -87,6 +86,13 @@ export interface BasisLine {
   pending?: boolean     // input not yet captured in the web app (treated as 0)
 }
 
+export interface BasisAdjustment {
+  id: string
+  basis_type: 'acq' | 'constr'
+  explanation: string
+  amount: number
+}
+
 export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCostResult {
   // ── Category subtotals (Excel column D) ──
   const keys = DEV_COST_CATEGORIES.map(c => c.key)
@@ -119,8 +125,13 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   }
 
   // ── §38 Acquisition & Construction Basis ──
+  const acqAdjs    = (deps.basisAdjustments ?? []).filter(a => a.basis_type === 'acq')
+  const constrAdjs = (deps.basisAdjustments ?? []).filter(a => a.basis_type === 'constr')
+  const acqAdjTotal    = acqAdjs.reduce((s, a) => s + n(a.amount), 0)
+  const constrAdjTotal = constrAdjs.reduce((s, a) => s + n(a.amount), 0)
+
   const land = n(amounts['land_donated']) + n(amounts['land_other'])
-  const adjustedAcquisitionBasis = n(amounts['building_acquisition']) + n(deps.acqBasisAdjustments)
+  const adjustedAcquisitionBasis = n(amounts['building_acquisition']) + acqAdjTotal
   const lhcFees =
     n(amounts['lhc_nontc_app_fee']) + n(amounts['lhc_tc_app_fee']) +
     n(amounts['lhc_tc_reservation_fee']) + n(amounts['lhc_fees_other'])
@@ -133,11 +144,14 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   const adjustedConstructionBasis =
     total - adjustedAcquisitionBasis - land -
     subtotals['permanent_financing'] - subtotals['reserves'] -
-    subtotals['syndication'] - lhcFees + n(deps.constrBasisAdjustments)
+    subtotals['syndication'] - lhcFees + constrAdjTotal
 
   const acqBreakdown: BasisLine[] = [
     { label: 'Building Acquisition', value: n(amounts['building_acquisition']) },
-    { label: 'Adjustment (explain)', value: n(deps.acqBasisAdjustments) },
+    ...acqAdjs.map(a => ({
+      label: `Adjustment: ${a.explanation?.trim() || '(no explanation)'}`,
+      value: n(a.amount),
+    })),
   ]
   const constrBreakdown: BasisLine[] = [
     { label: 'Total Development Cost', value: total },
@@ -153,7 +167,10 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     { label: 'Less: Federal Grants', value: 0, pending: true },
     { label: 'Less: HOME', value: 0, pending: true },
     { label: 'Less: Tax-exempt Bond Issuance Costs', value: 0, pending: true },
-    { label: 'Adjustment (explain)', value: n(deps.constrBasisAdjustments) },
+    ...constrAdjs.map(a => ({
+      label: `Adjustment: ${a.explanation?.trim() || '(no explanation)'}`,
+      value: n(a.amount),
+    })),
   ]
 
   // ── §39 Per-unit summary ──
