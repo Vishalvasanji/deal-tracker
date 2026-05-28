@@ -5,7 +5,7 @@ import { upsertQapCostItem, upsertQapField } from '@/lib/qap-actions'
 import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
 import { computeDevCosts, type DevCostDeps } from '@/lib/qap-dev-costs-calc'
 import { ModelUpload } from './ModelUpload'
-import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 
 interface Props {
   dealId: string
@@ -13,6 +13,7 @@ interface Props {
   model: { tdc: number | null; sources: number | null; filename: string; sourceRef: string; uploadedAt: string }
   initialAcqAdj: number | null
   initialConstrAdj: number | null
+  initialComments: Record<string, string>
   deps: {
     parish?: string
     buildingType?: string
@@ -32,13 +33,15 @@ const subHdr = 'text-xs font-semibold text-muted-foreground uppercase tracking-w
 const cardCls = 'rounded-xl border border-border bg-card px-4 py-3 space-y-2'
 
 export function DevelopmentCostsClient({
-  dealId, initialAmounts, model, initialAcqAdj, initialConstrAdj, deps,
+  dealId, initialAmounts, model, initialAcqAdj, initialConstrAdj, initialComments, deps,
 }: Props) {
   const [amounts, setAmounts] = useState<Record<string, number | null>>(initialAmounts)
   const [modelTdc, setModelTdc] = useState<number | null>(model.tdc)
   const [modelSources, setModelSources] = useState<number | null>(model.sources)
   const [acqAdj, setAcqAdj] = useState<number | null>(initialAcqAdj)
   const [constrAdj, setConstrAdj] = useState<number | null>(initialConstrAdj)
+  const [comments, setComments] = useState<Record<string, string>>(initialComments)
+  const [basisModal, setBasisModal] = useState<null | 'acq' | 'constr'>(null)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [showCalcs, setShowCalcs] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -76,6 +79,28 @@ export function DevelopmentCostsClient({
       await upsertQapField(dealId, 'development_costs', fieldKey, val == null ? '' : String(val))
       setSavedAt(new Date().toLocaleTimeString())
     })
+  }
+  function saveComment(fieldKey: string) {
+    startTransition(async () => {
+      await upsertQapField(dealId, 'development_costs', fieldKey, comments[fieldKey] ?? '')
+      setSavedAt(new Date().toLocaleTimeString())
+    })
+  }
+
+  // render-helper (NOT a nested component) so the textarea keeps focus across renders
+  function commentBox(fieldKey: string, label: string) {
+    return (
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+        <textarea
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          rows={2}
+          value={comments[fieldKey] ?? ''}
+          onChange={e => setComments(p => ({ ...p, [fieldKey]: e.target.value }))}
+          onBlur={() => saveComment(fieldKey)}
+        />
+      </div>
+    )
   }
 
   const remainingColor =
@@ -203,6 +228,8 @@ export function DevelopmentCostsClient({
           <span className="text-sm font-bold uppercase tracking-wide">Total Development Costs</span>
           <span className="text-lg font-bold tabular-nums">{money(result.total)}</span>
         </div>
+
+        {commentBox('s36_comment', 'Comment on Development Costs')}
       </div>
 
       {/* Calculated sections toggle */}
@@ -249,10 +276,26 @@ export function DevelopmentCostsClient({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm pt-1">
-              <div><p className="text-xs text-muted-foreground">Adjusted Acquisition Basis</p><p className="font-semibold tabular-nums">{money(result.basis.adjustedAcquisitionBasis)}</p></div>
-              <div><p className="text-xs text-muted-foreground">Adjusted Construction Basis</p><p className="font-semibold tabular-nums">{money(result.basis.adjustedConstructionBasis)}</p></div>
+              <div>
+                <p className="text-xs text-muted-foreground">Adjusted Acquisition Basis</p>
+                <button type="button" onClick={() => setBasisModal('acq')}
+                  className="font-semibold tabular-nums text-primary hover:underline inline-flex items-center gap-1">
+                  {money(result.basis.adjustedAcquisitionBasis)} <Info className="h-3 w-3" />
+                </button>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Adjusted Construction Basis</p>
+                <button type="button" onClick={() => setBasisModal('constr')}
+                  className="font-semibold tabular-nums text-primary hover:underline inline-flex items-center gap-1">
+                  {money(result.basis.adjustedConstructionBasis)} <Info className="h-3 w-3" />
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground/70">Pending inputs (not yet captured): {result.basis.pending.join('; ')}.</p>
+            <p className="text-xs text-muted-foreground/60">Click a basis amount to see how it was calculated.</p>
+            <div className="space-y-3 pt-1">
+              {commentBox('s38_acq_comment', 'Comment on Acquisition Basis')}
+              {commentBox('s38_constr_comment', 'Comment on Construction Basis')}
+            </div>
           </div>
 
           {/* §39 Per-unit summary */}
@@ -298,6 +341,7 @@ export function DevelopmentCostsClient({
             ) : (
               <p className="text-xs text-muted-foreground">{result.hudTdc.note}</p>
             )}
+            {commentBox('s40_comment', 'Comment on TDC Limits')}
           </div>
 
           {/* §41 Fee limits */}
@@ -339,6 +383,7 @@ export function DevelopmentCostsClient({
               Contingency: <span className={result.feeLimits.contingency.over ? 'text-rose-600 font-semibold' : 'font-semibold'}>{Math.round(result.feeLimits.contingency.pct * 100)}%</span> of construction contract
             </p>
             <p className="text-xs text-muted-foreground/70">Pending: {result.feeLimits.pending.join('; ')}.</p>
+            {commentBox('s41_comment', 'Comment on Fee Limits')}
           </div>
 
           {/* §42 Violations */}
@@ -353,6 +398,48 @@ export function DevelopmentCostsClient({
                 ))}
               </ul>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Basis calculation modal */}
+      {basisModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setBasisModal(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border sticky top-0 bg-card">
+              <h3 className="font-semibold text-sm">
+                {basisModal === 'acq' ? 'Adjusted Acquisition Basis' : 'Adjusted Construction Basis'}
+              </h3>
+              <button type="button" onClick={() => setBasisModal(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-3">
+              <table className="w-full text-sm">
+                <tbody>
+                  {(basisModal === 'acq' ? result.basis.acqBreakdown : result.basis.constrBreakdown).map((row, i) => (
+                    <tr key={i} className="border-b border-border/30">
+                      <td className={`py-1.5 pr-3 ${row.pending ? 'text-muted-foreground/60' : ''}`}>
+                        {row.label}{row.pending && <span className="ml-1 text-xs">(pending)</span>}
+                      </td>
+                      <td className={`py-1.5 text-right tabular-nums whitespace-nowrap ${row.value < 0 ? 'text-rose-600' : row.pending ? 'text-muted-foreground/60' : ''}`}>
+                        {row.value < 0 ? `(${money(Math.abs(row.value))})` : money(row.value)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 border-border font-bold">
+                    <td className="py-2">{basisModal === 'acq' ? 'Adjusted Acquisition Basis' : 'Adjusted Construction Basis'}</td>
+                    <td className="py-2 text-right tabular-nums whitespace-nowrap">
+                      {money(basisModal === 'acq' ? result.basis.adjustedAcquisitionBasis : result.basis.adjustedConstructionBasis)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="text-xs text-muted-foreground/60 mt-3">
+                Lines marked (pending) need inputs not yet captured in the web app and are treated as $0 for now.
+              </p>
+            </div>
           </div>
         </div>
       )}
