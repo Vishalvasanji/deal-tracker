@@ -26,6 +26,9 @@ export interface DevCostDeps {
   outOfBasisCommunityService?: number
   commercialDevCost?: number
   relatedPartyPayments?: number
+  /** §40 TDC-limit exceptions — §12 is_sro (PD H161) and is_reallocated_credits (PD H162) */
+  isSro?: boolean
+  isAntiDiscrimination?: boolean
 }
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) ? v : 0)
@@ -61,6 +64,8 @@ export interface DevCostResult {
     adjustedTdc: number
     pctOfLimit: number | null
     exceeds: boolean
+    hardError: boolean        // over the limit AND no SRO/anti-discrimination exception
+    message: string           // over-limit message (exception note or hard error)
     note: string
   }
   // §41
@@ -237,13 +242,28 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     n(amounts['excess_costs']) -
     subtotals['reserves']
   const pctOfLimit = maxTdcLimit && maxTdcLimit > 0 ? adjustedTdc / maxTdcLimit : null
+  const exceeds = pctOfLimit !== null && pctOfLimit > 1
+  let tdcMessage = ''
+  let tdcHardError = false
+  if (exceeds) {
+    if (deps.isSro) {
+      tdcMessage = 'Adjusted TDC exceeds the Maximum TDC Limit, but this is an SRO Project — an exception may apply; a question will appear on the Checklist.'
+    } else if (deps.isAntiDiscrimination) {
+      tdcMessage = 'Adjusted TDC exceeds the Maximum TDC Limit, but this is an anti-discrimination (reallocated-credits) Project — an exception may apply; a question will appear on the Checklist.'
+    } else {
+      tdcMessage = 'Adjusted TDC exceeds the Maximum TDC Limit and no exception appears to be available under the QAP.'
+      tdcHardError = true
+    }
+  }
   const hudTdc = {
     available: limits !== null,
     costArea: deps.parish ? (PARISH_COST_AREA[deps.parish] ?? null) : null,
     maxTdcLimit,
     adjustedTdc,
     pctOfLimit,
-    exceeds: pctOfLimit !== null && pctOfLimit > 1,
+    exceeds,
+    hardError: tdcHardError,
+    message: tdcMessage,
     note: limits === null
       ? 'Select parish (§12.01) and primary building type (§12) to compute the HUD TDC limit.'
       : '',
