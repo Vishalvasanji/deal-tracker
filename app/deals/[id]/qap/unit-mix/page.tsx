@@ -62,7 +62,7 @@ export default async function UnitMixPage({ params }: { params: Promise<{ id: st
     .limit(1)
   if (!deal) notFound()
 
-  const [units, s12Fields, s23Fields] = await Promise.all([
+  const [units, s12Fields, s23Fields, s14Fields] = await Promise.all([
     db.select().from(qapUnitTypes)
       .where(eq(qapUnitTypes.deal_id, deal.id))
       .orderBy(asc(qapUnitTypes.row_index)),
@@ -70,10 +70,13 @@ export default async function UnitMixPage({ params }: { params: Promise<{ id: st
       .where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
     db.select().from(qapFields)
       .where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_23'))),
+    db.select().from(qapFields)
+      .where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_14'))),
   ])
 
   const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
   const s23 = Object.fromEntries(s23Fields.map(f => [f.field_key, f.value ?? '']))
+  const s14 = Object.fromEntries(s14Fields.map(f => [f.field_key, f.value ?? '']))
 
   // Market rents by bedroom count (0–4) — from §23.09
   const marketRents: Record<number, number> = {}
@@ -128,6 +131,7 @@ export default async function UnitMixPage({ params }: { params: Promise<{ id: st
           marketRents={Object.keys(marketRents).length > 0 ? marketRents : undefined}
           fmrRents={Object.keys(fmrRents).length > 0 ? fmrRents : undefined}
           amiRentLimits={Object.keys(amiRentLimits).length > 0 ? amiRentLimits : undefined}
+          setAsideElection={s14['lihtc_set_aside_election'] || undefined}
         />
       </div>
     </div>

@@ -31,6 +31,8 @@ interface Props {
   fmrRents?: Record<number, number>
   /** AMI contract rent limits by ami_key ('20'–'120') and BR count — derived from parish + §23.06 UAs */
   amiRentLimits?: Record<string, Record<number, number>>
+  /** §14 LIHTC set-aside election (e.g. '40/60', '20/50', 'Average Income') — validate the elected one */
+  setAsideElection?: string
 }
 
 const inputCls =
@@ -75,6 +77,10 @@ function parseAmiCol(val: string): string {
 function parseNumCol(val: string): number | null {
   const n = parseFloat(val.replace(/[$,\s]/g, ''))
   return isNaN(n) ? null : Math.round(n)
+}
+
+function clampBr(n: number | null): number | null {
+  return n == null ? null : Math.max(0, Math.min(4, n))
 }
 
 function parseBathsCol(val: string): number | null {
@@ -173,7 +179,7 @@ function getRowFlags(row: UnitRow, rentLimits?: RentLimits): string[] {
   return flags
 }
 
-export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiRentLimits }: Props) {
+export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiRentLimits, setAsideElection }: Props) {
   const rentLimits: RentLimits = { amiRentLimits, marketRents, fmrRents }
   const [rows, setRows] = useState<UnitRow[]>(
     initialUnits.length > 0 ? initialUnits : [makeNewRow(dealId, 0)]
@@ -191,6 +197,10 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
           parsed = rawValue === '' ? null : parseInt(rawValue, 10)
         } else if (field === 'baths') {
           parsed = rawValue === '' ? null : parseFloat(rawValue)
+        }
+        // Bedrooms must be 0–4 — rent/sqft/baths limit tables only exist for 0–4 BR.
+        if (field === 'bedrooms' && typeof parsed === 'number' && !isNaN(parsed)) {
+          parsed = Math.max(0, Math.min(4, parsed))
         }
         return { ...r, [field]: parsed }
       })
@@ -247,7 +257,7 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
       deal_id: dealId,
       row_index: idx,
       label: null,
-      bedrooms:      parseNumCol(cols[0] ?? ''),
+      bedrooms:      clampBr(parseNumCol(cols[0] ?? '')),
       baths:         parseBathsCol(cols[1] ?? ''),
       sqft:          parseNumCol(cols[2] ?? ''),
       num_units:     parseNumCol(cols[3] ?? ''),
@@ -296,6 +306,9 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
   // Staff count: matches Excel col P — IF(AND(H="Yes",G<>"Yes"),F,0) — excludes LIHTC rows
   const staffUnits   = rows.reduce((s, r) => s + (r.is_staff && !r.is_lihtc ? (r.num_units ?? 0) : 0), 0)
   const subsidyUnits = rows.reduce((s, r) => s + (r.is_subsidy ? (r.num_units ?? 0) : 0), 0)
+  // PSH count uses one consistent rule (any is_psh row). The Excel's first data row applies a
+  // stricter rule (0/1BR & 30% AMI) that is not copied to later rows — an internal Excel
+  // inconsistency. Invalid PSH units are already surfaced per-row via getRowFlags (Flag 5).
   const pshUnits     = rows.reduce((s, r) => s + (r.is_psh ? (r.num_units ?? 0) : 0), 0)
   const residentialUnits = totalUnits - staffUnits
 
@@ -311,7 +324,7 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
   const unitsUnder30  = amiAtOrBelow(['20', '30'])
   const unitsUnder50  = amiAtOrBelow(['20', '30', '40', '50'])
   const unitsUnder60  = amiAtOrBelow(['20', '30', '40', '50', '60'])
-  const unitsUnder80  = amiAtOrBelow(['20', '30', '40', '50', '60', '70', '80'])
+  const unitsUnder80  = amiAtOrBelow(['20', '30', '40', '50', '60', '70']) // Excel "Units Below 80 AMI" excludes the 80% band
   const unitsNotRestr = amiAtOrBelow(['unrestricted'])
 
   // Set-aside eligibility
@@ -320,11 +333,13 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
   const pct2050   = totalUnits > 0 ? unitsUnder50 / totalUnits : 0
   const meets2050  = pct2050 >= 0.20
 
-  // LIHTC Income Average — weighted AMI of all LIHTC units with numeric restriction
+  // LIHTC Income Average — weighted AMI of LIHTC units. Excel's Y guard excludes the 120%
+  // band and Not-Restricted units from the numerator.
   const lihtcWtdAmi = rows.reduce((s, r) => {
     if (!r.is_lihtc || r.ami_restriction === 'unrestricted') return s
     const ami = parseInt(r.ami_restriction ?? '', 10)
-    return isNaN(ami) ? s : s + ami * (r.num_units ?? 0)
+    if (isNaN(ami) || ami >= 120) return s
+    return s + ami * (r.num_units ?? 0)
   }, 0)
   const lihtcIncomeAvg = lihtcUnits > 0 ? lihtcWtdAmi / lihtcUnits : 0
 
@@ -365,6 +380,14 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
 
   return (
     <div className="space-y-6" onPaste={handlePaste}>
+      {!amiRentLimits && (
+        <p className="text-xs text-amber-700 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          Rent limits aren&apos;t loaded yet (set the parish in §12 and the utility allowances in §23), so the rent-vs-limit checks are not running.
+        </p>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        &ldquo;Rent / mo&rdquo; is the net contract rent (gross rent less the tenant-paid utility allowance).
+      </p>
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -442,7 +465,7 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
                   <td className={`${tdCls} ${col.brs}`}>
                     <input
                       className={inputCls + ' text-center'}
-                      type="number" min={0} max={5}
+                      type="number" min={0} max={4}
                       value={row.bedrooms ?? ''}
                       onChange={e => updateRow(row.row_index, 'bedrooms', e.target.value)}
                       onBlur={() => saveRow(row.row_index)}
@@ -726,7 +749,7 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
                 <span className={statVal}>{unitsUnder60}</span>
               </div>
               <div className="flex justify-between">
-                <span className={statLbl}>≤80% AMI</span>
+                <span className={statLbl}>&lt;80% AMI</span>
                 <span className={statVal}>{unitsUnder80}</span>
               </div>
               {unitsNotRestr > 0 && (
@@ -737,31 +760,54 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
               )}
             </div>
 
-            {/* Set-Aside Eligibility */}
+            {/* Set-Aside Eligibility — validate the elected set-aside (§14) */}
             <div className="rounded-xl border border-border px-4 py-3 space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Set-Aside Eligibility</p>
-              <div className="space-y-0.5">
-                <div className="flex justify-between items-baseline">
-                  <span className={statLbl}>40/60 set-aside</span>
-                  <span className={`${statVal} ${meets4060 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {Math.round(pct4060 * 100)}%
-                  </span>
-                </div>
-                <p className={`text-xs ${meets4060 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  {meets4060 ? '✓ Meets' : '✗ Does not meet'} (need ≥40% at ≤60%)
-                </p>
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex justify-between items-baseline">
-                  <span className={statLbl}>20/50 set-aside</span>
-                  <span className={`${statVal} ${meets2050 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {Math.round(pct2050 * 100)}%
-                  </span>
-                </div>
-                <p className={`text-xs ${meets2050 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  {meets2050 ? '✓ Meets' : '✗ Does not meet'} (need ≥20% at ≤50%)
-                </p>
-              </div>
+              {(() => {
+                const el = (setAsideElection ?? '').toLowerCase()
+                const is4060 = el.includes('40') && el.includes('60')
+                const is2050 = el.includes('20') && el.includes('50')
+                const isAvg = el.includes('average') || el.includes('averaging')
+                const elected = is4060 || is2050 || isAvg
+                const avgOk = lihtcIncomeAvg > 0 && lihtcIncomeAvg <= 60
+                return (
+                  <>
+                    {(is4060 || !elected) && (
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-baseline">
+                          <span className={statLbl}>40/60 set-aside {is4060 && <span className="text-[10px] text-primary">(elected)</span>}</span>
+                          <span className={`${statVal} ${meets4060 ? 'text-emerald-600' : 'text-rose-600'}`}>{Math.round(pct4060 * 100)}%</span>
+                        </div>
+                        <p className={`text-xs ${meets4060 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {meets4060 ? '✓ Meets' : (is4060 ? '✗ Elected set-aside not met' : '✗ Does not meet')} (need ≥40% at ≤60%)
+                        </p>
+                      </div>
+                    )}
+                    {(is2050 || !elected) && (
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-baseline">
+                          <span className={statLbl}>20/50 set-aside {is2050 && <span className="text-[10px] text-primary">(elected)</span>}</span>
+                          <span className={`${statVal} ${meets2050 ? 'text-emerald-600' : 'text-rose-600'}`}>{Math.round(pct2050 * 100)}%</span>
+                        </div>
+                        <p className={`text-xs ${meets2050 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {meets2050 ? '✓ Meets' : (is2050 ? '✗ Elected set-aside not met' : '✗ Does not meet')} (need ≥20% at ≤50%)
+                        </p>
+                      </div>
+                    )}
+                    {isAvg && (
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-baseline">
+                          <span className={statLbl}>Income Averaging <span className="text-[10px] text-primary">(elected)</span></span>
+                          <span className={`${statVal} ${avgOk ? 'text-emerald-600' : 'text-rose-600'}`}>{lihtcIncomeAvg.toFixed(1)}% AMI</span>
+                        </div>
+                        <p className={`text-xs ${avgOk ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          {avgOk ? '✓ Average ≤ 60% AMI' : '✗ Income average must be ≤ 60% AMI'}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
 
             {/* LIHTC Metrics */}
