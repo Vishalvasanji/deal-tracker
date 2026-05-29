@@ -46,11 +46,12 @@ interface Props {
   pulled: SchedulesPulled
   npGate: boolean
   existingLhcGate: boolean
+  existingBuildingGate: boolean
   initialVals: Record<string, string>
   initialLists: Record<string, Row[]>
 }
 
-export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, initialVals, initialLists }: Props) {
+export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, existingBuildingGate, initialVals, initialLists }: Props) {
   const [vals, setVals] = useState<Record<string, string>>(initialVals)
   const [lists, setLists] = useState<Record<string, Row[]>>(initialLists)
   const [isPending, startTransition] = useTransition()
@@ -268,19 +269,27 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, initi
         )}
       </Accordion>
 
-      {/* ── App 3: Ownership History ── */}
+      {/* ── App 3: Ownership History (gated) ── */}
       <Accordion title="Ownership History of Existing Buildings" subtitle="Complete if requesting credits for the purchase price of an existing building">
-        {field('app3_date_acquired', 'I. Date the building was acquired by purchase (per §179(d)(2) IRC)', { type: 'date' })}
-        <p className={subHead}>II. Previous owners and purchase price</p>
-        {listEditor('prev_owners', [
-          { key: 'owner', label: 'Owner' },
-          { key: 'price', label: 'Purchase Price' },
-        ], 'Add previous owner')}
-        {yesno('app3_related_267', 'III. Do any previous owners bear a relationship to the Taxpayer under §267(b) or §707(b)?')}
-        {vals['app3_related_267'] === 'Yes' && field('app3_related_267_who', 'Specify which previous owners are related persons', { type: 'textarea' })}
-        {yesno('app3_common_control', 'IV. Are any previous owners and the Taxpayer under common control?')}
-        {vals['app3_common_control'] === 'Yes' && field('app3_common_control_who', 'Specify which previous owners are under common control', { type: 'textarea' })}
-        {ro('V. Is this a Distressed Property (per the QAP)?', pulled.isDistressed, 'from §12 — if yes, attach written HUD/RD certification')}
+        {!existingBuildingGate ? (
+          <p className="text-sm text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
+            Shown when Project Description §12 “Will any existing buildings be acquired?” = Yes.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {field('app3_date_acquired', 'I. Date the building was acquired by purchase (per §179(d)(2) IRC)', { type: 'date' })}
+            <p className={subHead}>II. Previous owners and purchase price</p>
+            {listEditor('prev_owners', [
+              { key: 'owner', label: 'Owner' },
+              { key: 'price', label: 'Purchase Price' },
+            ], 'Add previous owner')}
+            {yesno('app3_related_267', 'III. Do any previous owners bear a relationship to the Taxpayer under §267(b) or §707(b)?')}
+            {vals['app3_related_267'] === 'Yes' && field('app3_related_267_who', 'Specify which previous owners are related persons', { type: 'textarea' })}
+            {yesno('app3_common_control', 'IV. Are any previous owners and the Taxpayer under common control?')}
+            {vals['app3_common_control'] === 'Yes' && field('app3_common_control_who', 'Specify which previous owners are under common control', { type: 'textarea' })}
+            {ro('V. Is this a Distressed Property (per the QAP)?', pulled.isDistressed, 'from §12 — if yes, attach written HUD/RD certification')}
+          </div>
+        )}
       </Accordion>
 
       {/* ── App 11: Non-Profit Participation (gated) ── */}

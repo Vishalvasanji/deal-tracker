@@ -50,6 +50,7 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
 
   const npGate = (s11['qualified_nonprofit'] ?? '') === 'Yes'
   const existingLhcGate = (s12['is_existing_lihtc'] ?? '') === 'Yes'
+  const existingBuildingGate = (s12['existing_acquired'] ?? '') === 'Yes'
 
   const initialVals: Record<string, string> = {}
   const initialLists: Record<string, Row[]> = {}
@@ -85,6 +86,7 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
         pulled={pulled}
         npGate={npGate}
         existingLhcGate={existingLhcGate}
+        existingBuildingGate={existingBuildingGate}
         initialVals={initialVals}
         initialLists={initialLists}
       />
