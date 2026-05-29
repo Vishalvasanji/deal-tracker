@@ -4,7 +4,7 @@ import { deals } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import { getQapCompletion } from '@/lib/qap-completion'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck, FileSignature, LineChart } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 
 function ProgressCard({
@@ -145,6 +145,20 @@ export default async function QapHubPage({ params }: { params: Promise<{ id: str
           filled={completion.schedules.filled}
           total={completion.schedules.total}
           href={`/deals/${deal.id}/qap/schedules`}
+        />
+        <ProgressCard
+          title="Financing Certification"
+          icon={FileSignature}
+          filled={completion.financingCert.filled}
+          total={completion.financingCert.total}
+          href={`/deals/${deal.id}/qap/financing-cert`}
+        />
+        <ProgressCard
+          title="Demand Certification"
+          icon={LineChart}
+          filled={completion.demandCert.filled}
+          total={completion.demandCert.total}
+          href={`/deals/${deal.id}/qap/demand-cert`}
         />
         {/* Selection Criteria — hidden for now; typically the last section filled, after every
             other module is complete. Re-add the `Award` import to restore this tile.

@@ -54,6 +54,8 @@ export async function upsertQapField(
   revalidatePath(`/deals/${dealId}/qap/syndication`)
   revalidatePath(`/deals/${dealId}/qap/reserve-adequacy`)
   revalidatePath(`/deals/${dealId}/qap/schedules`)
+  revalidatePath(`/deals/${dealId}/qap/financing-cert`)
+  revalidatePath(`/deals/${dealId}/qap/demand-cert`)
 }
 
 export async function upsertQapUnitType(
