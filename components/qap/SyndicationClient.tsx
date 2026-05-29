@@ -299,10 +299,20 @@ export function SyndicationClient({ dealId, taxCredits, initialScalars, initialE
       <div className="space-y-3">
         <p className={subHdr}>VII. Net Equity</p>
         <div className={card}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div><label className={labelCls}>Estimated Placed in Service Date</label><input className={inCls} placeholder="MM/DD/YYYY" value={s['vii_pis_date'] ?? ''} onChange={e => setScalar('vii_pis_date', e.target.value)} onBlur={() => saveScalar('vii_pis_date')} /></div>
-            <div><label className={labelCls}>(i) Compounding installments before PIS</label><input className={numCls} inputMode="decimal" placeholder="0" value={s['vii_compounding'] ?? ''} onChange={e => setScalar('vii_compounding', e.target.value)} onBlur={() => saveScalar('vii_compounding')} /></div>
-            <div><label className={labelCls}>(ii) Discounting installments after PIS</label><input className={numCls} inputMode="decimal" placeholder="0" value={s['vii_discounting'] ?? ''} onChange={e => setScalar('vii_discounting', e.target.value)} onBlur={() => saveScalar('vii_discounting')} /></div>
+          <div className="divide-y divide-border/30">
+            <div className="flex items-center justify-between gap-3 py-1">
+              <label className="text-sm text-muted-foreground">Estimated Placed in Service Date</label>
+              <div className="flex items-center gap-1">
+                <input
+                  className="w-32 rounded-lg border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="MM/DD/YYYY" value={s['vii_pis_date'] ?? ''}
+                  onChange={e => setScalar('vii_pis_date', e.target.value)} onBlur={() => saveScalar('vii_pis_date')}
+                />
+                <span className="text-xs text-muted-foreground w-3" />
+              </div>
+            </div>
+            {inputLine('(i) Compounding installments before PIS', 'vii_compounding')}
+            {inputLine('(ii) Discounting installments after PIS', 'vii_discounting')}
           </div>
           <div className="flex items-center justify-between border-t border-border pt-2">
             <span className="text-sm font-semibold">(iii) Net Equity at Placed in Service [(i) + (ii)]</span>
