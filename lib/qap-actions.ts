@@ -246,6 +246,7 @@ type BasisConfigData = {
   num_buildings?: number | null
   resid_staff_sqft?: number | null
   common_sqft?: number | null
+  commercial_sqft?: number | null
   lihtc_units?: number | null
   resid_units?: number | null
   lihtc_sqft?: number | null
@@ -267,6 +268,7 @@ export async function upsertQapBasisConfig(dealId: string, configIndex: number, 
     num_buildings: data.num_buildings ?? null,
     resid_staff_sqft: data.resid_staff_sqft ?? null,
     common_sqft: data.common_sqft ?? null,
+    commercial_sqft: data.commercial_sqft ?? null,
     lihtc_units: data.lihtc_units ?? null,
     resid_units: data.resid_units ?? null,
     lihtc_sqft: data.lihtc_sqft ?? null,
@@ -310,6 +312,7 @@ export async function replaceQapBasisConfigs(dealId: string, rows: BasisConfigDa
         num_buildings: r.num_buildings ?? null,
         resid_staff_sqft: r.resid_staff_sqft ?? null,
         common_sqft: r.common_sqft ?? null,
+        commercial_sqft: r.commercial_sqft ?? null,
         lihtc_units: r.lihtc_units ?? null,
         resid_units: r.resid_units ?? null,
         lihtc_sqft: r.lihtc_sqft ?? null,

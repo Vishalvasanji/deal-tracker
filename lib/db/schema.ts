@@ -135,6 +135,7 @@ export const qapBasisConfigs = sqliteTable('qap_basis_configs', {
   num_buildings: integer('num_buildings'),
   resid_staff_sqft: integer('resid_staff_sqft'),
   common_sqft: integer('common_sqft'),
+  commercial_sqft: integer('commercial_sqft'),
   lihtc_units: integer('lihtc_units'),
   resid_units: integer('resid_units'),
   lihtc_sqft: integer('lihtc_sqft'),

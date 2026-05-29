@@ -24,6 +24,7 @@ const ROWS: { key: keyof BasisConfigInput; label: string }[] = [
   { key: 'num_buildings', label: 'Number of Buildings with Configuration' },
   { key: 'resid_staff_sqft', label: 'Floor Area: Residential + Staff Units (per building)' },
   { key: 'common_sqft', label: 'Floor Area: Other / Common Areas (per building)' },
+  { key: 'commercial_sqft', label: 'Floor Area: Commercial (per building) — excluded from basis' },
   { key: 'lihtc_units', label: 'Number of LIHTC Units (per building)' },
   { key: 'resid_units', label: 'Number of Residential Units (per building)' },
   { key: 'lihtc_sqft', label: 'Sqft of LIHTC Units (per building)' },
@@ -34,7 +35,7 @@ const ROWS: { key: keyof BasisConfigInput; label: string }[] = [
 
 function emptyConfig(idx: number): BasisConfigInput {
   return {
-    config_index: idx, label: '', num_buildings: 0, resid_staff_sqft: 0, common_sqft: 0,
+    config_index: idx, label: '', num_buildings: 0, resid_staff_sqft: 0, common_sqft: 0, commercial_sqft: 0,
     lihtc_units: 0, resid_units: 0, lihtc_sqft: 0, resid_sqft: 0,
     homeless_constr_adj: 0, homeless_acq_adj: 0,
   }

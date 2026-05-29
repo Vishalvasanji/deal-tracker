@@ -121,6 +121,7 @@ export default async function BasisCalculationPage({ params }: { params: Promise
     num_buildings: c.num_buildings ?? 0,
     resid_staff_sqft: c.resid_staff_sqft ?? 0,
     common_sqft: c.common_sqft ?? 0,
+    commercial_sqft: c.commercial_sqft ?? 0,
     lihtc_units: c.lihtc_units ?? 0,
     resid_units: c.resid_units ?? 0,
     lihtc_sqft: c.lihtc_sqft ?? 0,

@@ -11,6 +11,7 @@ export interface BasisConfigInput {
   num_buildings: number
   resid_staff_sqft: number   // row 13 — residential + staff unit floor area per building
   common_sqft: number        // row 14 — common-area floor area per building
+  commercial_sqft: number    // row 15 — commercial floor area per building (BAS-4; excluded from basis)
   lihtc_units: number        // row 18
   resid_units: number        // row 19
   lihtc_sqft: number         // row 22
@@ -40,6 +41,7 @@ export interface BasisConfigResult {
   config_index: number
   label: string
   totalSqft: number
+  commercialSqft: number
   constructionBasis: number
   acquisitionBasis: number
   constrAfterBoost: number
@@ -106,7 +108,7 @@ export function computeBasis(inputs: BasisConfigInput[], deps: BasisDeps): Basis
     return {
       config_index: c.config_index,
       label: c.label?.trim() || `Configuration ${c.config_index + 1}`,
-      totalSqft, constructionBasis, acquisitionBasis, constrAfterBoost, acqAfterBoost,
+      totalSqft, commercialSqft: n(c.commercial_sqft), constructionBasis, acquisitionBasis, constrAfterBoost, acqAfterBoost,
       fracByUnits, fracBySqft, applicableFraction, qualConstr, qualAcq,
       permittedConstrCredit, permittedAcqCredit,
     }

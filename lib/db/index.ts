@@ -11,6 +11,7 @@ export const db = drizzle(client, { schema })
 
 // Auto-migrate: add new columns/tables if they don't exist yet (safe to re-run)
 client.execute('ALTER TABLE deals ADD COLUMN cost_tbd INTEGER NOT NULL DEFAULT 0').catch(() => {})
+client.execute('ALTER TABLE qap_basis_configs ADD COLUMN commercial_sqft INTEGER').catch(() => {})
 
 client.execute(`
   CREATE TABLE IF NOT EXISTS qap_fields (
@@ -64,6 +65,7 @@ client.execute(`
     num_buildings INTEGER,
     resid_staff_sqft INTEGER,
     common_sqft INTEGER,
+    commercial_sqft INTEGER,
     lihtc_units INTEGER,
     resid_units INTEGER,
     lihtc_sqft INTEGER,
