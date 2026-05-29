@@ -49,7 +49,7 @@ export const SUBSIDY_TABLES: SubsidyTable[] = [
     { key: 'home', label: 'HOME' }, { key: 'hope_vi', label: 'HOPE VI' }, { key: 'state', label: 'State' },
     { key: 'local', label: 'Local' }, { key: 'other1', label: 'Other' }, { key: 'other2', label: 'Other' }, { key: 'other3', label: 'Other' },
   ] },
-  { key: 'other_subsidies', title: 'III. Value of Other Subsidies', rows: [
+  { key: 'other_subsidies', title: 'III. Value Other Subsidies', rows: [
     { key: 'tax_abatement', label: 'Tax Abatement' }, { key: 'historic_credit', label: 'Historic Rehab Credit' },
     { key: 'land_donation', label: 'Land Donation' }, { key: 'other', label: 'Other' },
   ] },
@@ -91,4 +91,22 @@ export const FEES_GRANTS_ROWS = [
   { key: 'fg_home', label: 'Home Funds' },
   { key: 'fg_other1', label: 'Other' },
   { key: 'fg_other2', label: 'Other' },
+] as const
+
+// "Items which vary from terms" grid (rows 38–51): Application/Reservation vs Placed-in-Service.
+export const VARIANCE_ROWS = [
+  { key: 'land_costs', label: 'Land Costs' },
+  { key: 'tdc', label: 'TDC' },
+  { key: 'tdc_unit', label: 'TDC / Unit' },
+  { key: 'soft_costs_unit', label: 'Soft Costs / Unit' },
+  { key: 'first_mtg_principal', label: '1st Mortgage Principal' },
+  { key: 'first_mtg_interest', label: '1st Mortgage Interest' },
+  { key: 'first_mtg_term', label: '1st Mortgage Term' },
+  { key: 'second_mtg_principal', label: '2nd Mortgage Principal' },
+  { key: 'second_mtg_interest', label: '2nd Mortgage Interest' },
+  { key: 'second_mtg_term', label: '2nd Mortgage Term' },
+  { key: 'deferred_dev_fee', label: 'Deferred Developer Fee' },
+  { key: 'dev_fee_paid', label: 'Developer Fee Paid' },
+  { key: 'gross_equity', label: 'Gross Equity' },
+  { key: 'net_equity', label: 'Net Equity' },
 ] as const

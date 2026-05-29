@@ -13,14 +13,16 @@ export const UNIT_ROWS = [
 ] as const
 
 // (3) Market study data, by unit size.
+// Column labels carry the workbook's Roman-numeral index (I, II, III, IV, V, VI, VIII — the
+// sheet skips VII, an Excel quirk) so they cross-reference to the source.
 export const MARKET_STUDY_COLS = [
-  { key: 'config', label: 'Project Configuration No. of Units' },
-  { key: 'total_area', label: 'Total Market Area Units' },
-  { key: 'substandard', label: 'Substandard Units' },
-  { key: 'vacancy', label: 'Vacancy Rate' },
-  { key: 'projected_need', label: 'Projected Need for New Units' },
-  { key: 'need_50', label: 'Need at 50% AMI' },
-  { key: 'need_60', label: 'Need at 60% AMI' },
+  { key: 'config', label: 'I. Project Configuration No. of Units' },
+  { key: 'total_area', label: 'II. Total Market Area Units' },
+  { key: 'substandard', label: 'III. Substandard Units' },
+  { key: 'vacancy', label: 'IV. Vacancy Rate' },
+  { key: 'projected_need', label: 'V. Projected Need for New Units' },
+  { key: 'need_50', label: 'VI. Need at 50% AMI' },
+  { key: 'need_60', label: 'VIII. Need at 60% AMI' },
 ] as const
 
 // (4) Vacancy rates & market rents.
