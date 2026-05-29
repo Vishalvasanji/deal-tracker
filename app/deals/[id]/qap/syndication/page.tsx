@@ -28,14 +28,18 @@ export default async function SyndicationPage({ params }: { params: Promise<{ id
     .limit(1)
   if (!deal) notFound()
 
-  const [syndr, s14r] = await Promise.all([
+  const [syndr, s14r, s11r] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'syndication'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_14'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
   ])
 
   const s = Object.fromEntries(syndr.map(f => [f.field_key, f.value ?? '']))
   const s14 = Object.fromEntries(s14r.map(f => [f.field_key, f.value ?? '']))
+  const s11 = Object.fromEntries(s11r.map(f => [f.field_key, f.value ?? '']))
   const taxCredits = num(s14['credits_requested'])
+  const taxpayerName = s11['taxpayer_name'] || ''
+  const controllingPrincipalName = s11['controlling_principal_name'] || ''
 
   const initialScalars: Record<string, string> = {}
   for (const f of syndr) if (!f.field_key.endsWith('__json')) initialScalars[f.field_key] = f.value ?? ''
@@ -77,6 +81,8 @@ export default async function SyndicationPage({ params }: { params: Promise<{ id
         <SyndicationClient
           dealId={deal.id}
           taxCredits={taxCredits}
+          taxpayerName={taxpayerName}
+          controllingPrincipalName={controllingPrincipalName}
           initialScalars={initialScalars}
           initialEvents={events}
           initialLenders={lenders}

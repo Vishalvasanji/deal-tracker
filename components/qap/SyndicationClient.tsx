@@ -12,6 +12,8 @@ import { Plus, Trash2, AlertTriangle } from 'lucide-react'
 interface Props {
   dealId: string
   taxCredits: number
+  taxpayerName: string             // §11 taxpayer name (signs as Taxpayer)
+  controllingPrincipalName: string // §11 controlling principal (first "By:")
   initialScalars: Record<string, string>
   initialEvents: SyndEvent[]
   initialLenders: SyndLender[]
@@ -33,7 +35,7 @@ const labelCls = 'block text-[11px] font-medium text-muted-foreground mb-1'
 const subHdr = 'text-sm font-semibold'
 const card = 'rounded-xl border border-border bg-card px-4 py-3 space-y-3'
 
-export function SyndicationClient({ dealId, taxCredits, initialScalars, initialEvents, initialLenders, initialVOthers, initialViOthers }: Props) {
+export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllingPrincipalName, initialScalars, initialEvents, initialLenders, initialVOthers, initialViOthers }: Props) {
   const [s, setS] = useState<Record<string, string>>(initialScalars)
   const [events, setEvents] = useState<SyndEvent[]>(initialEvents)
   const [lenders, setLenders] = useState<SyndLender[]>(initialLenders)
@@ -317,6 +319,35 @@ export function SyndicationClient({ dealId, taxCredits, initialScalars, initialE
           <div className="flex items-center justify-between border-t border-border pt-2">
             <span className="text-sm font-semibold">(iii) Net Equity at Placed in Service [(i) + (ii)]</span>
             <span className="text-base font-bold tabular-nums">{money(r.netEquity)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Certification (signature blocks) ── */}
+      <div className="space-y-3">
+        <p className={subHdr}>Certification</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Taxpayer */}
+          <div className={card}>
+            <p className="text-sm font-medium">{taxpayerName || '—'} <span className="font-normal text-muted-foreground">(Taxpayer)</span></p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">By: </span>
+              {controllingPrincipalName
+                ? <span className="font-medium">{controllingPrincipalName}</span>
+                : <span className="italic text-muted-foreground">Controlling Principal — add in §11</span>}
+            </p>
+            <p className="text-[11px] text-muted-foreground">Controlling Principal · from §11</p>
+          </div>
+          {/* Syndicator */}
+          <div className={card}>
+            <p className="text-sm font-medium">{s['synd_name'] || '—'} <span className="font-normal text-muted-foreground">(Syndicator)</span></p>
+            <p className="text-sm">
+              <span className="text-muted-foreground">By: </span>
+              {s['synd_contact']
+                ? <span className="font-medium">{s['synd_contact']}</span>
+                : <span className="italic text-muted-foreground">Syndicator Contact — see Part I.A</span>}
+            </p>
+            <p className="text-[11px] text-muted-foreground">Syndicator Contact · from Part I.A</p>
           </div>
         </div>
       </div>
