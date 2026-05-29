@@ -580,6 +580,7 @@ export function DevelopmentCostsClient({
                 <label className="block text-xs text-muted-foreground mb-1.5">Amount ($)</label>
                 <input
                   type="number"
+                  step="1"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring"
                   value={adjForm.amount}
                   onChange={e => setAdjForm({ ...adjForm, amount: e.target.value })}

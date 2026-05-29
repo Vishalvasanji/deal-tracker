@@ -80,13 +80,10 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
     ],
   },
   {
-    // Excel D52 = SUM(C55:C58) — only the three "Other Hard Cost (describe)" rows are
-    // summed. "Bond Premium Paid by Taxpayer" (row 53) is a vestigial label in the Excel
-    // with no input cell and is excluded from the subtotal, so it is omitted here; enter
-    // such a cost in an "Other Hard Cost (describe)" line.
     key: 'hard_outside',
     label: 'Hard Costs Outside Construction Contract',
     lines: [
+      { key: 'bond_premium_taxpayer', label: 'Bond Premium Paid by Taxpayer' },
       { key: 'other_hard_1', label: 'Other Hard Cost (describe)' },
       { key: 'other_hard_2', label: 'Other Hard Cost (describe)' },
       { key: 'other_hard_3', label: 'Other Hard Cost (describe)' },
@@ -156,7 +153,7 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
       { key: 'escrows', label: 'Escrows' },
       { key: 'operating_deficit_reserve', label: 'Operating Deficit Reserve' },
       { key: 'rent_up_reserves', label: 'Rent Up Reserves' },
-      { key: 'replacement_reserve_deposit', label: 'Replacement Reserve Deposit' },
+      { key: 'replacement_reserve_deposit', label: 'Replacement Reserve Deposit (IDRR)' },
       { key: 'reserves_other_1', label: 'Other' },
       { key: 'reserves_other_2', label: 'Other' },
       { key: 'reserves_other_3', label: 'Other' },

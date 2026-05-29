@@ -128,7 +128,8 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     unitsByBr,
     totalUnits,
     bondFinanced: s10['bond_financing'] === 'Yes',
-    is4pct: s10['bond_financing'] === 'Yes',
+    is4pct: s10['lihtc_4pct'] === 'Yes',
+    bondIssuanceCosts: num(s10['costs_of_issuance']) ?? 0,
     // §38 out-of-basis = total cost − amount includable in LIHTC basis (floored at 0)
     outOfBasisCommunityFacilities: Math.max(0, s20n('s20_06_community_fac_cost') - s20n('s20_06_in_basis')),
     outOfBasisCommunityService: Math.max(0, s20n('s20_07_cost') - s20n('s20_07_in_basis')),

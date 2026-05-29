@@ -19,6 +19,8 @@ export interface DevCostDeps {
   bondFinanced?: boolean
   /** PD §11 — transaction includes 4% LIHTCs */
   is4pct?: boolean
+  /** PD §10.03 costs of issuance — subtracted from construction basis when bond-financed (Dev Costs C185) */
+  bondIssuanceCosts?: number
   /** §38 user adjustment rows (acquisition + construction basis) — list form */
   basisAdjustments?: BasisAdjustment[]
   /** §20-derived figures pulled read-only (out-of-basis portions, commercial, related-party) */
@@ -190,7 +192,7 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     { label: 'Less: LHC Fees', value: -lhcFees },
     { label: 'Less: Federal Grants', value: 0, pending: true },
     { label: 'Less: HOME', value: 0, pending: true },
-    { label: 'Less: Tax-exempt Bond Issuance Costs', value: 0, pending: true },
+    { label: 'Less: Tax-exempt Bond Issuance Costs', value: deps.bondFinanced ? -Math.abs(deps.bondIssuanceCosts ?? 0) : 0 },
     ...(constrAdjs.length > 0 ? [{ label: 'Construction Adjustments', value: 0, header: true } as BasisLine] : []),
     ...constrAdjs.map(a => ({
       label: a.explanation?.trim() || '(no explanation)',
@@ -308,7 +310,9 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   ]
 
   const developerFeeException = !!(deps.bondFinanced && deps.is4pct)
-  const devAllow = developerFeeException ? null : Math.round(developerFeeBase * FEE_LIMITS.developerFeeStandard)
+  // QAP caps the allowable developer fee at 15% of base OR $2,000,000, whichever is lower
+  // (non-bond/9% deals). Bond-financed 4% transactions have no limit.
+  const devAllow = developerFeeException ? null : Math.min(2_000_000, Math.round(developerFeeBase * FEE_LIMITS.developerFeeStandard))
   const grAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.generalRequirements)
   const ohAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.generalOverhead)
   const bpAllow = Math.round(builderProfitFeeBase * FEE_LIMITS.builderProfit)
@@ -324,7 +328,7 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     { key: 'bp', label: 'Builder Fee / Profit', allowableLabel: '6% of Builder Profit Fee Base',
       allowable: bpAllow, proposed: bp, over: Math.round(bp - bpAllow), breakdown: builderBaseLines },
     { key: 'dev', label: 'Developer Fee',
-      allowableLabel: developerFeeException ? 'no limit (bond-financed 4%)' : '15% of Developer Fee Base',
+      allowableLabel: developerFeeException ? 'no limit (bond-financed 4%)' : '15% of Developer Fee Base, max $2,000,000',
       allowable: devAllow, proposed: devProposed, over: devAllow === null ? 0 : Math.round(devProposed - devAllow),
       note: developerFeeException ? 'Bond-financed 4% transaction — the developer fee limit does not apply.' : undefined,
       breakdown: devFeeBaseLines },
