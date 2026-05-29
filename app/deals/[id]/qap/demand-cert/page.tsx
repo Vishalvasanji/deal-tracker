@@ -35,7 +35,9 @@ export default async function DemandCertPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <DemandCertClient dealId={deal.id} initialVals={initialVals} />
+      <div className="bg-card rounded-2xl border border-black/[0.06] p-5">
+        <DemandCertClient dealId={deal.id} initialVals={initialVals} />
+      </div>
     </div>
   )
 }

@@ -57,7 +57,9 @@ export default async function FinancingCertPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      <FinancingCertClient dealId={deal.id} pulled={pulled} initialVals={initialVals} />
+      <div className="bg-card rounded-2xl border border-black/[0.06] p-5">
+        <FinancingCertClient dealId={deal.id} pulled={pulled} initialVals={initialVals} />
+      </div>
     </div>
   )
 }

@@ -81,15 +81,17 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <SchedulesClient
-        dealId={deal.id}
-        pulled={pulled}
-        npGate={npGate}
-        existingLhcGate={existingLhcGate}
-        existingBuildingGate={existingBuildingGate}
-        initialVals={initialVals}
-        initialLists={initialLists}
-      />
+      <div className="bg-card rounded-2xl border border-black/[0.06] p-5">
+        <SchedulesClient
+          dealId={deal.id}
+          pulled={pulled}
+          npGate={npGate}
+          existingLhcGate={existingLhcGate}
+          existingBuildingGate={existingBuildingGate}
+          initialVals={initialVals}
+          initialLists={initialLists}
+        />
+      </div>
     </div>
   )
 }
