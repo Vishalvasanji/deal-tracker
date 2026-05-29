@@ -387,7 +387,6 @@ export function Section12Form({ dealId, initial }: Props) {
             <option>Row</option>
             <option>Row House</option>
             <option>Semi-Detached</option>
-            <option>Walkup</option>
             <option>Walk-Up</option>
             <option>Other</option>
             <option>Missing</option>

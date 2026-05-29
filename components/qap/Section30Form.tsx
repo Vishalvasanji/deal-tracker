@@ -5,7 +5,7 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 
 const DSCR_ROWS: { line: string; source: string; bold?: boolean }[] = [
   { line: 'Gross Potential Rental Income', source: 'Unit Mix × 12' },
-  { line: 'Rent Loss (Years 1–3)', source: 'GPI × 7.0% vacancy' },
+  { line: 'Rent Loss (Years 1–3)', source: 'GPI × the §28 vacancy rate' },
   { line: 'Other Income', source: 'Revenues & Expenses' },
   { line: 'Effective Gross Income', source: 'Calculated' },
   { line: 'Total Operating Expenses', source: 'Revenues & Expenses' },

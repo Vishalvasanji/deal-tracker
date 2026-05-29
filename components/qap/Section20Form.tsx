@@ -193,6 +193,9 @@ export function Section20Form({ dealId, initial }: Props) {
           <DollarInput fk="s20_06_community_fac_cost" label="Estimated Cost for Community Facilities ($)" />
           <DollarInput fk="s20_06_in_basis" label="Amount Includable in LIHTC Basis ($)" />
         </div>
+        {(parseFloat((values.s20_06_in_basis ?? '').replace(/[$,\s]/g, '')) || 0) > (parseFloat((values.s20_06_community_fac_cost ?? '').replace(/[$,\s]/g, '')) || 0) && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">Amount includable in basis exceeds the total cost.</p>
+        )}
       </div>
 
       {/* ── 20.07 Community Service Facility ─────────────────────────────────── */}
@@ -206,6 +209,9 @@ export function Section20Form({ dealId, initial }: Props) {
               <DollarInput fk="s20_07_cost" label="Estimated Cost for Community Service Facility ($)" />
               <DollarInput fk="s20_07_in_basis" label="Amount Includable in LIHTC Basis ($)" />
             </div>
+            {(parseFloat((values.s20_07_in_basis ?? '').replace(/[$,\s]/g, '')) || 0) > (parseFloat((values.s20_07_cost ?? '').replace(/[$,\s]/g, '')) || 0) && (
+              <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">Amount includable in basis exceeds the total cost.</p>
+            )}
             <p className={noteCls}>
               An information request will appear on the Checklist worksheet for Community Service Facilities.
             </p>

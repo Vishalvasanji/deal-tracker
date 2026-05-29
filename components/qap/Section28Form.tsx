@@ -13,13 +13,6 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 const YES_NO_OPTS = ['Yes', 'No', 'Missing']
 const LHC_VACANCY_STANDARD = 7.0
 
-// LHC standard rates (non-vacancy) — read-only reference
-const LHC_RATES_READONLY: { label: string; value: string }[] = [
-  { label: 'Rent Inflation Rate Years 1–3',  value: '2.0%' },
-  { label: 'Rent Inflation Rate Years 4–15', value: '2.0%  (3% thereafter)' },
-  { label: 'Expenses Inflation Rate',             value: '3.0%' },
-]
-
 interface Props {
   dealId: string
   initial: Record<string, string>
@@ -85,6 +78,13 @@ export function Section28Form({ dealId, initial }: Props) {
         </p>
       )
     }
+    if (normalMarket && pct < LHC_VACANCY_STANDARD) {
+      return (
+        <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 mt-1">
+          Vacancy rate is below the LHC Standard — use at least {LHC_VACANCY_STANDARD}%.
+        </p>
+      )
+    }
     return null
   }
 
@@ -144,27 +144,33 @@ export function Section28Form({ dealId, initial }: Props) {
         </div>
       </div>
 
-      {/* LHC Standard Rates — read-only reference (non-vacancy) */}
+      {/* Inflation Rates — editable; default to the LHC standard (feeds the Proforma) */}
       <div className="space-y-3">
-        <p className={subHeaderCls}>LHC Standard Rates (Reference)</p>
-        <div className="overflow-x-auto rounded-xl border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Rate</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">LHC Standard</th>
-              </tr>
-            </thead>
-            <tbody>
-              {LHC_RATES_READONLY.map(({ label, value }, i) => (
-                <tr key={i} className="border-b border-border/30 last:border-b-0">
-                  <td className="px-4 py-2.5 text-sm text-foreground">{label}</td>
-                  <td className="px-4 py-2.5 text-sm font-semibold tabular-nums text-foreground">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p className={subHeaderCls}>Inflation Rates</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className={labelCls}>Rent Inflation Years 1–3 (%)</label>
+            <input type="text" className={inputCls} placeholder="2.0"
+              value={values['s28_rent_infl_y1_3'] ?? ''}
+              onChange={e => setValues(prev => ({ ...prev, s28_rent_infl_y1_3: e.target.value }))}
+              onBlur={e => handleBlur('s28_rent_infl_y1_3', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Rent Inflation Years 4–15 (%)</label>
+            <input type="text" className={inputCls} placeholder="2.0"
+              value={values['s28_rent_infl_y4_15'] ?? ''}
+              onChange={e => setValues(prev => ({ ...prev, s28_rent_infl_y4_15: e.target.value }))}
+              onBlur={e => handleBlur('s28_rent_infl_y4_15', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls}>Expense Inflation (%)</label>
+            <input type="text" className={inputCls} placeholder="3.0"
+              value={values['s28_expense_infl'] ?? ''}
+              onChange={e => setValues(prev => ({ ...prev, s28_expense_infl: e.target.value }))}
+              onBlur={e => handleBlur('s28_expense_infl', e.target.value)} />
+          </div>
         </div>
+        <p className={noteCls}>LHC standard: rent inflation 2.0% (3% after Year 15); expense inflation 3.0%. Enter different rates only with an explanation.</p>
       </div>
 
       {/* ADRR Escalation Rate */}

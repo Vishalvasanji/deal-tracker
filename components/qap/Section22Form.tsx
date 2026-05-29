@@ -49,7 +49,7 @@ export function Section22Form({ dealId, section14, section18, initial }: Props) 
   const s18_02 = parseFloat(section18.s18_02_original_amount ?? '') || 0
   const s18_03 = parseFloat(section18.s18_03_original_amount ?? '') || 0
   const s18_07 = parseFloat(section18.s18_07_amount ?? '') || 0
-  const s18_08 = parseFloat(section18.s18_08_equity_amount ?? '') || 0  // Federal HTC
+  const s18_08 = parseFloat(section18.s18_08_credits_amount ?? '') || 0  // Federal HTC — subtract the credit amount (Excel E419), not equity
   const s18_11 = parseFloat(section18.s18_11_amount ?? '') || 0
   const s18_12 = parseFloat(section18.s18_12_amount ?? '') || 0
   const s18_13 = parseFloat(section18.s18_13_amount ?? '') || 0

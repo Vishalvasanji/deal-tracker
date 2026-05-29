@@ -22,7 +22,7 @@ function minPupaFor(hudRd: string, projectType: string): { min: number | null; n
   }
   if (projectType === 'Seniors') return { min: 300, note: null }
   if (projectType === 'Family') return { min: 350, note: null }
-  return { min: null, note: null }
+  return { min: 500, note: null } // all other projects — QAP default floor
 }
 
 interface Props {

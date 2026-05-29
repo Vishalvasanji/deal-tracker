@@ -14,7 +14,7 @@ const labelCls = 'block text-xs font-medium text-muted-foreground mb-1'
 const subHeaderCls = 'text-xs font-semibold text-muted-foreground uppercase tracking-wide'
 const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 
-const STATUS_OPTS = ['Not Started', 'In Progress', 'Complete']
+const STATUS_OPTS = ['Not Started', 'In Process', 'Completed']
 
 // Checklist items for 21.01–21.10 (excluding 21.03 which is formula-driven set-aside info
 // and 21.04 which is the sqft section handled separately below)
@@ -30,9 +30,9 @@ const CHECKLIST_ITEMS: Array<{ fk: string; section: string; label: string }> = [
 ]
 
 function StatusIcon({ status }: { status: string }) {
-  if (status === 'Complete')
+  if (status === 'Completed')
     return <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-  if (status === 'In Progress')
+  if (status === 'In Process')
     return <Clock className="h-4 w-4 text-amber-500 shrink-0" />
   return <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
 }
@@ -119,6 +119,9 @@ export function Section21Form({ dealId, initial }: Props) {
               placeholder="e.g. 500"
               onChange={e => setValues(v => ({ ...v, s21_04_other_sqft: e.target.value }))}
               onBlur={e => handleBlur('s21_04_other_sqft', e.target.value)} />
+            {(parseFloat(values.s21_04_other_sqft ?? '') || 0) > 0 && (
+              <p className="text-[11px] text-amber-600 mt-1">Explain the &ldquo;Other&rdquo; square footage in the comment below.</p>
+            )}
           </div>
         </div>
 
