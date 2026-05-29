@@ -16,13 +16,15 @@ export default async function DevelopmentTeamPage({ params }: { params: Promise<
     .limit(1)
   if (!deal) notFound()
 
-  const [s11r, teamr] = await Promise.all([
+  const [s11r, teamr, syndr] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'dev_team'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'syndication'))),
   ])
 
   const s11 = Object.fromEntries(s11r.map(f => [f.field_key, f.value ?? '']))
   const manualInitial = Object.fromEntries(teamr.map(f => [f.field_key, f.value ?? '']))
+  const synd = Object.fromEntries(syndr.map(f => [f.field_key, f.value ?? '']))
 
   const contact = s11['taxpayer_contact'] || ''
   const phone = s11['taxpayer_phone'] || ''
@@ -42,6 +44,7 @@ export default async function DevelopmentTeamPage({ params }: { params: Promise<
   if (deal.partner) prefills['fiscal_partner'] = deal.partner
   if (deal.lender) { prefills['constr_lender'] = deal.lender; prefills['perm_lender'] = deal.lender }
   if (deal.gc) prefills['builder'] = deal.gc
+  if (synd['synd_name']) prefills['syndicator'] = synd['synd_name'] // prefill Syndicator from the Syndication module
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4 pb-20">

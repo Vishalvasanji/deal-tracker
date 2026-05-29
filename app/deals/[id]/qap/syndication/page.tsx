@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { deals, qapFields } from '@/lib/db/schema'
+import { deals, qapFields, qapCostItems } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
 import { SyndicationClient } from '@/components/qap/SyndicationClient'
 import type { SyndEvent, SyndLender, SyndOther } from '@/lib/qap-syndication'
@@ -28,11 +28,14 @@ export default async function SyndicationPage({ params }: { params: Promise<{ id
     .limit(1)
   if (!deal) notFound()
 
-  const [syndr, s14r, s11r] = await Promise.all([
+  const [syndr, s14r, s11r, synCostItems] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'syndication'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_14'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
+    db.select().from(qapCostItems).where(and(eq(qapCostItems.deal_id, deal.id), eq(qapCostItems.category, 'syndication'))),
   ])
+  // Development Costs "Syndication Costs" total (D106) — for the Part VI reconciliation check.
+  const devCostsSyndTotal = synCostItems.reduce((t, ci) => t + (ci.amount ?? 0), 0)
 
   const s = Object.fromEntries(syndr.map(f => [f.field_key, f.value ?? '']))
   const s14 = Object.fromEntries(s14r.map(f => [f.field_key, f.value ?? '']))
@@ -81,6 +84,7 @@ export default async function SyndicationPage({ params }: { params: Promise<{ id
         <SyndicationClient
           dealId={deal.id}
           taxCredits={taxCredits}
+          devCostsSyndTotal={devCostsSyndTotal}
           taxpayerName={taxpayerName}
           controllingPrincipalName={controllingPrincipalName}
           initialScalars={initialScalars}

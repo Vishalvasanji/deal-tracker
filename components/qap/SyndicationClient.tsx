@@ -12,6 +12,7 @@ import { Plus, Trash2, AlertTriangle } from 'lucide-react'
 interface Props {
   dealId: string
   taxCredits: number
+  devCostsSyndTotal?: number       // Development Costs "Syndication Costs" (D106) — Part VI reconciliation
   taxpayerName: string             // §11 taxpayer name (signs as Taxpayer)
   controllingPrincipalName: string // §11 controlling principal (first "By:")
   initialScalars: Record<string, string>
@@ -35,7 +36,7 @@ const labelCls = 'block text-[11px] font-medium text-muted-foreground mb-1'
 const subHdr = 'text-sm font-semibold'
 const card = 'rounded-xl border border-border bg-card px-4 py-3 space-y-3'
 
-export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllingPrincipalName, initialScalars, initialEvents, initialLenders, initialVOthers, initialViOthers }: Props) {
+export function SyndicationClient({ dealId, taxCredits, devCostsSyndTotal, taxpayerName, controllingPrincipalName, initialScalars, initialEvents, initialLenders, initialVOthers, initialViOthers }: Props) {
   const [s, setS] = useState<Record<string, string>>(initialScalars)
   const [events, setEvents] = useState<SyndEvent[]>(initialEvents)
   const [lenders, setLenders] = useState<SyndLender[]>(initialLenders)
@@ -67,13 +68,20 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
     proceeds: num(s['proceeds']),
     grossEquity: num(s['gross_equity']),
     taxCredits,
-    isPublic: (s['is_public'] ?? 'Public') === 'Public',
+    isPublic: (s['is_public'] ?? 'Private') === 'Public',
     eventInstallments: events.map(e => e.installment),
     vCostTotal: vTotal,
     viCostTotal: viTotal,
     netCompounding: num(s['vii_compounding']),
     netDiscounting: num(s['vii_discounting']),
   }), [s, events, vTotal, viTotal, taxCredits])
+
+  // Calculated syndication price = proceeds ÷ (annual credits × % acquired × 10) — equity per $1 of credit.
+  const syndPrice = (() => {
+    const pct = num(s['pct_acquired']) / 100
+    const pr = num(s['proceeds'])
+    return taxCredits > 0 && pct > 0 ? pr / (taxCredits * pct * 10) : 0
+  })()
 
   // ── add-as-needed helpers ──
   function addEvent() { setEvents(p => [...p, { id: uid(), event: '', date: '', percentage: 0, installment: 0 }]) }
@@ -173,7 +181,7 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-muted-foreground">Type (cost cap):</span>
             <select className="rounded-lg border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
-              value={s['is_public'] ?? 'Public'} onChange={e => { setScalar('is_public', e.target.value); persist('is_public', e.target.value) }}>
+              value={s['is_public'] ?? 'Private'} onChange={e => { setScalar('is_public', e.target.value); persist('is_public', e.target.value) }}>
               <option>Public</option>
               <option>Private</option>
             </select>
@@ -199,6 +207,7 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
             {line('C. % Interest retained by Sponsor / Developer', pctStr(r.pctRetained))}
             {line('D. Amount of Tax Credits in Commitment', money(taxCredits), '· from §14')}
             {inputLine('E. Syndication Proceeds Generated', 'proceeds')}
+            {line('Calculated syndication price', syndPrice > 0 ? '$' + syndPrice.toFixed(4) : '—', '· per $1 of credit')}
             {inputLine('F. Gross Equity invested by Syndicator', 'gross_equity')}
             {line('G. Syndication Costs Paid by Syndicator (E − F)', money(r.costsBySyndicator))}
             {line('H. Syndication Costs Paid by Developer (Part VI)', money(r.costsByDeveloper))}
@@ -209,7 +218,13 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
           {r.costPctExceeds && (
             <p className="text-xs text-amber-600 flex items-start gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              Costs are {pctStr(r.costsPctOfProceeds)} of proceeds — above the {pctStr(r.costCap)} cap for a {(s['is_public'] ?? 'Public').toLowerCase()} syndication.
+              Costs are {pctStr(r.costsPctOfProceeds)} of proceeds — above the {pctStr(r.costCap)} cap for a {(s['is_public'] ?? 'Private').toLowerCase()} syndication.
+            </p>
+          )}
+          {devCostsSyndTotal != null && devCostsSyndTotal > 0 && Math.round(viTotal) !== Math.round(devCostsSyndTotal) && (
+            <p className="text-xs text-amber-600 flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              Developer-paid syndication costs (Part VI {money(viTotal)}) don&apos;t match the Development Costs Syndication total ({money(devCostsSyndTotal)}).
             </p>
           )}
         </div>
@@ -241,6 +256,11 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> Installments ({money(r.eventsTotal)}) do not agree with Gross Equity ({money(num(s['gross_equity']))}) — Line F.
             </p>
           )}
+          {events.length > 0 && Math.abs(events.reduce((t, e) => t + (e.percentage || 0), 0) - 100) > 0.5 && (
+            <p className="text-xs text-amber-600 flex items-start gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" /> Disbursement percentages total {events.reduce((t, e) => t + (e.percentage || 0), 0).toFixed(1)}% — they should sum to 100%.
+            </p>
+          )}
         </div>
       </div>
 
@@ -265,7 +285,11 @@ export function SyndicationClient({ dealId, taxCredits, taxpayerName, controllin
             </div>
           </div>
         ))}
-        <button onClick={addLender} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"><Plus className="h-4 w-4" /> Add commercial lender</button>
+        {lenders.length < 2 ? (
+          <button onClick={addLender} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"><Plus className="h-4 w-4" /> Add commercial lender</button>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">The Exhibit provides for up to 2 commercial lenders.</p>
+        )}
       </div>
 
       {/* ── V. Interim Funds from Syndicator and Syndication Costs ── */}

@@ -31,7 +31,7 @@ export function NarrativeForm({ dealId, initial }: Props) {
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-base">Narrative</h2>
         <span className="text-xs text-muted-foreground">
-          {isPending ? 'Savingâ€¦' : savedAt ? `Saved at ${savedAt}` : 'Changes save automatically'}
+          {isPending ? 'Saving…' : savedAt ? `Saved at ${savedAt}` : 'Changes save automatically'}
         </span>
       </div>
 
@@ -44,7 +44,7 @@ export function NarrativeForm({ dealId, initial }: Props) {
           value={values.narrative}
           onChange={e => setValues(v => ({ ...v, narrative: e.target.value }))}
           onBlur={e => save('narrative', e.target.value)}
-          placeholder="Describe the project, its location, community impact, and development teamâ€¦"
+          placeholder="Describe the project, its location, community impact, and development team…"
         />
         <p className="text-xs text-muted-foreground mt-1">{values.narrative.length} characters</p>
       </div>
