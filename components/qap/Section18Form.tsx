@@ -8,6 +8,8 @@ interface Props {
   initial: Record<string, string>
   /** M-2: Reference closing date computed from §16 schedule */
   initialClosingDate?: string
+  /** PD18-1: Syndication gross equity invested, for the §18.10 match check */
+  syndGrossEquity?: number
 }
 
 // ─── Dropdown options ─────────────────────────────────────────────────────────
@@ -336,7 +338,7 @@ function FundingSourceCard({ id, title, subtitle, values, setValues, onToggle, c
 
 // ─── Main form ────────────────────────────────────────────────────────────────
 
-export function Section18Form({ dealId, initial, initialClosingDate }: Props) {
+export function Section18Form({ dealId, initial, initialClosingDate, syndGrossEquity }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -531,6 +533,18 @@ export function Section18Form({ dealId, initial, initialClosingDate }: Props) {
           <Field label="Amount ($)">
             <TextInput fk="s18_10_amount" values={values} setValues={setValues} onBlur={onBlur} onSave={onSave} placeholder="e.g. 8000000" />
           </Field>
+          {/* PD18-1: warn when §18.10 LIHTC equity ≠ Syndication gross equity invested */}
+          {(() => {
+            const entered = parseFloat((values.s18_10_amount ?? '').replace(/[$,\s]/g, '')) || 0
+            const synd = syndGrossEquity ?? 0
+            return entered > 0 && synd > 0 && Math.round(entered) !== Math.round(synd) ? (
+              <div className="col-span-full">
+                <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-800">
+                  This should match the Syndication module&apos;s gross equity invested (${Math.round(synd).toLocaleString()}). They currently differ.
+                </p>
+              </div>
+            ) : null
+          })()}
           {/* H-4: LIHTC equity syndicator certification note */}
           <div className="col-span-full">
             <p className="text-xs rounded-lg px-3 py-2 bg-sky-50 border border-sky-200 text-sky-700">

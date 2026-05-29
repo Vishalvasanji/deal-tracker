@@ -425,6 +425,18 @@ export function Section12Form({ dealId, initial }: Props) {
             onChange={e => setValues(v => ({ ...v, median_income_ct: e.target.value }))}
             onBlur={e => handleBlur('median_income_ct', e.target.value)} />
         </div>
+        {values.parish && PARISH_AMI[values.parish] ? (
+          <div className="rounded-lg px-3 py-2 bg-muted/50 text-xs text-muted-foreground space-y-0.5">
+            <div>{values.parish} Parish / area median income: <span className="font-semibold tabular-nums">${PARISH_AMI[values.parish].toLocaleString()}</span></div>
+            {(() => {
+              const ct = parseFloat((values.median_income_ct ?? '').replace(/[$,\s]/g, ''))
+              const m = PARISH_AMI[values.parish]
+              return !isNaN(ct) && ct > 0 && m > 0
+                ? <div>Census-tract income as % of area median: <span className="font-semibold tabular-nums">{Math.round((ct / m) * 100)}%</span></div>
+                : null
+            })()}
+          </div>
+        ) : null}
       </div>
 
       {/* 12.10 */}

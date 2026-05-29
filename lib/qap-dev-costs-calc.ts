@@ -21,6 +21,10 @@ export interface DevCostDeps {
   is4pct?: boolean
   /** PD §10.03 costs of issuance — subtracted from construction basis when bond-financed (Dev Costs C185) */
   bondIssuanceCosts?: number
+  /** DC-5: §18.14–16 amounts flagged as federal grants (reduce eligible basis) */
+  federalGrants?: number
+  /** DC-5: §18.04 HOME amount when the loan type is "Forgiven at maturity" */
+  homeBasisReduction?: number
   /** §38 user adjustment rows (acquisition + construction basis) — list form */
   basisAdjustments?: BasisAdjustment[]
   /** §20-derived figures pulled read-only (out-of-basis portions, commercial, related-party) */
@@ -155,15 +159,17 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
   const outOfBasisCF  = n(deps.outOfBasisCommunityFacilities)
   const outOfBasisCSF = n(deps.outOfBasisCommunityService)
   const commercial    = n(deps.commercialDevCost)
-  const basisPending: string[] = [
-    'Federal grants & HOME (§19)',
-    'Tax-exempt bond issuance costs (§10.01)',
-  ]
+  // DC-5: §38 basis reductions now computed (were previously pending/display-only)
+  const federalGrants = n(deps.federalGrants)
+  const homeReduction = n(deps.homeBasisReduction)
+  const bondIssuance  = deps.bondFinanced ? Math.abs(deps.bondIssuanceCosts ?? 0) : 0
+  const basisPending: string[] = []
   const adjustedConstructionBasis =
     total - adjustedAcquisitionBasis - land -
     outOfBasisCF - outOfBasisCSF - commercial -
     subtotals['permanent_financing'] - subtotals['reserves'] -
-    subtotals['syndication'] - lhcFees + constrAdjTotal
+    subtotals['syndication'] - lhcFees -
+    federalGrants - homeReduction - bondIssuance + constrAdjTotal
 
   const acqBreakdown: BasisLine[] = [
     { label: 'Building Acquisition', value: n(amounts['building_acquisition']) },
@@ -190,9 +196,9 @@ export function computeDevCosts(amounts: Amounts, deps: DevCostDeps = {}): DevCo
     { label: 'Less: Reserves', value: -subtotals['reserves'] },
     { label: 'Less: Syndication Costs', value: -subtotals['syndication'] },
     { label: 'Less: LHC Fees', value: -lhcFees },
-    { label: 'Less: Federal Grants', value: 0, pending: true },
-    { label: 'Less: HOME', value: 0, pending: true },
-    { label: 'Less: Tax-exempt Bond Issuance Costs', value: deps.bondFinanced ? -Math.abs(deps.bondIssuanceCosts ?? 0) : 0 },
+    { label: 'Less: Federal Grants', value: -federalGrants },
+    { label: 'Less: HOME', value: -homeReduction },
+    { label: 'Less: Tax-exempt Bond Issuance Costs', value: -bondIssuance },
     ...(constrAdjs.length > 0 ? [{ label: 'Construction Adjustments', value: 0, header: true } as BasisLine] : []),
     ...constrAdjs.map(a => ({
       label: a.explanation?.trim() || '(no explanation)',

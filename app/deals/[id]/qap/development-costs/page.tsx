@@ -29,7 +29,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
   // Ensure the faithful line list exists for this deal.
   await seedQapCostItems(deal.id)
 
-  const [costItems, devFields, s12Fields, s10Fields, s20Fields, revExpFields, units] = await Promise.all([
+  const [costItems, devFields, s12Fields, s10Fields, s20Fields, revExpFields, units, s18Fields, s13Fields] = await Promise.all([
     db.select().from(qapCostItems).where(eq(qapCostItems.deal_id, deal.id)),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'development_costs'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
@@ -37,6 +37,8 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_20'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'rev_exp'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)).orderBy(asc(qapUnitTypes.row_index)),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_18'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_13'))),
   ])
 
   const initialAmounts: Record<string, number | null> = {}
@@ -46,6 +48,8 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
   const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
   const s10 = Object.fromEntries(s10Fields.map(f => [f.field_key, f.value ?? '']))
   const s20 = Object.fromEntries(s20Fields.map(f => [f.field_key, f.value ?? '']))
+  const s18 = Object.fromEntries(s18Fields.map(f => [f.field_key, f.value ?? '']))
+  const s13 = Object.fromEntries(s13Fields.map(f => [f.field_key, f.value ?? '']))
   const s20n = (k: string) => num(s20[k]) ?? 0
 
   // §20 read-only pulls into the §36 line items (Excel formula cells).
@@ -143,6 +147,12 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
     isAntiDiscrimination: s12['is_reallocated_credits'] === 'Yes',
     // §36 Operating Deficit Reserve minimum (½ of operating expenses, from Revenues & Expenses)
     operatingDeficitReserveMin,
+    // DC-5: §38 basis reductions — federal grants (§18.14–16 flagged) + forgivable HOME (§18.04)
+    federalGrants: [14, 15, 16].reduce(
+      (sum, i) => sum + (s18[`s18_${i}_federal_grant`] === 'Yes' ? (num(s18[`s18_${i}_funding_amount`]) ?? 0) : 0),
+      0,
+    ),
+    homeBasisReduction: s18['s18_04_loan_type'] === 'Forgiven at maturity' ? (num(s13['home_requested']) ?? 0) : 0,
   }
 
   return (

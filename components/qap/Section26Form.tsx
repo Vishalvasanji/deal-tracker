@@ -147,6 +147,11 @@ export function Section26Form({ dealId, isRural, isTown15k, initial }: Props) {
           )}
         </div>
 
+        {/* PD26-2: prohibition matches the workbook (inert) + explanatory note for the workbook author */}
+        <p className="text-[11px] rounded-lg px-3 py-2 bg-muted/60 border border-border text-muted-foreground">
+          Note (for the QAP workbook author): the QAP intends that a prohibited nearby use bars the site only for non-acquisition projects in a Dense Urban Area or other urban area. The source workbook&apos;s prohibition formula checks for a location type (&ldquo;Dense Urban Area&rdquo;) that its location-type cell never produces (it outputs &ldquo;Urban Area&rdquo;), so the prohibition never triggers there. This app matches the workbook — the prohibition is not enforced; the per-use point penalty below still applies. Flagged so the source formula can be corrected.
+        </p>
+
         {/* H-7: Tiered incompatible use messages based on isTown15k */}
         {anyAdjacent && !isTown15k && (
           <p className="text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">

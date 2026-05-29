@@ -18,14 +18,22 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
     'section_25','section_26','section_27','section_28',
     'section_29','section_30','section_31','section_32','section_33','section_34'] as const
 
-  const [results, unitTypes] = await Promise.all([
+  const [results, unitTypes, syndFields] = await Promise.all([
     Promise.all(
       sections.map(sec =>
         db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, sec)))
       )
     ),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'syndication'))),
   ])
+
+  // PD18-1: Syndication gross equity invested, for the §18.10 match check.
+  const syndGrossEquityRaw = syndFields.find(f => f.field_key === 'gross_equity')?.value ?? ''
+  const syndGrossEquity = (() => {
+    const v = parseFloat(String(syndGrossEquityRaw).replace(/[$,\s]/g, ''))
+    return isNaN(v) ? 0 : v
+  })()
 
   const totalUnits = unitTypes.reduce((sum, u) => sum + (u.num_units ?? 0), 0)
   const lihtcUnits = unitTypes.filter(u => u.is_lihtc).reduce((sum, u) => sum + (u.num_units ?? 0), 0)
@@ -58,6 +66,7 @@ export default async function ProjectDescriptionPage({ params }: { params: Promi
         dealId={deal.id}
         totalUnits={totalUnits}
         lihtcUnits={lihtcUnits}
+        syndGrossEquity={syndGrossEquity}
         section10Initial={toMap(section10Fields)}
         section11Initial={toMap(section11Fields)}
         section12Initial={toMap(section12Fields)}

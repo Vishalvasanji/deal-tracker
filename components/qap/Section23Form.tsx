@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { upsertQapField } from '@/lib/qap-actions'
+import { PARISH_DATA } from '@/lib/qap-parish-data'
 
 const inputCls = 'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 const selectCls = inputCls
@@ -197,7 +198,6 @@ export function Section23Form({ dealId, initial, parish, bondFinancing }: Props)
 
   const ua06Keys     = ['s23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br']
   const market09Keys = ['s23_09_market_0br', 's23_09_market_1br', 's23_09_market_2br', 's23_09_market_3br', 's23_09_market_4br']
-  const fmr10Keys    = ['s23_10_fmr_0br', 's23_10_fmr_1br', 's23_10_fmr_2br', 's23_10_fmr_3br', 's23_10_fmr_4br']
   const brInputLabels = ['0 Bedroom ($)', '1 Bedroom ($)', '2 Bedroom ($)', '3 Bedroom ($)', '4 Bedroom ($)']
 
   // Shared rent table component
@@ -511,27 +511,26 @@ export function Section23Form({ dealId, initial, parish, bondFinancing }: Props)
         </div>
       </div>
 
-      {/* 23.10 — HUD Fair Market Rents (user-entered) */}
+      {/* 23.10 — HUD Fair Market Rents (auto-filled from the §12.01 parish; PD23-1) */}
       <div className="space-y-3">
         <p className={subHeaderCls}>23.10 HUD Fair Market Rents</p>
-        <p className={noteCls}>
-          Enter the HUD Fair Market Rents for the project area by bedroom size. These are used by LHC underwriters to validate market rents.
-        </p>
-        <div className="grid grid-cols-5 gap-3">
-          {fmr10Keys.map((fk, i) => (
-            <div key={fk}>
-              <label className={labelCls}>{brInputLabels[i]}</label>
-              <input
-                type="number"
-                className={inputCls}
-                value={values[fk] ?? ''}
-                onChange={e => setValues(prev => ({ ...prev, [fk]: e.target.value }))}
-                onBlur={e => handleBlur(fk, e.target.value)}
-                min={0}
-              />
+        {PARISH_DATA[parish] ? (
+          <>
+            <p className={noteCls}>
+              HUD FY2025 Fair Market Rents for {parish} Parish, from the QAP Parishes table. LHC underwriters compare these to the market rents above.
+            </p>
+            <div className="grid grid-cols-5 gap-3">
+              {PARISH_DATA[parish].fmr.map((v, i) => (
+                <div key={i}>
+                  <label className={labelCls}>{brInputLabels[i]}</label>
+                  <div className={readOnlyCell}>${v.toLocaleString()}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        ) : (
+          <p className={noteCls}>Select the project parish in §12.01 to populate the HUD Fair Market Rents.</p>
+        )}
         <div>
           <label className={labelCls}>Comment on FMRs</label>
           <textarea

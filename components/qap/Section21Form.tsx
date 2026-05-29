@@ -7,6 +7,8 @@ import { upsertQapField } from '@/lib/qap-actions'
 interface Props {
   dealId: string
   initial: Record<string, string>
+  /** PD21-2: commercial sqft pulled from §20.14 */
+  commercialSqft?: string
 }
 
 const inputCls = 'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
@@ -37,7 +39,7 @@ function StatusIcon({ status }: { status: string }) {
   return <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
 }
 
-export function Section21Form({ dealId, initial }: Props) {
+export function Section21Form({ dealId, initial, commercialSqft }: Props) {
   const [values, setValues] = useState<Record<string, string>>(initial)
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -124,6 +126,21 @@ export function Section21Form({ dealId, initial }: Props) {
             )}
           </div>
         </div>
+
+        {/* PD21-2: commercial sqft pulled from §20.14 + non-residential total */}
+        {(() => {
+          const cf = parseFloat(values.s21_04_community_fac_sqft ?? '') || 0
+          const cs = parseFloat(values.s21_04_community_svc_sqft ?? '') || 0
+          const ot = parseFloat(values.s21_04_other_sqft ?? '') || 0
+          const comm = parseFloat((commercialSqft ?? '').replace(/[,\s]/g, '')) || 0
+          const total = cf + cs + ot + comm
+          return (
+            <div className="rounded-lg px-3 py-2 bg-muted/50 text-xs text-muted-foreground space-y-0.5">
+              <div>Commercial square footage (from §20.14): <span className="font-semibold tabular-nums">{comm.toLocaleString()}</span></div>
+              <div>Total non-residential square footage: <span className="font-semibold tabular-nums">{total.toLocaleString()}</span></div>
+            </div>
+          )
+        })()}
 
         <div>
           <label className={labelCls}>Comment</label>

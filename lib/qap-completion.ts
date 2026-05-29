@@ -70,7 +70,6 @@ const SECTION_23_REQUIRED = [
   's23_05_heating_payer', 's23_05_ac_payer', 's23_05_sewer_payer', 's23_05_trash_payer',
   's23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br',
   's23_09_market_0br', 's23_09_market_1br', 's23_09_market_2br', 's23_09_market_3br', 's23_09_market_4br',
-  's23_10_fmr_0br', 's23_10_fmr_1br', 's23_10_fmr_2br', 's23_10_fmr_3br', 's23_10_fmr_4br',
 ]
 const SECTION_24_REQUIRED = ['s24_01_special_needs_points', 's24_03_elderly_100pct']
 const SECTION_25_REQUIRED = ['s25_01_extended_afford_points', 's25_02_additional_financial']

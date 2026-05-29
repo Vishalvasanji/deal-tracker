@@ -94,7 +94,6 @@ const SECTION_23_REQUIRED = [
   's23_05_heating_payer', 's23_05_ac_payer', 's23_05_sewer_payer', 's23_05_trash_payer',
   's23_06_ua_0br', 's23_06_ua_1br', 's23_06_ua_2br', 's23_06_ua_3br', 's23_06_ua_4br',
   's23_09_market_0br', 's23_09_market_1br', 's23_09_market_2br', 's23_09_market_3br', 's23_09_market_4br',
-  's23_10_fmr_0br', 's23_10_fmr_1br', 's23_10_fmr_2br', 's23_10_fmr_3br', 's23_10_fmr_4br',
 ]
 const SECTION_24_REQUIRED = ['s24_01_special_needs_points', 's24_03_elderly_100pct']
 const SECTION_25_REQUIRED = ['s25_01_extended_afford_points', 's25_02_additional_financial']
@@ -167,6 +166,7 @@ export function ProjectDescriptionClient({
   dealId,
   totalUnits,
   lihtcUnits,
+  syndGrossEquity,
   section10Initial, section11Initial, section12Initial,
   section13Initial, section14Initial, section15Initial,
   section16Initial, section17Initial, section18Initial,
@@ -180,6 +180,7 @@ export function ProjectDescriptionClient({
   dealId: string
   totalUnits: number
   lihtcUnits: number
+  syndGrossEquity: number
   section10Initial: Record<string, string>
   section11Initial: Record<string, string>
   section12Initial: Record<string, string>
@@ -260,7 +261,7 @@ export function ProjectDescriptionClient({
         <Section17Form dealId={dealId} initial={section17Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 18" title="Permanent Sources of Funds" fields={section18Initial} required={SECTION_18_REQUIRED}>
-        <Section18Form dealId={dealId} initial={section18Initial} initialClosingDate={initialClosingDate || undefined} />
+        <Section18Form dealId={dealId} initial={section18Initial} initialClosingDate={initialClosingDate || undefined} syndGrossEquity={syndGrossEquity} />
       </SectionAccordion>
       <SectionAccordion number="Section 19" title="Summary — Permanent Sources" fields={section19Initial} required={SECTION_19_REQUIRED}>
         <Section19Form dealId={dealId} section18={section18Initial} initial={section19Initial} />
@@ -269,7 +270,7 @@ export function ProjectDescriptionClient({
         <Section20Form dealId={dealId} initial={section20Initial} />
       </SectionAccordion>
       <SectionAccordion number="Section 21" title="Complete Remaining Key Worksheets" fields={section21Initial} required={SECTION_21_REQUIRED}>
-        <Section21Form dealId={dealId} initial={section21Initial} />
+        <Section21Form dealId={dealId} initial={section21Initial} commercialSqft={section20Initial.s20_14_commercial_sqft} />
       </SectionAccordion>
       <SectionAccordion number="Section 22" title="Allowable LIHTCs" fields={section22Initial} required={SECTION_22_REQUIRED}>
         <Section22Form dealId={dealId} section14={section14Initial} section18={section18Initial} initial={section22Initial} />
