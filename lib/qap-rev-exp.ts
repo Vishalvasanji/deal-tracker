@@ -7,7 +7,7 @@
 
 export const LHC_MIN_PUPA = 4500          // §44 — LHC minimum operating expenses (per unit per annum)
 export const ASSET_MGMT_MAX = 5000        // §45 — max combined asset-management fee allowable as op. expense
-export const LHC_COMPLIANCE_FEE_PER_UNIT = 40  // §44.06 — LHC Annual Compliance/Monitoring Fee = $40 × total units
+export const LHC_COMPLIANCE_FEE_PER_UNIT = 40  // QAP III.D — LHC Annual Compliance/Monitoring Fee = $40 × total units
                                                // (Project Description H1043 = M1042 × M1043 = units × 40)
 
 export interface RevExpLine {

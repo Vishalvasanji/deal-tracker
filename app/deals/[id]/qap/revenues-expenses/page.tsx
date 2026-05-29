@@ -24,10 +24,14 @@ export default async function RevenuesExpensesPage({ params }: { params: Promise
     .limit(1)
   if (!deal) notFound()
 
-  const [revExpFields, units] = await Promise.all([
+  const [revExpFields, units, s12Fields, s13Fields] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'rev_exp'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_13'))),
   ])
+  const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
+  const s13 = Object.fromEntries(s13Fields.map(f => [f.field_key, f.value ?? '']))
 
   const initialAmounts: Record<string, number> = {}
   const initialOthers: Record<string, OtherLine[]> = {}
@@ -54,13 +58,16 @@ export default async function RevenuesExpensesPage({ params }: { params: Promise
 
   // Unit Mix aggregates: total units and annual gross potential rents (Σ monthly rent × 12).
   let totalUnits = 0
+  let lihtcUnits = 0
   let monthlyRent = 0
   for (const u of units) {
     const cnt = u.num_units ?? 0
     totalUnits += cnt
+    if (u.is_lihtc) lihtcUnits += cnt
     monthlyRent += (u.monthly_rent ?? 0) * cnt
   }
   const annualGrossRent = monthlyRent * 12
+  const cdbgDr = num(s13['cdbg_requested']) > 0
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-4 pb-20">
@@ -83,7 +90,7 @@ export default async function RevenuesExpensesPage({ params }: { params: Promise
           initialAmounts={initialAmounts}
           initialOthers={initialOthers}
           initialComments={initialComments}
-          deps={{ totalUnits, annualGrossRent }}
+          deps={{ totalUnits, annualGrossRent, lihtcUnits, buildingType: s12['building_type'] || undefined, cdbgDr }}
         />
       </div>
     </div>

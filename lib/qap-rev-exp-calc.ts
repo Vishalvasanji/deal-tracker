@@ -8,12 +8,16 @@ import {
   LHC_COMPLIANCE_FEE_PER_UNIT,
   type RevExpGroup,
 } from './qap-rev-exp'
+import { calcAssetMgmtFee } from './qap-lhc-fees'
 
 export interface OtherLine { id: string; label: string; amount: number }
 
 export interface RevExpDeps {
   totalUnits: number
   annualGrossRent: number   // Unit Mix monthly rent × 12 → Gross Potential Rents
+  lihtcUnits?: number       // LIHTC unit count → LHC Asset Management Fee tier (§32)
+  buildingType?: string     // §12 building type → elevator-maintenance check
+  cdbgDr?: boolean          // §13 CDBG-DR funds requested → contingent-fee note
 }
 
 export interface GroupResult {
@@ -47,6 +51,7 @@ export interface RevExpResult {
   useForUnderwriting: number            // = Total Operating Expenses (C89)
   operatingDeficitReserveMin: number    // C89 / 2 (feeds §36 Operating Deficit Reserve minimum)
   lhcComplianceMonitoringFee: number    // §44.06 auto-pulled value ($40 × units)
+  lhcAssetMgmtFee: number               // §44 LHC Asset Management Fee auto-pulled from the §32 tier
 }
 
 const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) ? v : 0)
@@ -63,6 +68,8 @@ function groupSubtotal(
     if (line.key === 'gross_potential_rents') s += n(deps.annualGrossRent)
     // LHC Annual Compliance/Monitoring Fee is read-only ($40 × total units; PD H1043).
     else if (line.key === 'lhc_compliance_monitoring') s += LHC_COMPLIANCE_FEE_PER_UNIT * n(deps.totalUnits)
+    // LHC Asset Management Fee is read-only, auto-pulled from the §32 tier (by LIHTC units; PD H1045).
+    else if (line.key === 'lhc_asset_mgmt') s += calcAssetMgmtFee(n(deps.lihtcUnits))
     else s += n(amounts[line.key])
   }
   for (const o of others[group.key] ?? []) s += n(o.amount)
@@ -130,5 +137,6 @@ export function computeRevExp(
     useForUnderwriting: totalOperatingExpenses,
     operatingDeficitReserveMin: totalOperatingExpenses / 2,
     lhcComplianceMonitoringFee: LHC_COMPLIANCE_FEE_PER_UNIT * units,
+    lhcAssetMgmtFee: calcAssetMgmtFee(n(deps.lihtcUnits)),
   }
 }

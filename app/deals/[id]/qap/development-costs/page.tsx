@@ -93,10 +93,12 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
   // Unit counts by bedroom (0–4) for the §40 HUD TDC limit.
   const unitsByBr = [0, 0, 0, 0, 0]
   let totalUnits = 0
+  let lihtcUnits = 0
   let monthlyRent = 0
   for (const u of units) {
     const cnt = u.num_units ?? 0
     totalUnits += cnt
+    if (u.is_lihtc) lihtcUnits += cnt
     monthlyRent += (u.monthly_rent ?? 0) * cnt
     if (u.bedrooms != null && u.bedrooms >= 0 && u.bedrooms <= 4) unitsByBr[u.bedrooms] += cnt
   }
@@ -119,7 +121,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
       reAmounts[key] = num(f.value) ?? 0
     }
   }
-  const revExp = computeRevExp(reAmounts, reOthers, { totalUnits, annualGrossRent: monthlyRent * 12 })
+  const revExp = computeRevExp(reAmounts, reOthers, { totalUnits, lihtcUnits, annualGrossRent: monthlyRent * 12 })
   const operatingDeficitReserveMin = revExp.operatingDeficitReserveMin
 
   const deps = {

@@ -170,7 +170,9 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
           {group.lines.map(line =>
             line.key === 'lhc_compliance_monitoring'
               ? fixedLineRow(line.key, line.label, { readOnly: true, readOnlyValue: result.lhcComplianceMonitoringFee, tag: 'Project Description · $40/unit' })
-              : fixedLineRow(line.key, line.label),
+              : line.key === 'lhc_asset_mgmt'
+                ? fixedLineRow(line.key, line.label, { readOnly: true, readOnlyValue: result.lhcAssetMgmtFee, tag: '§32 · by LIHTC units' })
+                : fixedLineRow(line.key, line.label),
           )}
         </div>
         {group.allowsOthers && othersBlock(group.key)}
@@ -250,7 +252,7 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
       </div>
 
       {/* ── Asset-management rules (always on when triggered) ── */}
-      {(am.otherFlagged || am.overCap > 0) && (
+      {(am.otherFlagged || am.overCap > 0 || result.lhcAssetMgmtFee > 0) && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1.5">
           <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Asset Management Fee Rules (§45)</p>
           {am.otherFlagged && (
@@ -264,6 +266,12 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               Combined asset management fees ({money(am.combined)}) exceed the {money(am.max)} cap — only{' '}
               {money(am.allowableAsOpEx)} is allowable as an operating expense.
+            </p>
+          )}
+          {!am.otherFlagged && result.lhcAssetMgmtFee > 0 && (
+            <p className="text-xs text-amber-700 flex items-start gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              Include a full explanation of the proposed asset management fee(s) in the comment below.
             </p>
           )}
         </div>
@@ -311,6 +319,12 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
       <div className="space-y-3">
         <p className={subHdr}>§44 · Must-Pay Operating Expenses</p>
         {EXPENSE_GROUPS.map(expenseCategory)}
+        {(deps.buildingType ?? '').includes('Elevator') && !(amounts['elevator_maint'] > 0) && (
+          <p className="text-xs text-amber-700 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            This is an elevator building — explain why no elevator maintenance was budgeted.
+          </p>
+        )}
 
         <div className="rounded-xl border-2 border-border bg-muted/20 px-4 py-3 flex items-center justify-between">
           <span className="font-semibold text-sm">Total Operating Expenses (§44.49)</span>
@@ -337,6 +351,12 @@ export function RevenueExpensesClient({ dealId, initialAmounts, initialOthers, i
           Operating expenses payable only if cash is available, and/or after certain other payments are made first
           from available cash flow.
         </p>
+        {deps.cdbgDr && (
+          <p className="text-xs text-amber-700 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            CDBG-DR: deferred developer fee, asset-management fees, investor-service fees and similar may be paid only from the borrower&apos;s Surplus Cash.
+          </p>
+        )}
         <div className="rounded-xl border border-border bg-card px-4 py-3 space-y-2">
           <div className="divide-y divide-border/40">
             {contingent.lines.map(line => fixedLineRow(line.key, line.label))}
