@@ -47,11 +47,12 @@ interface Props {
   npGate: boolean
   existingLhcGate: boolean
   existingBuildingGate: boolean
+  devCostsAcqTotal?: number   // Development Costs Total Acquisition Cost — App 2 reconciliation
   initialVals: Record<string, string>
   initialLists: Record<string, Row[]>
 }
 
-export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, existingBuildingGate, initialVals, initialLists }: Props) {
+export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, existingBuildingGate, devCostsAcqTotal = 0, initialVals, initialLists }: Props) {
   const [vals, setVals] = useState<Record<string, string>>(initialVals)
   const [lists, setLists] = useState<Record<string, Row[]>>(initialLists)
   const [isPending, startTransition] = useTransition()
@@ -127,7 +128,7 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
 
   const signatory = (label = 'By:') => ro(label, pulled.controllingPrincipalName, 'Controlling Principal (auto)')
 
-  const listEditor = (k: string, columns: readonly { key: string; label: string }[], addLabel: string) => {
+  const listEditor = (k: string, columns: readonly { key: string; label: string; options?: readonly string[] }[], addLabel: string) => {
     const rows = listOf(k)
     return (
       <div className="space-y-2">
@@ -143,10 +144,19 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
                   <tr key={i} className="border-b border-border/40">
                     {columns.map(c => (
                       <td key={c.key} className="py-1 pr-2">
-                        <input className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm"
-                          value={row[c.key] ?? ''}
-                          onChange={e => { const next = [...rows]; next[i] = { ...next[i], [c.key]: e.target.value }; updateListLocal(k, next) }}
-                          onBlur={() => persistList(k)} />
+                        {c.options ? (
+                          <select className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm"
+                            value={row[c.key] ?? ''}
+                            onChange={e => { const next = [...rows]; next[i] = { ...next[i], [c.key]: e.target.value }; setList(k, next) }}>
+                            <option value="">Select…</option>
+                            {c.options.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm"
+                            value={row[c.key] ?? ''}
+                            onChange={e => { const next = [...rows]; next[i] = { ...next[i], [c.key]: e.target.value }; updateListLocal(k, next) }}
+                            onBlur={() => persistList(k)} />
+                        )}
                       </td>
                     ))}
                     <td className="py-1">
@@ -195,7 +205,7 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
         {listEditor('prev_participation', [
           { key: 'project', label: 'Project Name and Location' },
           { key: 'date', label: 'Application Date' },
-          { key: 'status', label: 'Status' },
+          { key: 'status', label: 'Status', options: ['Requested', 'Started Construction', 'Finished Construction', '8609s'] },
         ], 'Add project')}
 
         <p className={subHead}>II. Identities of Interest — Related Parties</p>
@@ -219,27 +229,51 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
       <Accordion title="Site Control" subtitle="Site Control Worksheet">
         {field('site_control_method', 'Method of site control', { type: 'select', options: SITE_CONTROL_METHODS })}
 
-        {method === 'Purchase' && (
+        {method === 'Purchase' && (() => {
+          const price = num(vals['purchase_total_price']); const paid = num(vals['purchase_paid_to_date']); const area = num(vals['purchase_site_area'])
+          const mismatch = price > 0 && devCostsAcqTotal > 0 && Math.round(price) !== Math.round(devCostsAcqTotal)
+          return (
           <div className="space-y-3">
             <p className={subHead}>Purchase Information</p>
             {field('purchase_total_price', 'Total Purchase Price', { type: 'number' })}
             {field('purchase_paid_to_date', 'Paid to Date', { type: 'number' })}
+            {ro('Outstanding Balance', money(price - paid), 'price − paid')}
             {field('purchase_site_area', 'Site Area', { type: 'number', suffix: 'sq ft' })}
+            {ro('Purchase Price / S.F.', area > 0 ? '$' + (price / area).toFixed(2) : '—')}
             {field('purchase_date', 'Date of Purchase', { type: 'date' })}
+            {mismatch && (
+              <p className="text-xs text-amber-700 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                Purchase price ({money(price)}) doesn&apos;t agree with the Total Acquisition Cost ({money(devCostsAcqTotal)}) from Development Costs — please explain.
+              </p>
+            )}
             {field('purchase_comment', 'Comment for purchase price', { type: 'textarea' })}
           </div>
-        )}
-        {method === 'Option to Purchase' && (
+          )
+        })()}
+        {method === 'Option to Purchase' && (() => {
+          const price = num(vals['option_total_price']); const paid = num(vals['option_paid_to_date']); const area = num(vals['option_site_area'])
+          const mismatch = price > 0 && devCostsAcqTotal > 0 && Math.round(price) !== Math.round(devCostsAcqTotal)
+          return (
           <div className="space-y-3">
             <p className={subHead}>Option Information</p>
             {field('option_explanation', 'Explain the purchase option (when purchased, amount paid, expiration, extensions)', { type: 'textarea' })}
             {field('option_total_price', 'Total Purchase Price (including cost of the option)', { type: 'number' })}
             {field('option_paid_to_date', 'Paid to Date', { type: 'number' })}
+            {ro('Outstanding Balance', money(price + paid), 'price + paid')}
             {field('option_site_area', 'Site Area', { type: 'number', suffix: 'sq ft' })}
+            {ro('Purchase Price / S.F.', area > 0 ? '$' + (price / area).toFixed(2) : '—')}
+            {mismatch && (
+              <p className="text-xs text-amber-700 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                Option price ({money(price)}) doesn&apos;t agree with the Total Acquisition Cost ({money(devCostsAcqTotal)}) from Development Costs — please explain.
+              </p>
+            )}
             {field('option_comment', 'Additional comment', { type: 'textarea' })}
           </div>
-        )}
-        {method === 'Lease' && (
+          )
+        })()}
+        {method === 'Lease' && (() => {
+          const amt = num(vals['lease_amount_paid']); const rent = num(vals['lease_annual_rent']); const rem = num(vals['lease_remaining']); const area = num(vals['lease_site_area'])
+          return (
           <div className="space-y-3">
             <p className={subHead}>Lease Information</p>
             {field('lease_amount_paid', 'Amount Paid for Leasehold Interest', { type: 'number' })}
@@ -247,12 +281,14 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
             {field('lease_term', 'Lease Term', { type: 'number', suffix: 'years' })}
             {field('lease_remaining', 'Remaining Years', { type: 'number', suffix: 'years' })}
             {field('lease_site_area', 'Site Area', { type: 'number', suffix: 'sq ft' })}
+            {ro('Cost / S.F.', area > 0 ? '$' + ((amt + rent * rem) / area).toFixed(2) : '—', '(leasehold + ground rent × remaining yrs) ÷ area')}
             {field('lease_date', 'Date of Lease', { type: 'date' })}
             <p className="text-[11px] text-muted-foreground">Annual Ground Rent must also be included as a Miscellaneous Tax &amp; Insurance Expense on Revenues &amp; Expenses.</p>
             {field('lease_comment', 'Comment for ground lease', { type: 'textarea' })}
           </div>
-        )}
-        {method === 'No Site Control Yet' && (
+          )
+        })()}
+        {(method === '' || method === 'No Site Control Yet') && (
           <div className="space-y-3">
             <p className={subHead}>Applicant does not yet have site control</p>
             {field('nosc_est_price', 'Estimated Purchase Price for the site', { type: 'number' })}
@@ -337,7 +373,14 @@ export function SchedulesClient({ dealId, pulled, npGate, existingLhcGate, exist
           {ro('City', pulled.city, 'from §12')}
           {ro('Parish', pulled.parish, 'from §12')}
           {ro('Zip Code', pulled.zip, 'from §12')}
-          {ro('Owner Name', pulled.taxpayerName, 'from §11')}
+        </div>
+        <p className={subHead}>Site Owner</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {field('env_owner_name', 'Owner Name')}
+          {field('env_owner_street', 'Street Address')}
+          {field('env_owner_city', 'City')}
+          {field('env_owner_parish', 'Parish')}
+          {field('env_owner_zip', 'Zip Code')}
         </div>
         {field('env_project_desc', 'Project Description', { type: 'textarea' })}
         {ENV_GROUPS.map(g => (

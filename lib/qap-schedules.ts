@@ -58,7 +58,7 @@ export const NP_DEV_COLUMNS = [
   { key: 'name',       label: 'Name' },
   { key: 'location',   label: 'Location' },
   { key: 'units',      label: 'Number of Units' },
-  { key: 'subsidized', label: 'Subsidized?' },
+  { key: 'subsidized', label: 'Subsidized?', options: ['Yes', 'No'] },
 ] as const
 
 // App 36 Environmental — restrictions checklist.
@@ -112,4 +112,4 @@ export const ENV_GROUPS: EnvGroup[] = [
   ] },
 ]
 
-export const SITE_CONTROL_METHODS = ['Purchase', 'Option to Purchase', 'Lease', 'No Site Control Yet'] as const
+export const SITE_CONTROL_METHODS = ['Purchase', 'Option to Purchase', 'Lease'] as const

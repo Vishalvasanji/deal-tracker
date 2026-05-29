@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
-import { deals, qapFields } from '@/lib/db/schema'
+import { deals, qapFields, qapCostItems } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
 import { SchedulesClient } from '@/components/qap/SchedulesClient'
 import type { SchedulesPulled } from '@/lib/qap-schedules'
@@ -19,11 +19,14 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
     .limit(1)
   if (!deal) notFound()
 
-  const [schedFields, s11Fields, s12Fields] = await Promise.all([
+  const [schedFields, s11Fields, s12Fields, acqItems] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'schedules'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_11'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
+    db.select().from(qapCostItems).where(and(eq(qapCostItems.deal_id, deal.id), eq(qapCostItems.category, 'acquisition'))),
   ])
+  // Development Costs Total Acquisition Cost — for the App 2 price reconciliation.
+  const devCostsAcqTotal = acqItems.reduce((t, ci) => t + (ci.amount ?? 0), 0)
 
   const s11 = Object.fromEntries(s11Fields.map(f => [f.field_key, f.value ?? '']))
   const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
@@ -88,6 +91,7 @@ export default async function SchedulesPage({ params }: { params: Promise<{ id: 
           npGate={npGate}
           existingLhcGate={existingLhcGate}
           existingBuildingGate={existingBuildingGate}
+          devCostsAcqTotal={devCostsAcqTotal}
           initialVals={initialVals}
           initialLists={initialLists}
         />
