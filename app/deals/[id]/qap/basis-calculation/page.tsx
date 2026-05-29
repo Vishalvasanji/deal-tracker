@@ -91,8 +91,8 @@ export default async function BasisCalculationPage({ params }: { params: Promise
   let constructionCreditRate = 0
   let acquisitionCreditRate = 0
   if (dealType === '9%') {
-    constructionCreditRate = 0.09 // standard 70% PV rate (§14 H207 default)
-    acquisitionCreditRate = normRate(s14['acq_credit_rate'])
+    constructionCreditRate = 0.09 // 9% deals: fixed 70% PV rate (constant, no override per QAP)
+    acquisitionCreditRate = normRate(s14['acq_credit_rate']) // §14.02 acquisition rate (applicant-entered)
   } else if (dealType === '4%') {
     const r = normRate(s10['housing_credit_rate'])
     constructionCreditRate = r

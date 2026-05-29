@@ -70,6 +70,18 @@ export function Section15Form({
       ? 'Only projects with competitive LIHTCs (9%) may qualify for a 30% construction basis boost.'
       : null
 
+  // BAS-3: a 9% project's construction boost may not exceed 30% (Excel B222).
+  const construction9pctBoostError =
+    lihtc9pct && constructionBoost > 0.301
+      ? 'Proposed boost % for a 9% project must be 30% or less.'
+      : null
+
+  // BAS-5: acquisition basis is generally not boost-eligible (Excel B221, advisory).
+  const acqBoostAdvisory =
+    acquisitionBoost > 0
+      ? 'LHC advises that Acquisition Basis is generally not eligible for a boost. Explain below why you propose a boost for Acquisition Basis.'
+      : null
+
   // Info: checklist reminder when boost is being applied
   const showChecklistNote = isApplying && anyBoost
 
@@ -132,6 +144,11 @@ export function Section15Form({
                   {constructionBoostError}
                 </p>
               )}
+              {construction9pctBoostError && (
+                <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-rose-50 border border-rose-200 text-rose-700">
+                  {construction9pctBoostError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -146,6 +163,11 @@ export function Section15Form({
               <p className="mt-1 text-xs text-muted-foreground">
                 Enter as decimal (e.g. 0.30 for 30%). Enter 0 if not requesting an acquisition boost.
               </p>
+              {acqBoostAdvisory && (
+                <p className="mt-2 text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700">
+                  {acqBoostAdvisory}
+                </p>
+              )}
             </div>
 
             {showChecklistNote && (

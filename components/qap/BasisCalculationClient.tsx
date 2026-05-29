@@ -100,6 +100,9 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
           Construction {money(result.totals.permittedConstructionCredit)} + Acquisition {money(result.totals.permittedAcquisitionCredit)}
           {' · '}{deps.dealType === 'none' ? '' : `${dealLabel} deal`}
         </p>
+        <p className="text-[11px] text-muted-foreground mt-2 border-t border-border/60 pt-2">
+          Maximum permitted by eligible basis — before the §14 pool cap and the equity-gap test. Not necessarily the awardable credit.
+        </p>
       </div>
 
       {/* Missing-input guidance — explains a $0 result (signal, always shown) */}
@@ -116,7 +119,7 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
       {/* Reconciliation issues — always shown when present */}
       {result.errors.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 space-y-1.5">
-          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Reconciliation Issues</p>
+          <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Reconciliation Issues ({result.errors.length})</p>
           <ul className="space-y-1">
             {result.errors.map(e => (
               <li key={e.note} className="text-xs text-amber-700 flex items-start gap-2">
@@ -206,8 +209,8 @@ export function BasisCalculationClient({ dealId, initialConfigs, deps }: Props) 
             <div className={cardCls}><p className={subHdr}>Adj. Acq. Basis</p><p className="text-sm font-semibold tabular-nums">{money(deps.adjustedAcquisitionBasis)}</p><p className="text-[11px] text-muted-foreground">§38</p></div>
             <div className={cardCls}><p className={subHdr}>Constr. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
             <div className={cardCls}><p className={subHdr}>Acq. Boost</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionBoost)}</p><p className="text-[11px] text-muted-foreground">§15.01</p></div>
-            <div className={cardCls}><p className={subHdr}>Constr. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
-            <div className={cardCls}><p className={subHdr}>Acq. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14':deps.dealType==='4%'?'§10':'—'}</p></div>
+            <div className={cardCls}><p className={subHdr}>Constr. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.constructionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'fixed 9%':deps.dealType==='4%'?'§10.02':'—'}</p></div>
+            <div className={cardCls}><p className={subHdr}>Acq. Credit %</p><p className="text-sm font-semibold tabular-nums">{pctStr(deps.acquisitionCreditRate)}</p><p className="text-[11px] text-muted-foreground">{deps.dealType==='9%'?'§14.02':deps.dealType==='4%'?'§10.02':'—'}</p></div>
           </div>
 
           {result.errors.length === 0 && configs.length > 0 && (

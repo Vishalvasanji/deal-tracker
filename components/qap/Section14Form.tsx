@@ -91,9 +91,10 @@ export function Section14Form({
   const creditsExceedCap =
     lihtcCap !== null && lihtcCap > 0 && creditsAmount > 0 && creditsAmount > lihtcCap
 
-  // Acquisition rate shown for any deal that includes acquisition (4% or 9%)
-  // Excel rows 208-210 have no conditional formula — always visible when project has acquisition
-  const showAcqRate = existingAcquired
+  // Acquisition credit rate (§14.02) is shown for ANY 9% deal — Excel shows H209 whenever the
+  // project is a 9% transaction (the applicant fills it if the deal includes acquisition credits).
+  // Previously gated on §12 existing_acquired, which silently zeroed the acquisition credit.
+  const showAcqRate = lihtc9pct
 
   // Income Averaging note
   const showIncomeAvgNote = values.lihtc_set_aside_election === 'Average Income'
