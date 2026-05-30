@@ -183,6 +183,30 @@ export function deriveRentLimits(
   }
 }
 
+// AMI levels in display order (matches the Unit Mix table).
+export const AMI_LEVELS = ['20', '30', '40', '50', '60', '70', '80', '120', 'unrestricted'] as const
+export const AMI_LEVEL_LABELS: Record<string, string> = {
+  '20': '20% AMI', '30': '30% AMI', '40': '40% AMI', '50': '50% AMI', '60': '60% AMI',
+  '70': '70% AMI', '80': '80% AMI', '120': '120% AMI', 'unrestricted': 'Not Restricted',
+}
+
+/** AMI-level × bedroom (0–4) unit-count matrix + totals, for the Summary roll-up. */
+export function unitMixMatrix(rows: UnitRowLike[]): {
+  levels: { ami: string; label: string; byBr: number[]; total: number }[]
+  brTotals: number[]
+  grandTotal: number
+} {
+  const levels = AMI_LEVELS.map(ami => {
+    const byBr = [0, 1, 2, 3, 4].map(br =>
+      rows.reduce((s, r) => s + (r.ami_restriction === ami && r.bedrooms === br ? (r.num_units ?? 0) : 0), 0))
+    return { ami, label: AMI_LEVEL_LABELS[ami], byBr, total: byBr.reduce((s, v) => s + v, 0) }
+  }).filter(l => l.total > 0)
+  const brTotals = [0, 1, 2, 3, 4].map(br =>
+    rows.reduce((s, r) => s + (r.bedrooms === br ? (r.num_units ?? 0) : 0), 0))
+  const grandTotal = rows.reduce((s, r) => s + (r.num_units ?? 0), 0)
+  return { levels, brTotals, grandTotal }
+}
+
 // ── Aggregate evaluation (set-aside eligibility, AMI thresholds, row-flag count) ─
 export interface UnitMixEval {
   totalUnits: number

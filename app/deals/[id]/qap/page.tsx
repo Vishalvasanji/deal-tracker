@@ -4,7 +4,7 @@ import { deals } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import { getQapCompletion } from '@/lib/qap-completion'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck, FileSignature, LineChart, ShieldAlert, ChevronRight, TrendingUp } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck, FileSignature, LineChart, ShieldAlert, ChevronRight, TrendingUp, FileBarChart } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 
 function ProgressCard({
@@ -75,19 +75,34 @@ export default async function QapHubPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <Link
-        href={`/deals/${deal.id}/qap/flags`}
-        className="flex items-center justify-between gap-3 bg-card rounded-2xl border border-black/[0.06] px-5 py-4 hover:shadow-md transition-shadow"
-      >
-        <div className="flex items-center gap-3">
-          <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" />
-          <div>
-            <p className="font-semibold text-sm">Serious Problems</p>
-            <p className="text-xs text-muted-foreground">Every validation error &amp; warning across the application, linked to its source.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link
+          href={`/deals/${deal.id}/qap/summary`}
+          className="flex items-center justify-between gap-3 bg-card rounded-2xl border border-black/[0.06] px-5 py-4 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <FileBarChart className="h-5 w-5 text-primary shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Project Summary</p>
+              <p className="text-xs text-muted-foreground">One-page roll-up of the whole application.</p>
+            </div>
           </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-      </Link>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </Link>
+        <Link
+          href={`/deals/${deal.id}/qap/flags`}
+          className="flex items-center justify-between gap-3 bg-card rounded-2xl border border-black/[0.06] px-5 py-4 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Serious Problems</p>
+              <p className="text-xs text-muted-foreground">Every validation error &amp; warning, linked to its source.</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <ProgressCard
