@@ -68,7 +68,7 @@ const PARISH_MSA: Record<string, string> = {
   'St. Landry': 'Non-Metro',
   'St. Martin': 'Lafayette, LA MSA',
   'St. Mary': 'Non-Metro',
-  'St. Tammany': 'New Orleans-Metairie, LA MSA',
+  'St. Tammany': 'Slidell-Mandeville-Covington, LA',
   'Tangipahoa': 'Hammond, LA MSA',
   'Tensas': 'Non-Metro',
   'Terrebonne': 'Houma-Thibodaux, LA MSA',
