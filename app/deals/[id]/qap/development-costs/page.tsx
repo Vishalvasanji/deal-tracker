@@ -7,6 +7,7 @@ import { seedQapCostItems } from '@/lib/qap-actions'
 import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
 import type { BasisAdjustment } from '@/lib/qap-dev-costs-calc'
 import { computeRevExp, type OtherLine } from '@/lib/qap-rev-exp-calc'
+import { computeFinancing } from '@/lib/qap-financing-calc'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
@@ -178,6 +179,7 @@ export default async function DevelopmentCostsPage({ params }: { params: Promise
           initialAdjustments={initialAdjustments}
           initialComments={initialComments}
           pulledAmounts={pulledAmounts}
+          computedSources={computeFinancing(s18, s13).totalSources}
           deps={deps}
         />
       </div>

@@ -9,9 +9,14 @@ import {
 } from '@/lib/qap-proforma-calc'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
+interface LoanRow { line: string; label: string; amount: number; paymentType: string; annualPayment: number }
+
 interface Props {
   dealId: string
   base: Omit<ProformaInputs, 'mustPayDebtService' | 'otherDebtService'>
+  /** Must-pay debt service computed from the §18 mortgage loan terms (Excel H994). */
+  computedDebtService: number
+  loans: LoanRow[]
   initialDebtService: string
   initialOtherDebt: string
 }
@@ -26,7 +31,7 @@ const dscrStr = (n: number) => (n > 0 ? n.toFixed(2) : '—')
 const labelCls = 'block text-xs font-medium text-muted-foreground mb-1'
 const inputCls = 'w-full rounded-xl border border-input bg-background px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-ring'
 
-export function ProformaClient({ dealId, base, initialDebtService, initialOtherDebt }: Props) {
+export function ProformaClient({ dealId, base, computedDebtService, loans, initialDebtService, initialOtherDebt }: Props) {
   const [debt, setDebt] = useState(initialDebtService)
   const [otherDebt, setOtherDebt] = useState(initialOtherDebt)
   const [isPending, startTransition] = useTransition()
@@ -39,11 +44,13 @@ export function ProformaClient({ dealId, base, initialDebtService, initialOtherD
     })
   }
 
+  // Debt service defaults to the value computed from §18; a non-blank override wins.
+  const effDebt = debt.trim() !== '' ? num(debt) : computedDebtService
   const r = useMemo(() => computeProforma({
     ...base,
-    mustPayDebtService: num(debt),
+    mustPayDebtService: effDebt,
     otherDebtService: num(otherDebt),
-  }), [base, debt, otherDebt])
+  }), [base, effDebt, otherDebt])
 
   const display = r.years.slice(0, PROFORMA_DISPLAY_YEARS)
   const dscrCell = (d: number) => {
@@ -54,31 +61,47 @@ export function ProformaClient({ dealId, base, initialDebtService, initialOtherD
 
   return (
     <div className="space-y-6">
-      {/* Debt service inputs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>Must-Pay Annual Debt Service (§30)</label>
-          <input
-            className={inputCls} inputMode="numeric" placeholder="$ / year"
-            value={debt}
-            onChange={e => setDebt(e.target.value)}
-            onBlur={e => save('must_pay_debt_service', e.target.value)}
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Total annual payment on all must-pay (hard) loans. Drives the DSCR.
-          </p>
+      {/* Debt service — computed from §18, with an optional override */}
+      <div className="space-y-3">
+        <div className="rounded-2xl border border-border bg-muted/20 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Must-Pay Annual Debt Service — computed from §18</p>
+            <p className="text-lg font-bold tabular-nums">{money(computedDebtService)}</p>
+          </div>
+          {loans.length > 0 ? (
+            <ul className="mt-2 space-y-0.5">
+              {loans.map(l => (
+                <li key={l.line} className="flex justify-between gap-3 text-[11px] text-muted-foreground">
+                  <span>§{l.line} {l.label}{l.paymentType ? ` · ${l.paymentType}` : ''}</span>
+                  <span className="tabular-nums">{money(l.annualPayment)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-muted-foreground mt-1">Enter the §18 first/second-mortgage loan terms (amount, rate, amortization, payment type) to compute debt service.</p>
+          )}
         </div>
-        <div>
-          <label className={labelCls}>Other Must-Pay (optional)</label>
-          <input
-            className={inputCls} inputMode="numeric" placeholder="$ / year"
-            value={otherDebt}
-            onChange={e => setOtherDebt(e.target.value)}
-            onBlur={e => save('other_debt_service', e.target.value)}
-          />
-          <p className="text-[11px] text-muted-foreground mt-1">
-            Any additional must-pay obligation (Proforma row 41). Usually $0.
-          </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Override Debt Service (optional)</label>
+            <input
+              className={inputCls} inputMode="numeric" placeholder={computedDebtService > 0 ? money(computedDebtService) : '$ / year'}
+              value={debt}
+              onChange={e => setDebt(e.target.value)}
+              onBlur={e => save('must_pay_debt_service', e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Leave blank to use the computed value above.</p>
+          </div>
+          <div>
+            <label className={labelCls}>Other Must-Pay (optional)</label>
+            <input
+              className={inputCls} inputMode="numeric" placeholder="$ / year"
+              value={otherDebt}
+              onChange={e => setOtherDebt(e.target.value)}
+              onBlur={e => save('other_debt_service', e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Additional must-pay obligation (Proforma row 41). Usually $0.</p>
+          </div>
         </div>
       </div>
       <p className="text-xs text-muted-foreground">

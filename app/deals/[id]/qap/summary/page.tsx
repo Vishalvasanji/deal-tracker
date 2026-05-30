@@ -6,6 +6,7 @@ import { DEV_COST_CATEGORIES } from '@/lib/qap-dev-costs'
 import { computeDevCosts } from '@/lib/qap-dev-costs-calc'
 import { computeRevExp, type OtherLine } from '@/lib/qap-rev-exp-calc'
 import { computeProforma } from '@/lib/qap-proforma-calc'
+import { computeFinancing } from '@/lib/qap-financing-calc'
 import { computeSelection } from '@/lib/qap-selection-calc'
 import { evaluateUnitMix, unitMixMatrix, deriveRentLimits } from '@/lib/qap-unit-mix-eval'
 import Link from 'next/link'
@@ -42,7 +43,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
   for (const f of allFields) (s[f.section] ??= {})[f.field_key] = f.value ?? ''
   const sec = (n: string) => s[n] ?? {}
   const s11 = sec('section_11'), s12 = sec('section_12'), s13 = sec('section_13'), s14 = sec('section_14')
-  const s20 = sec('section_20'), s23 = sec('section_23'), s28 = sec('section_28'), s29 = sec('section_29')
+  const s18 = sec('section_18'), s20 = sec('section_20'), s23 = sec('section_23'), s28 = sec('section_28'), s29 = sec('section_29')
   const dc = sec('development_costs'), pfSec = sec('proforma')
   const s20n = (k: string) => intOf(s20[k])
 
@@ -85,7 +86,10 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
   for (const ci of costItems) amounts[ci.line_key] = ci.amount ?? 0
   for (const cat of DEV_COST_CATEGORIES) for (const line of cat.lines) if (line.pullKey) amounts[line.key] = s20n(line.pullKey)
   const modelSources = dc['model_total_sources'] ? intOf(dc['model_total_sources']) : null
-  const devCosts = computeDevCosts(amounts, { totalUnits, totalSources: modelSources })
+  // Total permanent sources: prefer the structured §18 sum; fall back to the uploaded-model value.
+  const financing = computeFinancing(s18, s13)
+  const totalSources = financing.totalSources > 0 ? financing.totalSources : modelSources
+  const devCosts = computeDevCosts(amounts, { totalUnits, totalSources })
 
   // Pro Forma (operating budget + DSCRs)
   const pmgmt = reAmounts['management_fee'] ?? 0
@@ -97,7 +101,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
     otherOpEx1: Math.max(0, revExp.totalOperatingExpenses - pmgmt),
     reserve1: num(s29['s29_reserve_pupa']) * totalUnits,
     contingentAMFee1: Math.max(0, revExp.assetMgmt.allowableAsContingent),
-    mustPayDebtService: num(pfSec['must_pay_debt_service']),
+    mustPayDebtService: (pfSec['must_pay_debt_service'] ?? '').trim() !== '' ? num(pfSec['must_pay_debt_service']) : financing.mustPayDebtService,
     otherDebtService: num(pfSec['other_debt_service']),
     vacancyY13: pct(s28['s28_vacancy_y1_3'], 7), vacancyY4: pct(s28['s28_vacancy_y4_plus'], 7),
     rentInflY13: pct(s28['s28_rent_infl_y1_3'], 2), rentInflY415: pct(s28['s28_rent_infl_y4_15'], 2),
@@ -216,7 +220,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Sources</p>
             <Rows rows={[
-              ['Total Permanent Sources', modelSources != null ? money(modelSources) : 'Not entered'],
+              ['Total Permanent Sources', totalSources != null && totalSources > 0 ? money(totalSources) : 'Not entered'],
               ['Total Development Cost', money(devCosts.total)],
             ]} strongLast />
             <p className={`text-xs mt-2 ${devCosts.sourcesUses.balanced ? 'text-emerald-600' : 'text-amber-600'}`}>

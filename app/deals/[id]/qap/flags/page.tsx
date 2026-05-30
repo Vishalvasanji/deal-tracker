@@ -12,6 +12,7 @@ import { computeSyndication } from '@/lib/qap-syndication-calc'
 import { V_FIXED_ITEMS, VI_FIXED_ITEMS } from '@/lib/qap-syndication'
 import { computeFlags, type Flag } from '@/lib/qap-flags'
 import { computeProforma, Y1_DSCR_MIN, Y1_DSCR_MAX } from '@/lib/qap-proforma-calc'
+import { computeFinancing } from '@/lib/qap-financing-calc'
 import { evaluateUnitMix, deriveRentLimits } from '@/lib/qap-unit-mix-eval'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react'
@@ -114,12 +115,15 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
     if (Array.isArray(p)) basisAdjustments = p.filter((a) => a && (a.basis_type === 'acq' || a.basis_type === 'constr') && typeof a.amount === 'number')
   } catch { basisAdjustments = [] }
   const modelSources = dc['model_total_sources'] ? intOf(dc['model_total_sources']) : null
+  // Total permanent sources for the §37 balance: prefer the structured §18 sum; fall back to the model value.
+  const financing = computeFinancing(s18, s13)
+  const sourcesForBalance = financing.totalSources > 0 ? financing.totalSources : modelSources
 
   const devCosts = computeDevCosts(amounts, {
     parish: s12['parish'] || undefined,
     buildingType: s12['building_type'] || undefined,
     unitsByBr, totalUnits,
-    totalSources: modelSources,
+    totalSources: sourcesForBalance,
     bondFinanced: s10['bond_financing'] === 'Yes',
     is4pct: s10['lihtc_4pct'] === 'Yes',
     bondIssuanceCosts: intOf(s10['costs_of_issuance']),
@@ -202,8 +206,16 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
   // ── Unit Mix evaluation ──
   const um = evaluateUnitMix(units, s14['lihtc_set_aside_election'] ?? '', deriveRentLimits(s12, s23))
 
-  // ── Pro Forma (DSCR milestones for the §30/§31 flags) ──
+  // ── Pro Forma debt service from §18 (a non-blank override wins) + the equity-gap credit ──
   const proSec = sec('proforma')
+  const debtOverride = (proSec['must_pay_debt_service'] ?? '').trim()
+  const mustPayDebt = debtOverride !== '' ? num(debtOverride) : financing.mustPayDebtService
+  // Equity-gap credit (Excel H686 = (gap/price)/% which reduces to gap × credits / proceeds).
+  const equityGap = devCosts.total - financing.gapFillingSources
+  const syndProceeds = num(syn['proceeds'])
+  const gapMethodCredit = syndProceeds > 0 ? (equityGap * num(s14['credits_requested'])) / syndProceeds : null
+
+  // ── Pro Forma (DSCR milestones for the §30/§31 flags) ──
   const pmgmt = reAmounts['management_fee'] ?? 0
   const pctRate = (v: string | undefined, std: number) => { const t = (v ?? '').trim(); return (t === '' ? std : num(t)) / 100 }
   const pf = computeProforma({
@@ -213,7 +225,7 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
     otherOpEx1: Math.max(0, revExp.totalOperatingExpenses - pmgmt),
     reserve1: num(s29['s29_reserve_pupa']) * totalUnits,
     contingentAMFee1: Math.max(0, revExp.assetMgmt.allowableAsContingent),
-    mustPayDebtService: num(proSec['must_pay_debt_service']),
+    mustPayDebtService: mustPayDebt,
     otherDebtService: num(proSec['other_debt_service']),
     vacancyY13: pctRate(s28['s28_vacancy_y1_3'], 7),
     vacancyY4: pctRate(s28['s28_vacancy_y4_plus'], 7),
@@ -232,6 +244,7 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
     reserve: reserveStarted ? reserve : null,
     synd,
     devCostsSyndTotal,
+    gapMethodCredit,
     unitMix: {
       setAsideElection: um.setAsideElection,
       setAsideMet: um.setAsideMet,

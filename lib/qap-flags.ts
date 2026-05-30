@@ -28,6 +28,7 @@ export interface FlagsInput {
   reserve?: ReserveResult | null
   synd?: SyndResult | null
   devCostsSyndTotal?: number | null // Dev Costs "Syndication Costs" total (D106) — for the Part VI cross-check
+  gapMethodCredit?: number | null   // annual LIHTC by the equity-gap method (Excel H686); null when not computable
   unitMix?: {
     setAsideElection: string
     setAsideMet: boolean
@@ -163,13 +164,19 @@ export function computeFlags(input: FlagsInput): Flag[] {
   // ── Basis Calculation (reuse computeBasis reconciliation notes) ──────────────
   if (input.basis) {
     for (const e of input.basis.errors ?? []) add('warning', 'Basis Calculation', 'basis-calculation', e.label, 'Reconciliation')
-    // §14 — Credit Request Too High (Excel B693). Excel limits to MIN(basis method, equity-gap method);
-    // the equity-gap limit lands with the Summary roll-up. Checking the basis-method ceiling alone is a
-    // safe subset (it never false-positives, since MIN(...) ≤ the basis ceiling).
-    const maxCredit = Math.round(input.basis.totals.maximumPermittedCredit)
+    // §14 — Credit Request Too High (Excel B693 / H690 = MIN(basis method, equity-gap method)).
+    const basisCredit = Math.round(input.basis.totals.maximumPermittedCredit)
     const creditsReq = num(s14['credits_requested'])
-    if (maxCredit > 0 && creditsReq > maxCredit)
-      add('error', PD, 'project-description', `Total credits requested ($${creditsReq.toLocaleString()}) exceed the allowable LIHTCs from the Basis Calculation ($${maxCredit.toLocaleString()}).`, '§14 Requests for LIHTCs')
+    const limits: number[] = []
+    if (basisCredit > 0) limits.push(basisCredit)
+    if (input.gapMethodCredit != null) limits.push(Math.round(input.gapMethodCredit))
+    if (limits.length > 0) {
+      const limit = Math.min(...limits)
+      const method = limits.length > 1 ? 'the lower of the Basis and Equity-Gap methods'
+        : input.gapMethodCredit != null ? 'the Equity-Gap method' : 'the Basis Calculation'
+      if (creditsReq > limit)
+        add('error', PD, 'project-description', `Total credits requested ($${creditsReq.toLocaleString()}) exceed the allowable LIHTCs ($${limit.toLocaleString()}) — ${method}.`, '§14 Requests for LIHTCs')
+    }
   }
 
   // ── Revenues & Expenses ──────────────────────────────────────────────────────

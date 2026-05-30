@@ -15,6 +15,8 @@ interface Props {
   initialComments: Record<string, string>
   /** read-only line amounts pulled from §20 (keyed by line_key) */
   pulledAmounts: Record<string, number>
+  /** total permanent sources summed from the structured §18 inputs (preferred over the model upload when > 0) */
+  computedSources?: number
   deps: {
     parish?: string
     buildingType?: string
@@ -43,7 +45,7 @@ const cardCls = 'rounded-xl border border-border bg-card px-4 py-3 space-y-2'
 type AdjForm = { editingId: string | null; type: 'acq' | 'constr'; explanation: string; amount: string }
 
 export function DevelopmentCostsClient({
-  dealId, initialAmounts, model, initialAdjustments, initialComments, pulledAmounts, deps,
+  dealId, initialAmounts, model, initialAdjustments, initialComments, pulledAmounts, computedSources, deps,
 }: Props) {
   const [amounts, setAmounts] = useState<Record<string, number | null>>(initialAmounts)
   const [modelTdc, setModelTdc] = useState<number | null>(model.tdc)
@@ -65,11 +67,12 @@ export function DevelopmentCostsClient({
     for (const [k, v] of Object.entries(pulledAmounts)) numericAmounts[k] = v // §20 read-only pulls override
     const d: DevCostDeps = {
       ...deps,
-      totalSources: modelSources,
+      // Prefer the structured §18 sources sum; fall back to the uploaded-model total.
+      totalSources: computedSources && computedSources > 0 ? computedSources : modelSources,
       basisAdjustments: adjustments,
     }
     return computeDevCosts(numericAmounts, d)
-  }, [amounts, pulledAmounts, modelSources, adjustments, deps])
+  }, [amounts, pulledAmounts, modelSources, computedSources, adjustments, deps])
 
   const allocated = result.total
   const remaining = modelTdc == null ? null : modelTdc - allocated

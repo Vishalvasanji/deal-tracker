@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { deals, qapFields, qapUnitTypes } from '@/lib/db/schema'
 import { eq, or, and } from 'drizzle-orm'
 import { computeRevExp, type OtherLine } from '@/lib/qap-rev-exp-calc'
+import { computeFinancing } from '@/lib/qap-financing-calc'
 import { ProformaClient } from '@/components/qap/ProformaClient'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
@@ -27,20 +28,23 @@ export default async function ProformaPage({ params }: { params: Promise<{ id: s
     .limit(1)
   if (!deal) notFound()
 
-  const [revExpFields, units, s12Fields, s13Fields, s28Fields, s29Fields, proformaFields] = await Promise.all([
+  const [revExpFields, units, s12Fields, s13Fields, s18Fields, s28Fields, s29Fields, proformaFields] = await Promise.all([
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'rev_exp'))),
     db.select().from(qapUnitTypes).where(eq(qapUnitTypes.deal_id, deal.id)),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_12'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_13'))),
+    db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_18'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_28'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'section_29'))),
     db.select().from(qapFields).where(and(eq(qapFields.deal_id, deal.id), eq(qapFields.section, 'proforma'))),
   ])
   const s12 = Object.fromEntries(s12Fields.map(f => [f.field_key, f.value ?? '']))
   const s13 = Object.fromEntries(s13Fields.map(f => [f.field_key, f.value ?? '']))
+  const s18 = Object.fromEntries(s18Fields.map(f => [f.field_key, f.value ?? '']))
   const s28 = Object.fromEntries(s28Fields.map(f => [f.field_key, f.value ?? '']))
   const s29 = Object.fromEntries(s29Fields.map(f => [f.field_key, f.value ?? '']))
   const pf = Object.fromEntries(proformaFields.map(f => [f.field_key, f.value ?? '']))
+  const financing = computeFinancing(s18, s13)
 
   // Revenues & Expenses year-1 figures.
   const reAmounts: Record<string, number> = {}
@@ -110,6 +114,8 @@ export default async function ProformaPage({ params }: { params: Promise<{ id: s
         <ProformaClient
           dealId={deal.id}
           base={base}
+          computedDebtService={financing.mustPayDebtService}
+          loans={financing.loans}
           initialDebtService={pf['must_pay_debt_service'] ?? ''}
           initialOtherDebt={pf['other_debt_service'] ?? ''}
         />
