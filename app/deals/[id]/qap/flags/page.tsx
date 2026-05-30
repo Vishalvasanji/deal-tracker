@@ -11,6 +11,7 @@ import { RESERVE_YEARS, INTEREST_RATE_DEFAULT, INFLATION_RATE_DEFAULT } from '@/
 import { computeSyndication } from '@/lib/qap-syndication-calc'
 import { V_FIXED_ITEMS, VI_FIXED_ITEMS } from '@/lib/qap-syndication'
 import { computeFlags, type Flag } from '@/lib/qap-flags'
+import { computeProforma, Y1_DSCR_MIN, Y1_DSCR_MAX } from '@/lib/qap-proforma-calc'
 import { evaluateUnitMix, deriveRentLimits } from '@/lib/qap-unit-mix-eval'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react'
@@ -201,6 +202,27 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
   // ── Unit Mix evaluation ──
   const um = evaluateUnitMix(units, s14['lihtc_set_aside_election'] ?? '', deriveRentLimits(s12, s23))
 
+  // ── Pro Forma (DSCR milestones for the §30/§31 flags) ──
+  const proSec = sec('proforma')
+  const pmgmt = reAmounts['management_fee'] ?? 0
+  const pctRate = (v: string | undefined, std: number) => { const t = (v ?? '').trim(); return (t === '' ? std : num(t)) / 100 }
+  const pf = computeProforma({
+    grossRent1: annualGrossRent,
+    otherRevenue1: Math.max(0, revExp.revenueTotal - annualGrossRent),
+    pmgmtFee1: pmgmt,
+    otherOpEx1: Math.max(0, revExp.totalOperatingExpenses - pmgmt),
+    reserve1: num(s29['s29_reserve_pupa']) * totalUnits,
+    contingentAMFee1: Math.max(0, revExp.assetMgmt.allowableAsContingent),
+    mustPayDebtService: num(proSec['must_pay_debt_service']),
+    otherDebtService: num(proSec['other_debt_service']),
+    vacancyY13: pctRate(s28['s28_vacancy_y1_3'], 7),
+    vacancyY4: pctRate(s28['s28_vacancy_y4_plus'], 7),
+    rentInflY13: pctRate(s28['s28_rent_infl_y1_3'], 2),
+    rentInflY415: pctRate(s28['s28_rent_infl_y4_15'], 2),
+    expenseInfl: pctRate(s28['s28_expense_infl'], 3),
+    reserveEscalation: pctRate(s28['s28_adrr_escalation'], 0),
+  })
+
   // ── Aggregate every flag ──
   const flags = computeFlags({
     s,
@@ -217,6 +239,14 @@ export default async function SeriousProblemsPage({ params }: { params: Promise<
       unitsUnder30: um.unitsUnder30,
       rowFlagCount: um.rowFlagCount,
     },
+    proforma: pf.hasDebtService ? {
+      hasCashFlow: true,
+      year1Dscr: pf.year1Dscr,
+      minY1Dscr: Y1_DSCR_MIN,
+      maxY1Dscr: Y1_DSCR_MAX,
+      maxDscr15: pf.maxDscr15,
+      minDscr15: pf.minDscr15,
+    } : null,
   })
 
   const errorCount = flags.filter(f => f.severity === 'error').length

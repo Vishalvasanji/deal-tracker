@@ -56,6 +56,7 @@ export async function upsertQapField(
   revalidatePath(`/deals/${dealId}/qap/schedules`)
   revalidatePath(`/deals/${dealId}/qap/financing-cert`)
   revalidatePath(`/deals/${dealId}/qap/demand-cert`)
+  revalidatePath(`/deals/${dealId}/qap/proforma`)
   revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
@@ -124,6 +125,7 @@ export async function upsertQapUnitType(
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/proforma`)
   revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
@@ -131,6 +133,7 @@ export async function deleteQapUnitType(id: string, dealId: string) {
   await db.delete(qapUnitTypes).where(eq(qapUnitTypes.id, id))
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/proforma`)
   revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
@@ -178,6 +181,7 @@ export async function replaceQapUnitTypes(dealId: string, rows: UnitRowData[]) {
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/proforma`)
   revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
