@@ -292,6 +292,14 @@ export function SyndicationClient({ dealId, taxCredits, devCostsSyndTotal, taxpa
         )}
       </div>
 
+      {/* ── IV. Identity of Interest (static certification — Syndication C93) ── */}
+      <div className="space-y-2">
+        <p className={subHdr}>IV. Identity of Interest Information With Respect to Commercial Loans</p>
+        <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
+          The terms of the interim financing specified in Section III above were negotiated in good faith and on an &ldquo;arm&apos;s-length&rdquo; basis. There is no identity-of-interest between the entities listed in the Sources of Interim Funds and any partners or investors in the Taxpayer/Applicant.
+        </p>
+      </div>
+
       {/* ── V. Interim Funds from Syndicator and Syndication Costs ── */}
       <div className="space-y-3">
         <p className={subHdr}>V. Interim Funds from Syndicator &amp; Syndication Costs</p>

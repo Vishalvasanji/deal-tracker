@@ -78,7 +78,7 @@ export function Section29Form({ dealId, initial, totalUnits }: Props) {
 
   const { min: minPupa, note: minPupaNote } = minPupaFor(hudRd, projectType)
   const showMin    = hudRd !== '' && projectType !== ''
-  const belowMin   = minPupa !== null && pupa > 0 && pupa < minPupa
+  const belowMin   = minPupa !== null && (values['s29_reserve_pupa'] ?? '').trim() !== '' && pupa < minPupa
 
   return (
     <div className="space-y-8">

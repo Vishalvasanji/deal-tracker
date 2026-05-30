@@ -27,7 +27,7 @@ const POOL_LIHTC_CAP: Record<string, number> = {
   'Choice Neighborhood Initiative CNI Set-Aside': 1_500_000,
 }
 
-const SET_ASIDE_OPTIONS = ['20/50', '40/60', 'Income Averaging', 'Missing']
+const SET_ASIDE_OPTIONS = ['20/50', '40/60', 'Average Income', 'Missing']
 
 const labelCls = 'block text-sm font-medium text-foreground mb-1'
 const inputCls =

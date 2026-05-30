@@ -14,9 +14,10 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 const readOnlyCell = 'text-right text-sm tabular-nums px-2 py-1.5 bg-muted/30 rounded text-foreground'
 const pendingCell = 'text-right text-sm tabular-nums px-2 py-1.5 text-muted-foreground italic'
 
-// M-6: Removed 'Propane' and 'Oil' from FUEL_OPTS to match HOT_WATER_FUEL_OPTS
+// Cooking & hot-water fuel = Controls!A127:A130 (4 opts). Heating fuel (§23.04) = Controls!A120:A125 (6, incl. Propane/Oil).
 const FUEL_OPTS = ['Natural Gas', 'Electric', 'Other', 'Missing']
 const HOT_WATER_FUEL_OPTS = ['Natural Gas', 'Electric', 'Other', 'Missing']
+const HEAT_FUEL_OPTS = ['Natural Gas', 'Electric', 'Propane', 'Oil', 'Other', 'Missing']
 const HEAT_SYSTEM_OPTS = ['Forced Air', 'Hot Water', 'Other', 'Missing']
 const PAYER_OPTS = ['Owner', 'Tenant', 'Missing']
 const YES_NO_OPTS = ['Yes', 'No', 'Missing']
@@ -341,7 +342,7 @@ export function Section23Form({ dealId, initial, parish, bondFinancing }: Props)
               onChange={e => handleSelect('s23_04_heating_fuel', e.target.value)}
             >
               <option value="">Select…</option>
-              {FUEL_OPTS.map(o => <option key={o}>{o}</option>)}
+              {HEAT_FUEL_OPTS.map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
           <div>

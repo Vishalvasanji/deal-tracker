@@ -127,21 +127,22 @@ function getRowFlags(row: UnitRow, rentLimits?: RentLimits): string[] {
     flags.push(`${row.baths} baths is below the LHC minimum of ${MIN_BATHS[br!]} for ${br}BR`)
   }
 
-  // Flag 5 — PSH rule: must be 0BR or 1BR at 30% AMI (Excel AQ)
+  // Flag 5 — PSH rule: must be 0BR or 1BR at 20% AMI (Excel AQ10 → Controls!A144 = "20% AMI")
   if (row.is_psh === 1) {
     const validBr = br === 0 || br === 1
-    const valid30 = row.ami_restriction === '30'
-    if (!validBr || !valid30) {
+    const valid20 = row.ami_restriction === '20'
+    if (!validBr || !valid20) {
       const issues: string[] = []
       if (!validBr) issues.push('must be 0BR or 1BR')
-      if (!valid30) issues.push('must be at 30% AMI')
+      if (!valid20) issues.push('must be at 20% AMI')
       flags.push(`PSH rule violation: ${issues.join(' and ')}`)
     }
   }
 
-  // Flag 7 — Staff unit rule: not LIHTC, not PSH, Not AMI Restricted, rent = $0 (Excel AS)
-  if (row.is_staff === 1 && row.is_lihtc !== 1) {
+  // Flag 7 — Staff unit rule: not LIHTC, not PSH, Not AMI Restricted, rent = $0 (Excel AS10)
+  if (row.is_staff === 1) {
     const issues: string[] = []
+    if (row.is_lihtc === 1)                     issues.push('cannot also be LIHTC')
     if (row.is_psh === 1)                       issues.push('cannot also be PSH')
     if (row.ami_restriction !== 'unrestricted') issues.push('AMI must be Not Restricted')
     if ((row.monthly_rent ?? 0) !== 0)          issues.push('rent must be $0')
@@ -307,7 +308,7 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
   const staffUnits   = rows.reduce((s, r) => s + (r.is_staff && !r.is_lihtc ? (r.num_units ?? 0) : 0), 0)
   const subsidyUnits = rows.reduce((s, r) => s + (r.is_subsidy ? (r.num_units ?? 0) : 0), 0)
   // PSH count uses one consistent rule (any is_psh row). The Excel's first data row applies a
-  // stricter rule (0/1BR & 30% AMI) that is not copied to later rows — an internal Excel
+  // stricter rule (0/1BR & 20% AMI) that is not copied to later rows — an internal Excel
   // inconsistency. Invalid PSH units are already surfaced per-row via getRowFlags (Flag 5).
   const pshUnits     = rows.reduce((s, r) => s + (r.is_psh ? (r.num_units ?? 0) : 0), 0)
   const residentialUnits = totalUnits - staffUnits
@@ -740,6 +741,11 @@ export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiR
                 <span className={statLbl}>≤30% AMI</span>
                 <span className={statVal}>{unitsUnder30}</span>
               </div>
+              {totalUnits > 0 && unitsUnder30 / totalUnits < 0.05 && (
+                <p className="text-[11px] text-rose-600">
+                  Only {((unitsUnder30 / totalUnits) * 100).toFixed(1)}% of units are affordable at or below 30% AMI; the QAP requires at least 5%.
+                </p>
+              )}
               <div className="flex justify-between">
                 <span className={statLbl}>≤50% AMI</span>
                 <span className={statVal}>{unitsUnder50}</span>

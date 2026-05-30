@@ -10,7 +10,7 @@ const noteCls = 'text-xs text-muted-foreground rounded-lg px-3 py-2 bg-muted/50'
 
 const NEIGHBORHOOD_URBAN_OPTS = ['Within 1 Mile Radius', 'Within 2 Mile Radius', 'No', 'Missing']
 const NEIGHBORHOOD_RURAL_OPTS = ['Within 5 Mile Radius', 'Over 5 Mile Radius', 'No', 'Missing']
-const INCOMPATIBLE_OPTS = ['Adjacent', 'No', 'Missing']
+const INCOMPATIBLE_OPTS = ['Adjacent', 'No', 'Missing', 'Within 1/2 Mile Radius']
 
 interface Props {
   dealId: string

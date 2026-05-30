@@ -43,7 +43,7 @@ const n = (v: number | null | undefined) => (typeof v === 'number' && !isNaN(v) 
 function catSum(amounts: Amounts, categoryKey: string): number {
   const cat = DEV_COST_CATEGORIES.find(c => c.key === categoryKey)
   if (!cat) return 0
-  return cat.lines.reduce((s, l) => s + n(amounts[l.key]), 0)
+  return cat.lines.reduce((s, l) => s + (l.displayOnly ? 0 : n(amounts[l.key])), 0)
 }
 
 export interface DevCostResult {

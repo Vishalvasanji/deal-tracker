@@ -177,11 +177,13 @@ export function Section13Form({ dealId, initial, isRural = false, isChdo = false
   const poolData = POOLS[selectedPool] ?? null
 
   // QNP/CHDO cap: $1M if rural, $1.5M otherwise
-  const lihtcCap = poolData
-    ? selectedPool === 'Qualified Non-Profit/CHDO Set-Aside' && isRural
-      ? 1_000_000
-      : poolData.lihtcCap
-    : null
+  const lihtcCap = !poolData
+    ? null
+    : selectedPool === 'Reprocessing'
+      ? null // Excel Controls!C37 is blank — no per-project LIHTC cap for Reprocessing
+      : selectedPool === 'Qualified Non-Profit/CHDO Set-Aside' && isRural
+        ? 1_000_000
+        : poolData.lihtcCap
 
   const nhtfAmount = parseDollar(values.nhtf_requested ?? '0')
   const homeAmount = parseDollar(values.home_requested ?? '0')

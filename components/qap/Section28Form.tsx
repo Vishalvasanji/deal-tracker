@@ -171,6 +171,20 @@ export function Section28Form({ dealId, initial }: Props) {
           </div>
         </div>
         <p className={noteCls}>LHC standard: rent inflation 2.0% (3% after Year 15); expense inflation 3.0%. Enter different rates only with an explanation.</p>
+        {(() => {
+          const ri13 = parseFloat((values['s28_rent_infl_y1_3'] ?? '').replace('%', ''))
+          const ri415 = parseFloat((values['s28_rent_infl_y4_15'] ?? '').replace('%', ''))
+          const ei = parseFloat((values['s28_expense_infl'] ?? '').replace('%', ''))
+          const warns: string[] = []
+          if (!isNaN(ri13) && ri13 > 2.0) warns.push('Rent Inflation (years 1–3) must be no higher than the LHC Standard 2.0%.')
+          if (!isNaN(ri415) && ri415 > 2.0) warns.push('Rent Inflation (years 4+) must be no higher than the LHC Standard 2.0%.')
+          if (!isNaN(ei) && ei < 2.8) warns.push('Expense Inflation must be at or above the LHC Standard 2.8%.')
+          return warns.length ? (
+            <div className="space-y-1 mt-1">
+              {warns.map((w, i) => <p key={i} className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-800">{w}</p>)}
+            </div>
+          ) : null
+        })()}
       </div>
 
       {/* ADRR Escalation Rate */}

@@ -70,8 +70,8 @@ export function Section27Form({ dealId, initial, totalUnits }: Props) {
   const hearingVisionRequired = totalUnits > 0 ? Math.ceil(totalUnits * 0.02) : null
   const mobilityEntered       = parseInt(values['s27_06_mobility_units'] ?? '') || 0
   const hearingVisionEntered  = parseInt(values['s27_07_hearing_vision_units'] ?? '') || 0
-  const mobilityShort         = mobilityRequired !== null && mobilityEntered > 0 && mobilityEntered < mobilityRequired
-  const hearingVisionShort    = hearingVisionRequired !== null && hearingVisionEntered > 0 && hearingVisionEntered < hearingVisionRequired
+  const mobilityShort         = mobilityRequired !== null && mobilityEntered < mobilityRequired
+  const hearingVisionShort    = hearingVisionRequired !== null && hearingVisionEntered < hearingVisionRequired
 
   const resiliencyActive = values['s27_09_resiliency'] === 'Yes'
   const fortifiedRoofMissing = resiliencyActive && values['s27_09_fortified_roof'] !== 'Yes'

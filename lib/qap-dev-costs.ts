@@ -14,6 +14,8 @@ export interface DevCostLine {
   pullKey?: string
   /** fee-limit checked in Section 41 */
   feeLimit?: boolean
+  /** rendered as an input but excluded from the category subtotal/total — matches an orphaned Excel row */
+  displayOnly?: boolean
 }
 
 export interface DevCostCategory {
@@ -83,7 +85,7 @@ export const DEV_COST_CATEGORIES: DevCostCategory[] = [
     key: 'hard_outside',
     label: 'Hard Costs Outside Construction Contract',
     lines: [
-      { key: 'bond_premium_taxpayer', label: 'Bond Premium Paid by Taxpayer' },
+      { key: 'bond_premium_taxpayer', label: 'Bond Premium Paid by Taxpayer', displayOnly: true },
       { key: 'other_hard_1', label: 'Other Hard Cost (describe)' },
       { key: 'other_hard_2', label: 'Other Hard Cost (describe)' },
       { key: 'other_hard_3', label: 'Other Hard Cost (describe)' },
