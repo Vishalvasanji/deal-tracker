@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { upsertQapUnitType, deleteQapUnitType, replaceQapUnitTypes } from '@/lib/qap-actions'
 import type { QapUnitType } from '@/lib/db/schema'
+import { getUnitRowFlags as getRowFlags, MIN_SQFT, MIN_BATHS, type RentLimits } from '@/lib/qap-unit-mix-eval'
 import { Trash2, Plus, ClipboardPaste, AlertTriangle } from 'lucide-react'
 
 const AMI_OPTIONS = ['20', '30', '40', '50', '60', '70', '80', '120', 'unrestricted'] as const
@@ -16,9 +17,9 @@ const AMI_LABELS: Record<string, string> = {
 const BR_LABELS = ['0 BR', '1 BR', '2 BR', '3 BR', '4 BR']
 const BR_RANGE  = [0, 1, 2, 3, 4]
 
-// LHC minimums — Excel AE44:AI44 (sqft) and AE45:AI45 (baths) indexed by bedroom count
-const MIN_SQFT  = [450, 650, 800, 1100, 1400] // 0BR–4BR
-const MIN_BATHS = [1, 1, 1, 2, 2.5]           // 0BR–4BR
+// LHC sqft/baths minimums (MIN_SQFT / MIN_BATHS) and the per-row flag logic
+// (getRowFlags) now live in lib/qap-unit-mix-eval.ts so the Serious Problems
+// dashboard and this table share one source of truth.
 
 type UnitRow = Omit<QapUnitType, 'updated_at'> & { isNew?: boolean }
 
@@ -92,92 +93,6 @@ function isSkipRow(cols: string[]): boolean {
   const first = cols[0]?.toLowerCase().trim() ?? ''
   if (!first) return true
   return ['# brs', 'brs', 'beds', 'bedrooms', 'unit type', 'type', '#', 'total', 'totals'].includes(first)
-}
-
-interface RentLimits {
-  amiRentLimits?: Record<string, Record<number, number>>
-  marketRents?:   Record<number, number>
-  fmrRents?:      Record<number, number>
-}
-
-/**
- * Returns validation messages for a row.
- * Self-contained checks run always; rent-limit checks run when Section 23 data is provided.
- */
-function getRowFlags(row: UnitRow, rentLimits?: RentLimits): string[] {
-  const flags: string[] = []
-  const hasUnits = (row.num_units ?? 0) > 0
-  if (!hasUnits) return flags
-
-  const br = row.bedrooms
-  const inBrRange = br != null && br >= 0 && br <= 4
-
-  // LIHTC + Staff mutual conflict (Excel counts staff only when LIHTC ≠ Yes)
-  if (row.is_lihtc === 1 && row.is_staff === 1) {
-    flags.push('Unit is checked both LIHTC and Staff — it will be counted as LIHTC only, not Staff')
-  }
-
-  // Flag 3 — Sqft below LHC minimum (Excel AO: IF(E<AJ,3,""))
-  if (inBrRange && row.sqft != null && row.sqft < MIN_SQFT[br!]) {
-    flags.push(`Sqft ${row.sqft.toLocaleString()} is below the LHC minimum of ${MIN_SQFT[br!].toLocaleString()} for ${br}BR`)
-  }
-
-  // Flag 4 — Baths below LHC minimum (Excel AP: IF(D<AK,4,""))
-  if (inBrRange && row.baths != null && row.baths < MIN_BATHS[br!]) {
-    flags.push(`${row.baths} baths is below the LHC minimum of ${MIN_BATHS[br!]} for ${br}BR`)
-  }
-
-  // Flag 5 — PSH rule: must be 0BR or 1BR at 20% AMI (Excel AQ10 → Controls!A144 = "20% AMI")
-  if (row.is_psh === 1) {
-    const validBr = br === 0 || br === 1
-    const valid20 = row.ami_restriction === '20'
-    if (!validBr || !valid20) {
-      const issues: string[] = []
-      if (!validBr) issues.push('must be 0BR or 1BR')
-      if (!valid20) issues.push('must be at 20% AMI')
-      flags.push(`PSH rule violation: ${issues.join(' and ')}`)
-    }
-  }
-
-  // Flag 7 — Staff unit rule: not LIHTC, not PSH, Not AMI Restricted, rent = $0 (Excel AS10)
-  if (row.is_staff === 1) {
-    const issues: string[] = []
-    if (row.is_lihtc === 1)                     issues.push('cannot also be LIHTC')
-    if (row.is_psh === 1)                       issues.push('cannot also be PSH')
-    if (row.ami_restriction !== 'unrestricted') issues.push('AMI must be Not Restricted')
-    if ((row.monthly_rent ?? 0) !== 0)          issues.push('rent must be $0')
-    if (issues.length > 0) flags.push(`Staff unit issue: ${issues.join(', ')}`)
-  }
-
-  const rent = row.monthly_rent
-  if (rent != null && inBrRange) {
-    // Flag 1 — Rent > AMI contract rent limit (Excel AM: IF(L>AG,1,""))
-    const amiKey = row.ami_restriction
-    if (amiKey && amiKey !== 'unrestricted' && rentLimits?.amiRentLimits) {
-      const limit = rentLimits.amiRentLimits[amiKey]?.[br!]
-      if (limit !== undefined && rent > limit) {
-        flags.push(`Rent $${rent.toLocaleString()} exceeds the ${amiKey}% AMI contract rent limit of $${limit.toLocaleString()} for ${br}BR`)
-      }
-    }
-
-    // Flag 2 — Rent > Market rate (Excel AN: IF(L>AI,2,""))
-    if (rentLimits?.marketRents) {
-      const market = rentLimits.marketRents[br!]
-      if (market !== undefined && rent > market) {
-        flags.push(`Rent $${rent.toLocaleString()} exceeds estimated market rent of $${market.toLocaleString()} for ${br}BR`)
-      }
-    }
-
-    // Flag 6 — Rent > FMR (Excel AR: IF(L>AH,6,""))
-    if (rentLimits?.fmrRents) {
-      const fmr = rentLimits.fmrRents[br!]
-      if (fmr !== undefined && rent > fmr) {
-        flags.push(`Rent $${rent.toLocaleString()} exceeds HUD Fair Market Rent of $${fmr.toLocaleString()} for ${br}BR`)
-      }
-    }
-  }
-
-  return flags
 }
 
 export function UnitMixTable({ dealId, initialUnits, marketRents, fmrRents, amiRentLimits, setAsideElection }: Props) {

@@ -56,6 +56,7 @@ export async function upsertQapField(
   revalidatePath(`/deals/${dealId}/qap/schedules`)
   revalidatePath(`/deals/${dealId}/qap/financing-cert`)
   revalidatePath(`/deals/${dealId}/qap/demand-cert`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 export async function upsertQapUnitType(
@@ -123,12 +124,14 @@ export async function upsertQapUnitType(
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 export async function deleteQapUnitType(id: string, dealId: string) {
   await db.delete(qapUnitTypes).where(eq(qapUnitTypes.id, id))
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 type UnitRowData = {
@@ -175,6 +178,7 @@ export async function replaceQapUnitTypes(dealId: string, rows: UnitRowData[]) {
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/unit-mix`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 // ─── Development Costs (qap_cost_items) ────────────────────────────────────────
@@ -211,6 +215,7 @@ export async function upsertQapCostItem(dealId: string, lineKey: string, amount:
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/development-costs`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 /** Idempotently insert any missing development-cost line rows for a deal. */
@@ -291,12 +296,14 @@ export async function upsertQapBasisConfig(dealId: string, configIndex: number, 
 
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 export async function deleteQapBasisConfig(id: string, dealId: string) {
   await db.delete(qapBasisConfigs).where(eq(qapBasisConfigs.id, id))
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
 
 export async function replaceQapBasisConfigs(dealId: string, rows: BasisConfigData[]) {
@@ -325,4 +332,5 @@ export async function replaceQapBasisConfigs(dealId: string, rows: BasisConfigDa
   }
   revalidatePath(`/deals/${dealId}/qap`)
   revalidatePath(`/deals/${dealId}/qap/basis-calculation`)
+  revalidatePath(`/deals/${dealId}/qap/flags`)
 }
