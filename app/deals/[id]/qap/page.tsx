@@ -4,7 +4,7 @@ import { deals } from '@/lib/db/schema'
 import { eq, or } from 'drizzle-orm'
 import { getQapCompletion } from '@/lib/qap-completion'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck, FileSignature, LineChart, ShieldAlert, ChevronRight, TrendingUp, FileBarChart } from 'lucide-react'
+import { ArrowLeft, FileText, Building2, ClipboardList, Wallet, Calculator, Receipt, Users, Landmark, PiggyBank, ClipboardCheck, FileSignature, LineChart, ShieldAlert, ChevronRight, TrendingUp, FileBarChart, ListChecks } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 
 function ProgressCard({
@@ -98,6 +98,19 @@ export default async function QapHubPage({ params }: { params: Promise<{ id: str
             <div>
               <p className="font-semibold text-sm">Serious Problems</p>
               <p className="text-xs text-muted-foreground">Every validation error &amp; warning, linked to its source.</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        </Link>
+        <Link
+          href={`/deals/${deal.id}/qap/checklist`}
+          className="flex items-center justify-between gap-3 bg-card rounded-2xl border border-black/[0.06] px-5 py-4 hover:shadow-md transition-shadow sm:col-span-2"
+        >
+          <div className="flex items-center gap-3">
+            <ListChecks className="h-5 w-5 text-emerald-500 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Checklist</p>
+              <p className="text-xs text-muted-foreground">Threshold requirements &amp; exhibits, sorted by what this project must submit.</p>
             </div>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
