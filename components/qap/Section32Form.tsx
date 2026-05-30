@@ -17,6 +17,19 @@ function num(s: string): number | null {
   return isNaN(v) ? null : v
 }
 
+// What the QAP workbook's Asset-Management-Fee formula (PD H1045) literally computes — by TOTAL
+// units, reproducing its two cell-reference bugs (5–10 units → $250 not $500; 101+ → $0 not
+// $3,000). Used only to alert the user; the app's live value uses the clean schedule by LIHTC units.
+function workbookAssetMgmtFee(units: number): number {
+  if (units <= 0) return 0
+  if (units <= 4) return 250
+  if (units <= 10) return 250
+  if (units <= 20) return 1000
+  if (units <= 50) return 2000
+  if (units <= 100) return 2500
+  return 0
+}
+
 interface Props {
   dealId: string
   initial: Record<string, string>
@@ -52,6 +65,7 @@ export function Section32Form({ dealId, initial, totalUnits, lihtcUnits, hudRdAs
     asset_mgmt: hasUnits ? calcAssetMgmtFee(lihtcUnits) : null,
     subsidy_layering: hudRdAssistance && hasUnits ? Math.round(calcApplicationFee(totalUnits) / 4) : null,
   }
+  const wbAssetMgmt = hasUnits ? workbookAssetMgmtFee(totalUnits) : null
 
   const FEES: { key: string; label: string; detail?: string }[] = [
     { key: 'application', label: 'LHC Application Fee' },
@@ -139,6 +153,11 @@ export function Section32Form({ dealId, initial, totalUnits, lihtcUnits, hudRdAs
         <p className={noteCls}>
           Fees are calculated from the QAP Controls tier schedules (Application &amp; Analysis by total units; Asset Management by LIHTC units; Compliance at $40/unit). Enter a Proposed amount only to override the calculated fee; explain any difference in the comment below. The Subsidy Layering Review Fee (= Analysis ÷ 4) applies only when HUD/RD housing assistance is provided (§12.28).
         </p>
+        {hasUnits && wbAssetMgmt !== null && (
+          <p className="text-xs rounded-lg px-3 py-2 bg-amber-50 border border-amber-200 text-amber-800">
+            <strong>Asset Management Fee — confirm the basis with LHC.</strong> The app uses the clean Controls schedule keyed on LIHTC units ({fmt(calcFees.asset_mgmt ?? 0)}). The QAP workbook&apos;s formula instead keys on total units and contains two cell-reference bugs (5–10 units → $250 instead of $500; 101+ → $0 instead of $3,000), which for this project would compute {fmt(wbAssetMgmt)}. We kept the corrected value — please verify the intended basis and tier amounts with LHC.
+          </p>
+        )}
       </div>
 
       {/* Comment */}
